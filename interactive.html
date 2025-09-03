@@ -8,26 +8,26 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
         :root {
-            --color-bg: #edf2f7; /* Soft Blue Background */
-            --color-surface: #ffffff;
-            --color-text: #2d3748;
-            --color-text-muted: #718096;
-            --color-border: #e2e8f0;
-            --color-primary: #3182ce;
-            --color-primary-hover: #2b6cb0;
+            --color-bg: #1a202c; /* Deep Dark Blue Background */
+            --color-surface: #2d3748; /* Slightly Lighter Blue for the Map */
+            --color-text: #e2e8f0; /* Light Text for Contrast */
+            --color-text-muted: #a0aec0;
+            --color-border: #4a5568;
+            --color-primary: #4299e1; /* Brighter Blue for Buttons */
+            --color-primary-hover: #63b3ed;
             --color-secondary: #718096;
-            --color-secondary-hover: #4a5568;
-            --color-success: #38a169;
-            --color-success-hover: #2f855a;
-            --color-line: #4a5568; /* Darker line color */
+            --color-secondary-hover: #a0aec0;
+            --color-success: #48bb78;
+            --color-success-hover: #68d391;
+            --color-line: #718096; /* Lighter line color for visibility */
             
-            /* Priority Colors */
-            --priority-high-bg: #fed7d7;
-            --priority-high-border: #f56565;
-            --priority-medium-bg: #feebc8;
-            --priority-medium-border: #f6ad55;
-            --priority-low-bg: #c6f6d5;
-            --priority-low-border: #68d391;
+            /* Priority Colors (adjusted for dark mode) */
+            --priority-high-bg: rgba(229, 62, 62, 0.2);
+            --priority-high-border: #e53e3e;
+            --priority-medium-bg: rgba(237, 137, 54, 0.2);
+            --priority-medium-border: #ed8936;
+            --priority-low-bg: rgba(72, 187, 120, 0.2);
+            --priority-low-border: #48bb78;
         }
 
         body {
@@ -69,7 +69,7 @@
 
         .btn {
             background-color: var(--color-primary);
-            color: white;
+            color: #1a202c; /* Dark text on bright buttons */
             border: none;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
@@ -84,7 +84,7 @@
 
         .btn:hover {
             background-color: var(--color-primary-hover);
-            box-shadow: 0 4px 10px rgba(49, 130, 206, 0.2);
+            box-shadow: 0 4px 10px rgba(66, 153, 225, 0.2);
         }
 
         .btn-secondary {
@@ -100,7 +100,7 @@
         }
         .btn-success:hover {
             background-color: var(--color-success-hover);
-            box-shadow: 0 4px 10px rgba(56, 161, 105, 0.2);
+            box-shadow: 0 4px 10px rgba(72, 187, 120, 0.2);
         }
 
         input[type="file"] {
@@ -158,7 +158,7 @@
             background-color: var(--color-bg);
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
         }
 
         .node-toggle {
@@ -240,8 +240,8 @@
             display: none; /* Hidden by default */
         }
         .node-comment[contenteditable="true"] {
-             background: white;
-             box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+             background: #1a202c;
+             box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
              outline: 2px solid var(--color-primary);
         }
         
@@ -254,7 +254,7 @@
             position: absolute;
             background-color: var(--color-surface);
             border: 1px solid var(--color-border);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             border-radius: 8px;
             padding: 0.5rem 0;
             z-index: 1000;
@@ -274,7 +274,7 @@
             bottom: 1.5rem;
             right: 1.5rem;
             background-color: var(--color-success);
-            color: white;
+            color: #1a202c;
             padding: 0.5rem 1rem;
             border-radius: 6px;
             font-size: 0.9rem;
@@ -677,4 +677,6 @@
     </script>
 </body>
 </html>
+
+
 
