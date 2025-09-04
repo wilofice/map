@@ -5,16 +5,16 @@
         <node title="Setup Node.js Server" priority="high" status="pending" id="backend-002">
             <comment>Express server with middleware</comment>
         </node>
-        <node title="Database Design" priority="high" status="in-progress" id="backend-003">
+        <node title="Database Design" priority="high" status="pending" id="backend-003">
             <comment>Design and implement database schema</comment>
             <node title="User Schema" priority="high" status="pending" id="backend-004"/>
             <node title="Project Schema" priority="medium" status="pending" id="backend-005"/>
             <node title="Analytics Schema" priority="low" status="pending" id="backend-006"/>
         </node>
-        <node title="API Endpoints" priority="medium" status="pending" id="backend-007">
+        <node title="API Endpoints" priority="medium" status="in-progress" id="backend-007">
             <comment>RESTful API implementation</comment>
-            <node title="Authentication Routes" priority="high" status="pending" id="backend-008"/>
-            <node title="CRUD Operations" priority="medium" status="pending" id="backend-009"/>
+            <node title="Authentication Routes" priority="high" status="in-progress" id="backend-008"/>
+            <node title="CRUD Operations" priority="medium" status="in-progress" id="backend-009"/>
         </node>
     </node>
 </project_plan>

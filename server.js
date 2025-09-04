@@ -320,7 +320,8 @@ async function processImports(node, basePath, processedFiles) {
             
             for (const importTag of imports) {
                 if (importTag.$ && importTag.$.src) {
-                    const importPath = path.join(basePath, importTag.$.src);
+                    const importSrc = importTag.$.src.trim(); // Trim whitespace
+                    const importPath = path.join(basePath, importSrc);
                     
                     try {
                         const importedContent = await fs.readFile(importPath, 'utf8');
@@ -340,7 +341,7 @@ async function processImports(node, basePath, processedFiles) {
                                 if (!importedNode.$) importedNode.$ = {};
                                 importedNode.$.dataImported = 'true';
                                 // Sanitize the import source to be valid for XML attributes
-                                importedNode.$.dataImportFrom = importTag.$.src.replace(/^\.\//, '');
+                                importedNode.$.dataImportFrom = importSrc.replace(/^\.\//, '');
                             }
                             
                             // Process nested imports
@@ -350,7 +351,7 @@ async function processImports(node, basePath, processedFiles) {
                             newNodes.push(...importedNodes);
                         }
                     } catch (error) {
-                        console.error(`Failed to import ${importTag.$.src}:`, error);
+                        console.error(`Failed to import ${importSrc}:`, error);
                     }
                 }
             }
@@ -439,14 +440,14 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
         }
 
         // --- NEW LOGIC START ---
-        let nodeSource = node.$.dataSource || parentSource;
-        let originalTitle = node.$.title || 'Untitled';
+        let nodeSource = (node.$.dataSource || parentSource).trim();
+        let originalTitle = (node.$.title || 'Untitled').trim();
 
         // Check for the special marker in the title to determine the true source
         const titleParts = originalTitle.split('🔗');
         if (titleParts.length === 2) {
-            originalTitle = titleParts[0];
-            nodeSource = titleParts[1];
+            originalTitle = titleParts[0].trim();
+            nodeSource = titleParts[1].trim();
             console.log(`[SAVE] Parsed source from title: "${nodeSource}" for node "${originalTitle}"`);
             // Clean the title on the node object before it gets cloned
             node.$.title = originalTitle;
