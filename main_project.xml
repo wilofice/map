@@ -1,43 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
-    <node title="Main Project Overview" priority="high" status="pending" id="main-001">
+    <node title="Main Project Overview" priority="high" status="pending" id="undefined">
         <comment>This is the main project file that imports modules</comment>
-        <node title="Project Setup" priority="high" status="completed" id="main-002">
+        <node title="Project Setup" priority="high" status="completed" id="undefined">
             <comment>Initial project configuration and setup</comment>
         </node>
-        <node title="Deployment Phase" priority="medium" status="pending" id="main-003">
+        <node title="Deployment Phase" priority="medium" status="pending" id="undefined">
             <comment>Final deployment and release tasks</comment>
         </node>
-        <node title="Frontend Development" priority="high" status="pending" id="frontend-001">
+        <node title="Frontend Development" priority="high" status="pending" id="undefined">
             <comment>All frontend-related tasks</comment>
-            <node title="Setup React Framework" priority="high" status="completed" id="frontend-002">
+            <node title="Setup React Framework" priority="high" status="completed" id="undefined">
                 <comment>Initialize React application with TypeScript</comment>
             </node>
-            <node title="Design Component Library" priority="medium" status="pending" id="frontend-003">
+            <node title="Design Component Library" priority="medium" status="pending" id="undefined">
                 <comment>Create reusable UI components</comment>
-                <node title="Button Component" priority="low" status="completed" id="frontend-004"/>
-                <node title="Form Components" priority="medium" status="pending" id="frontend-005"/>
-                <node title="Navigation Menu" priority="high" status="pending" id="frontend-006"/>
+                <node title="Button Component" priority="low" status="pending" id="undefined"/>
+                <node title="Form Components" priority="medium" status="pending" id="undefined"/>
+                <node title="Navigation Menu" priority="high" status="pending" id="undefined"/>
             </node>
-            <node title="Implement State Management" priority="high" status="pending" id="frontend-007">
+            <node title="Implement State Management" priority="high" status="pending" id="undefined">
                 <comment>Setup Redux or Context API</comment>
             </node>
         </node>
-        <node title="Backend Development" priority="high" status="pending" id="backend-001">
+        <node title="Backend Development" priority="high" status="pending" id="undefined">
             <comment>Server-side implementation tasks</comment>
-            <node title="Setup Node.js Server" priority="high" status="pending" id="backend-002">
+            <node title="Setup Node.js Server" priority="high" status="pending" id="undefined">
                 <comment>Express server with middleware</comment>
             </node>
-            <node title="Database Design" priority="high" status="in-progress" id="backend-003">
+            <node title="Database Design" priority="high" status="in-progress" id="undefined">
                 <comment>Design and implement database schema</comment>
-                <node title="User Schema" priority="high" status="pending" id="backend-004"/>
-                <node title="Project Schema" priority="medium" status="pending" id="backend-005"/>
-                <node title="Analytics Schema" priority="low" status="pending" id="backend-006"/>
+                <node title="User Schema" priority="high" status="pending" id="undefined"/>
+                <node title="Project Schema" priority="medium" status="pending" id="undefined"/>
+                <node title="Analytics Schema" priority="low" status="pending" id="undefined"/>
             </node>
-            <node title="API Endpoints" priority="medium" status="pending" id="backend-007">
+            <node title="API Endpoints" priority="medium" status="pending" id="undefined">
                 <comment>RESTful API implementation</comment>
-                <node title="Authentication Routes" priority="high" status="pending" id="backend-008"/>
-                <node title="CRUD Operations" priority="medium" status="pending" id="backend-009"/>
+                <node title="Authentication Routes" priority="high" status="pending" id="undefined"/>
+                <node title="CRUD Operations" priority="medium" status="pending" id="undefined"/>
             </node>
         </node>
     </node>

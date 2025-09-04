@@ -421,7 +421,21 @@
             display: none;
         }
 
-        /* Connector lines for vertical layout - Individual node connectors */
+        /* Simple tree connector system for vertical layout */
+        
+        /* Main vertical line from parent to children group */
+        .children::before {
+            content: '';
+            position: absolute;
+            left: -3rem;
+            top: -3rem;
+            bottom: 50%;
+            width: 2px;
+            background: var(--color-line);
+            z-index: 0;
+        }
+        
+        /* Horizontal line to each child */
         .children > .node::before {
             content: '';
             position: absolute;
@@ -432,60 +446,34 @@
             background: var(--color-line);
             z-index: 0;
         }
-
+        
+        /* Vertical connecting line between siblings */
         .children > .node::after {
             content: '';
             position: absolute;
             left: -3rem;
-            top: 0;
-            bottom: 50%;
+            top: 50%;
+            bottom: -2.5rem;
             width: 2px;
             background: var(--color-line);
             z-index: 0;
         }
-
-        /* First child - vertical line starts from middle */
-        .children > .node:first-child::after {
-            top: 50%;
-        }
-
-        /* Last child - vertical line ends at middle */
+        
+        /* Last child doesn't need vertical line extending down */
         .children > .node:last-child::after {
-            bottom: 50%;
-        }
-
-        /* Only child - no vertical line needed */
-        .children > .node:only-child::after {
             display: none;
         }
-
-        /* Parent-to-children connector */
-        .node-wrapper.has-children::after {
-            content: '';
-            position: absolute;
-            left: 50%;
-            bottom: -1.5rem;
-            width: 2px;
-            height: 1.5rem;
-            background: var(--color-line);
-            transform: translateX(-50%);
-            z-index: 0;
-        }
-
-        /* Root nodes don't need connectors */
+        
+        /* Root nodes don't need parent connectors */
         .mind-map-container > .node::before,
-        .mind-map-container > .node::after,
-        .mind-map-container > .node .node-wrapper::after {
+        .mind-map-container > .node::after {
             display: none;
         }
 
         /* Animated connector lines */
+        .children.animated::before,
         .children.animated > .node::before,
         .children.animated > .node::after {
-            animation: connector-color-cycle 4s ease-in-out infinite;
-        }
-        
-        .children.animated ~ .node-wrapper.has-children::after {
             animation: connector-color-cycle 4s ease-in-out infinite;
         }
 
@@ -960,8 +948,6 @@
                 childNodes.forEach(childData => {
                     renderNode(childData, childrenContainer);
                 });
-                // Add has-children class for parent-to-children connector
-                nodeWrapper.classList.add('has-children');
             }
             
             return nodeDiv;
