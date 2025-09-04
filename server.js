@@ -4,9 +4,13 @@ const fs = require('fs').promises;
 const path = require('path');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
+const os = require('os');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
+
+// Working root directory - can be changed by the user
+let workingRootDir = process.cwd();
 
 const app = express();
 const PORT = 3000;
@@ -33,10 +37,10 @@ const builder = new xml2js.Builder({
     xmldec: { version: '1.0', encoding: 'UTF-8' }
 });
 
-// List all XML files in the project directory
+// List all XML files in the working root directory
 app.get('/api/files', async (req, res) => {
     try {
-        const files = await fs.readdir('.');
+        const files = await fs.readdir(workingRootDir);
         const xmlFiles = files.filter(file => file.endsWith('.xml'));
         res.json(xmlFiles);
     } catch (error) {
@@ -49,11 +53,14 @@ app.get('/api/files', async (req, res) => {
 app.get('/api/folders', async (req, res) => {
     try {
         const currentDir = req.query.path || '.';
-        const absolutePath = path.resolve(currentDir);
+        const absolutePath = path.isAbsolute(currentDir) ? 
+            currentDir : 
+            path.resolve(workingRootDir, currentDir);
         
-        // Security check: prevent directory traversal attacks
-        if (!absolutePath.includes(path.resolve('.'))) {
-            return res.status(403).json({ error: 'Access denied' });
+        // Basic security: ensure we're not accessing system-critical paths
+        const forbidden = ['/etc', '/usr', '/bin', '/sbin', '/var', '/sys', '/proc'];
+        if (forbidden.some(forbiddenPath => absolutePath.startsWith(forbiddenPath))) {
+            return res.status(403).json({ error: 'Access to system directories not allowed' });
         }
         
         const entries = await fs.readdir(absolutePath, { withFileTypes: true });
@@ -70,7 +77,8 @@ app.get('/api/folders', async (req, res) => {
         res.json({
             currentPath: currentDir,
             parentPath: parentDir,
-            folders: folders
+            folders: folders,
+            absolutePath: absolutePath
         });
     } catch (error) {
         console.error('Error browsing folders:', error);
@@ -78,16 +86,124 @@ app.get('/api/folders', async (req, res) => {
     }
 });
 
+// Get current working root directory
+app.get('/api/working-root', (req, res) => {
+    res.json({
+        workingRoot: workingRootDir,
+        absolutePath: path.resolve(workingRootDir)
+    });
+});
+
+// Change working root directory
+app.post('/api/working-root', async (req, res) => {
+    try {
+        const { path: newRoot } = req.body;
+        
+        if (!newRoot) {
+            return res.status(400).json({ error: 'Path is required' });
+        }
+        
+        // Verify the path exists and is a directory
+        const absolutePath = path.resolve(newRoot);
+        const stats = await fs.stat(absolutePath);
+        
+        if (!stats.isDirectory()) {
+            return res.status(400).json({ error: 'Path must be a directory' });
+        }
+        
+        // Basic security: ensure we're not accessing system-critical paths
+        const forbidden = ['/etc', '/usr', '/bin', '/sbin', '/var', '/sys', '/proc'];
+        if (forbidden.some(forbiddenPath => absolutePath.startsWith(forbiddenPath))) {
+            return res.status(403).json({ error: 'Access to system directories not allowed' });
+        }
+        
+        workingRootDir = absolutePath;
+        console.log(`Working root directory changed to: ${workingRootDir}`);
+        
+        res.json({
+            success: true,
+            workingRoot: workingRootDir,
+            message: `Working directory changed to ${workingRootDir}`
+        });
+    } catch (error) {
+        console.error('Error changing working root:', error);
+        res.status(500).json({ error: 'Failed to change working directory: ' + error.message });
+    }
+});
+
+// Browse filesystem starting from common locations
+app.get('/api/filesystem-browse', async (req, res) => {
+    try {
+        const targetPath = req.query.path;
+        
+        if (!targetPath) {
+            // Return common starting locations
+            const homeDir = os.homedir();
+            const commonPaths = [
+                { name: 'Home Directory', path: homeDir, type: 'home' },
+                { name: 'Desktop', path: path.join(homeDir, 'Desktop'), type: 'desktop' },
+                { name: 'Documents', path: path.join(homeDir, 'Documents'), type: 'documents' },
+                { name: 'Downloads', path: path.join(homeDir, 'Downloads'), type: 'downloads' }
+            ];
+            
+            // Filter out paths that don't exist
+            const availablePaths = [];
+            for (const pathInfo of commonPaths) {
+                try {
+                    const stats = await fs.stat(pathInfo.path);
+                    if (stats.isDirectory()) {
+                        availablePaths.push(pathInfo);
+                    }
+                } catch (e) {
+                    // Path doesn't exist, skip it
+                }
+            }
+            
+            return res.json({
+                commonLocations: availablePaths,
+                currentPath: null
+            });
+        }
+        
+        const absolutePath = path.resolve(targetPath);
+        
+        // Basic security check
+        const forbidden = ['/etc', '/usr', '/bin', '/sbin', '/var', '/sys', '/proc'];
+        if (forbidden.some(forbiddenPath => absolutePath.startsWith(forbiddenPath))) {
+            return res.status(403).json({ error: 'Access to system directories not allowed' });
+        }
+        
+        const entries = await fs.readdir(absolutePath, { withFileTypes: true });
+        const folders = entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => ({
+                name: entry.name,
+                path: path.join(absolutePath, entry.name),
+                type: 'folder'
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+            
+        const parentPath = path.dirname(absolutePath);
+        const canGoUp = parentPath !== absolutePath; // Prevent going above root
+        
+        res.json({
+            currentPath: absolutePath,
+            parentPath: canGoUp ? parentPath : null,
+            folders: folders
+        });
+    } catch (error) {
+        console.error('Error browsing filesystem:', error);
+        res.status(500).json({ error: 'Failed to browse filesystem: ' + error.message });
+    }
+});
+
 // List XML files in a specific folder
 app.get('/api/files/:folder(*)', async (req, res) => {
     try {
         const folderPath = req.params.folder || '.';
-        const absolutePath = path.resolve(folderPath);
-        
-        // Security check
-        if (!absolutePath.includes(path.resolve('.'))) {
-            return res.status(403).json({ error: 'Access denied' });
-        }
+        const absolutePath = path.isAbsolute(folderPath) ? 
+            folderPath : 
+            path.resolve(workingRootDir, folderPath);
         
         const files = await fs.readdir(absolutePath);
         const xmlFiles = files.filter(file => file.endsWith('.xml'));
@@ -107,13 +223,10 @@ app.get('/api/load/:filename(*)', async (req, res) => {
     try {
         const filename = req.params.filename;
         const folder = req.query.folder || '.';
-        const filePath = path.join(folder, filename);
-        
-        // Security check
-        const absolutePath = path.resolve(filePath);
-        if (!absolutePath.includes(path.resolve('.'))) {
-            return res.status(403).json({ error: 'Access denied' });
-        }
+        const folderPath = path.isAbsolute(folder) ? 
+            folder : 
+            path.resolve(workingRootDir, folder);
+        const filePath = path.join(folderPath, filename);
         
         const mergedData = await loadAndMergeXML(filePath);
         

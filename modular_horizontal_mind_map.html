@@ -128,6 +128,33 @@
             background: var(--color-success-hover);
         }
 
+        /* Working Root Directory Styles */
+        .working-root-section {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .working-root-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--color-bg);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--color-primary);
+        }
+
+        .working-root-path {
+            color: var(--color-primary);
+            font-weight: 500;
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
         /* Folder Navigation Styles */
         .folder-navigation {
             margin-bottom: 1.5rem;
@@ -220,6 +247,109 @@
         .folder-item.active {
             background: var(--color-primary);
             color: var(--color-bg);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--color-bg);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--color-text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+
+        .modal-close:hover {
+            color: var(--color-text);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .filesystem-nav {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .current-path {
+            font-family: monospace;
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+            word-break: break-all;
+        }
+
+        .fs-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .folder-btn.success {
+            background: var(--color-success);
+        }
+
+        .folder-btn.success:hover {
+            background: var(--color-success-hover);
+        }
+
+        .filesystem-folders h4 {
+            color: var(--color-text);
+            margin: 0 0 0.75rem 0;
+        }
+
+        .fs-folder-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: var(--color-surface);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fs-folder-item:hover {
+            background: rgba(66, 153, 225, 0.1);
         }
 
         /* Main Content */
@@ -626,6 +756,15 @@
     <div class="sidebar">
         <h2>📁 Project Files</h2>
         
+        <!-- Working Root Directory -->
+        <div class="working-root-section">
+            <div class="working-root-display">
+                <span class="folder-icon">🏠</span>
+                <span class="working-root-path" id="workingRootPath">Loading...</span>
+            </div>
+            <button class="folder-btn" id="changeRootBtn" title="Change working root directory">📂 Change Root</button>
+        </div>
+        
         <!-- Folder Navigation -->
         <div class="folder-navigation">
             <div class="current-folder" id="currentFolder">
@@ -702,9 +841,168 @@
 
         // Initialize application
         async function init() {
+            await loadWorkingRoot();
             await loadFolderList();
             await loadFileList();
             setupEventListeners();
+        }
+
+        // Load current working root directory
+        async function loadWorkingRoot() {
+            try {
+                const response = await fetch(`${API_BASE}/working-root`);
+                const data = await response.json();
+                document.getElementById('workingRootPath').textContent = data.workingRoot;
+                console.log('Working root:', data.workingRoot);
+            } catch (error) {
+                console.error('Failed to load working root:', error);
+                document.getElementById('workingRootPath').textContent = 'Error loading';
+            }
+        }
+
+        // Show filesystem browser modal
+        async function showFilesystemBrowser() {
+            try {
+                const response = await fetch(`${API_BASE}/filesystem-browse`);
+                const data = await response.json();
+                
+                let modalHTML = `
+                    <div class="modal-overlay" id="filesystemModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>📂 Select Working Directory</h3>
+                                <button class="modal-close" onclick="closeFilesystemBrowser()">✕</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="filesystem-nav">
+                                    <div class="current-path" id="fsCurrentPath">Select a location</div>
+                                    <div class="fs-controls">
+                                        <button class="folder-btn" id="fsParentBtn" style="display:none;">↑ Parent</button>
+                                        <button class="folder-btn success" id="fsSelectBtn" style="display:none;">✓ Select This Folder</button>
+                                    </div>
+                                </div>
+                                <div class="filesystem-folders" id="fsFolders">
+                `;
+                
+                if (data.commonLocations) {
+                    modalHTML += '<h4>Common Locations:</h4>';
+                    data.commonLocations.forEach(location => {
+                        modalHTML += `<div class="fs-folder-item" data-path="${location.path}">${location.name}</div>`;
+                    });
+                }
+                
+                modalHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                setupFilesystemBrowserEvents();
+            } catch (error) {
+                console.error('Failed to load filesystem browser:', error);
+                alert('Failed to load filesystem browser');
+            }
+        }
+
+        // Load folder contents in filesystem browser
+        async function loadFilesystemFolder(folderPath) {
+            try {
+                const response = await fetch(`${API_BASE}/filesystem-browse?path=${encodeURIComponent(folderPath)}`);
+                const data = await response.json();
+                
+                document.getElementById('fsCurrentPath').textContent = data.currentPath;
+                
+                const parentBtn = document.getElementById('fsParentBtn');
+                const selectBtn = document.getElementById('fsSelectBtn');
+                
+                if (data.parentPath) {
+                    parentBtn.style.display = 'inline-block';
+                    parentBtn.onclick = () => loadFilesystemFolder(data.parentPath);
+                } else {
+                    parentBtn.style.display = 'none';
+                }
+                
+                selectBtn.style.display = 'inline-block';
+                selectBtn.onclick = () => selectWorkingRoot(data.currentPath);
+                
+                const foldersDiv = document.getElementById('fsFolders');
+                foldersDiv.innerHTML = '';
+                
+                if (data.folders.length === 0) {
+                    foldersDiv.innerHTML = '<div class="empty-state">No subfolders found</div>';
+                } else {
+                    data.folders.forEach(folder => {
+                        const folderElement = document.createElement('div');
+                        folderElement.className = 'fs-folder-item';
+                        folderElement.dataset.path = folder.path;
+                        folderElement.innerHTML = `📂 ${folder.name}`;
+                        foldersDiv.appendChild(folderElement);
+                    });
+                }
+                
+                setupFilesystemBrowserEvents();
+            } catch (error) {
+                console.error('Failed to load filesystem folder:', error);
+                document.getElementById('fsFolders').innerHTML = '<div class="error">Failed to load folder contents</div>';
+            }
+        }
+
+        // Setup events for filesystem browser
+        function setupFilesystemBrowserEvents() {
+            document.querySelectorAll('.fs-folder-item').forEach(item => {
+                item.onclick = () => loadFilesystemFolder(item.dataset.path);
+            });
+        }
+
+        // Select working root directory
+        async function selectWorkingRoot(rootPath) {
+            try {
+                const response = await fetch(`${API_BASE}/working-root`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: rootPath })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeFilesystemBrowser();
+                    await loadWorkingRoot();
+                    
+                    // Reset to root folder and refresh
+                    currentFolder = '.';
+                    await loadFolderList();
+                    await loadFileList();
+                    
+                    // Clear current file
+                    currentFile = null;
+                    document.getElementById('controls').style.display = 'none';
+                    document.getElementById('mindMapContainer').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Working directory changed!</h3>
+                            <p>Now browsing: ${rootPath}</p>
+                            <p>Select a file from the sidebar to begin.</p>
+                        </div>
+                    `;
+                    
+                    alert(`Working directory changed to: ${rootPath}`);
+                } else {
+                    alert('Failed to change working directory: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Failed to select working root:', error);
+                alert('Failed to change working directory');
+            }
+        }
+
+        // Close filesystem browser
+        function closeFilesystemBrowser() {
+            const modal = document.getElementById('filesystemModal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         // Load list of folders in current directory
@@ -1611,6 +1909,9 @@ ${xmlNodes.join('\n')}
 
         // Setup event listeners
         function setupEventListeners() {
+            // Change Root button
+            document.getElementById('changeRootBtn').addEventListener('click', showFilesystemBrowser);
+            
             // Folder list
             document.getElementById('folderList').addEventListener('click', (e) => {
                 const folderItem = e.target.closest('.folder-item');
