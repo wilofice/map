@@ -1,27 +1,98 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
     <node 
-        title="Develop Mind Map Viewer" 
+        title="Q4 Product Launch Plan" 
         priority="high" 
         status="pending" 
-        id="a1b2c3d4-e5f6-4a9b-8c7d-1e2f3a4b5c6d">
+        id="q4-launch-root" 
+        startDate="2025-10-01" 
+        endDate="2025-12-20">
         
-        <comment>This is the main task for the entire project. Focus on core features first, especially auto-saving.</comment>
+        <comment>Main project plan for the upcoming Q4 launch. All dates are critical.</comment>
         
-        <node title="Frontend Development" priority="high" status="pending" id="e5f6g7h8-i9j0-4k1l-2m3n-4o5p6q7r8s9t">
-            <node title="Design UI Layout" priority="medium" status="completed" id="i9j0k1l2-m3n4-4o5p-6q7r-8s9t0u1v2w3x"/>
-            <node title="Implement HTML Structure" priority="high" status="pending" id="m3n4o5p6-q7r8-4s9t-0u1v-2w3x4y5z6a7b"/>
-            <node title="Add Interactive Features" priority="high" status="pending" id="c8d9e0f1-a2b3-4c5d-6e7f-8g9h0i1j2k3l">
-                <comment>This is the most complex part. It includes editing, adding, deleting, and saving.</comment>
-                <node title="Implement In-Place Text Editing" priority="medium" status="pending" id="l4m5n6o7-p8q9-4r0s-1t2u-3v4w5x6y7z8a"/>
-                <node title="Implement Node Creation/Deletion" priority="high" status="pending" id="b9c0d1e2-f3g4-4h5i-6j7k-8l9m0n1o2p3q"/>
-                <node title="Set up Auto-Save to LocalStorage" priority="high" status="pending" id="r4s5t6u7-v8w9-4x0y-1z2a-3b4c5d6e7f8g"/>
-            </node>
+        <node 
+            title="Phase 1: Market Research" 
+            priority="high" 
+            status="completed" 
+            id="phase1-research" 
+            startDate="2025-10-01" 
+            endDate="2025-10-15">
+            
+            <node 
+                title="Analyze Competitor Landscape" 
+                priority="medium" 
+                status="completed" 
+                id="comp-analysis"
+                startDate="2025-10-01" 
+                endDate="2025-10-07"/>
+            
+            <node 
+                title="Finalize Target Audience" 
+                priority="high" 
+                status="completed" 
+                id="target-audience"
+                startDate="2025-10-08" 
+                endDate="2025-10-15"/>
         </node>
         
-        <node title="Backend Service (Optional)" priority="low" status="pending" id="q7r8s9t0-u1v2-4w3x-4y5z-6a7b8c9d0e1f">
-            <comment>Postponed until the frontend is fully functional and stable.</comment>
-            <node title="Plan API Endpoints" priority="low" status="pending" id="u1v2w3x4-y5z6-4a7b-8c9d-0e1f2g3h4i5j"/>
+        <node 
+            title="Phase 2: Development Sprint" 
+            priority="high" 
+            status="pending" 
+            id="phase2-dev" 
+            startDate="2025-10-16" 
+            endDate="2025-11-30">
+            
+            <comment>Core development work. Stick to the schedule.</comment>
+            
+            <node 
+                title="Feature A Implementation" 
+                priority="high" 
+                status="pending" 
+                id="feature-a"
+                startDate="2025-10-16" 
+                endDate="2025-11-05"/>
+            
+            <node 
+                title="Feature B Implementation" 
+                priority="medium" 
+                status="pending" 
+                id="feature-b"
+                startDate="2025-11-06" 
+                endDate="2025-11-20"/>
+
+            <node 
+                title="API Integration (No Dates)" 
+                priority="high" 
+                status="pending" 
+                id="api-integration"
+                startDate="" 
+                endDate=""/>
+        </node>
+        
+        <node 
+            title="Phase 3: Marketing &amp; Launch" 
+            priority="medium" 
+            status="pending" 
+            id="phase3-marketing" 
+            startDate="2025-12-01" 
+            endDate="2025-12-20">
+            
+            <node 
+                title="Prepare Press Release" 
+                priority="medium" 
+                status="pending" 
+                id="press-release"
+                startDate="2025-12-01" 
+                endDate=""/>
+            
+            <node 
+                title="Launch Day Event (End Date Only)" 
+                priority="high" 
+                status="pending" 
+                id="launch-event"
+                startDate="" 
+                endDate="2025-12-20"/>
         </node>
     </node>
 </project_plan>

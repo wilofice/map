@@ -75,7 +75,7 @@
                 </node>
             </node>
 
-            <node title="Advanced Features &amp; Differentiators" priority="medium" status="pending" id="b3c4d5e6-f7g8-4h9i-0j1k-l2m3n4o5p6q7" uuid="d7955dc1-ddf3-434d-b03e-4ca0a87fa9bf">
+                        <node title="Advanced Features &amp; Differentiators" priority="medium" status="pending" id="b3c4d5e6-f7g8-4h9i-0j1k-l2m3n4o5p6q7" uuid="d7955dc1-ddf3-434d-b03e-4ca0a87fa9bf">
                 <comment uuid="b2f0ee5f-9fd2-4614-ae8d-83b28f183ec6">Features that will set VoiceFlow Pro apart from the competition and create a strong, unique value proposition. These should be prioritized based on feedback from user interviews to ensure we are building what the market actually wants.</comment>
                 <node title="Real-time Transcription" priority="medium" status="pending" id="c4d5e6f7-g8h9-4i0j-1k2l-m3n4o5p6q7r8" uuid="c0554669-f86b-4fc9-b14d-1c21dd766ee6">
                     <comment uuid="c2e1e70f-7b6d-4700-85c0-cd45a096e94f">Transcribe audio from the microphone in real-time. This provides instant feedback and allows the app to function as a live note-taker during meetings or lectures.</comment>
@@ -85,6 +85,39 @@
                 </node>
                 <node title="Speaker Diarization" priority="medium" status="pending" id="e6f7g8h9-i0j1-4k2l-3m4n-o5p6q7r8s9t0" uuid="6c063713-3d39-4693-8f27-9e0b27ea5737">
                     <comment uuid="395752c3-7687-4655-b6a1-ea5001b1ed78">Identify and label different speakers in the transcript (e.g., 'Speaker 1', 'Speaker 2'). This is a high-value feature for interviews, meetings, and podcasts, making the transcript much more readable.</comment>
+                </node>
+                <node title="Cloud &amp; Productivity Integrations" priority="medium" status="pending" id="1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d" uuid="1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d">
+                    <comment uuid="2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e">Allow users to connect their accounts to popular cloud services for seamless exporting. This moves VoiceFlow from a standalone tool to an integrated part of their workflow.</comment>
+                    <node title="Export to Google Docs" priority="medium" status="pending" id="3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f" uuid="3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f">
+                        <comment uuid="4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9g">Implement Google Account OAuth and use the Google Docs API to create a new document from the transcript.</comment>
+                    </node>
+                    <node title="Export to Notion" priority="medium" status="pending" id="5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9g0h" uuid="5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9g0h">
+                        <comment uuid="6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9g0h1i">Integrate with Notion's API to send the transcript to a new page or database, potentially using Notion's AI features to summarize.</comment>
+                    </node>
+                    <node title="Export to OneDrive / Word" priority="low" status="pending" id="7a8b9c0d-1e2f-3a4b-5c6d-7e8f9g0h1i2j" uuid="7a8b9c0d-1e2f-3a4b-5c6d-7e8f9g0h1i2j">
+                        <comment uuid="8b9c0d1e-2f3a-4b5c-6d7e-8f9g0h1i2j3k">Connect with Microsoft accounts to export the transcript as a Word document directly to a user's OneDrive.</comment>
+                    </node>
+                </node>
+                <node title="AI-Powered Text Transformations" priority="high" status="pending" id="9c0d1e2f-3a4b-5c6d-7e8f-9g0h1i2j3k4l" uuid="9c0d1e2f-3a4b-5c6d-7e8f-9g0h1i2j3k4l">
+                    <comment uuid="0d1e2f3a-4b5c-6d7e-8f9g-0h1i2j3k4l5m">Use a Large Language Model (LLM) to process the raw transcript into more useful formats. This is a major value-add that saves users significant time.</comment>
+                    <node title="Automatic Summarization" priority="high" status="pending" id="1e2f3a4b-5c6d-7e8f-9g0h-1i2j3k4l5m6n" uuid="1e2f3a4b-5c6d-7e8f-9g0h-1i2j3k4l5m6n">
+                        <comment uuid="2f3a4b5c-6d7e-8f9g-0h1i-2j3k4l5m6n7o">Generate a concise summary of the entire transcript, highlighting key points and decisions.</comment>
+                    </node>
+                    <node title="Action Item Detection" priority="high" status="pending" id="3a4b5c6d-7e8f-9g0h-1i2j-3k4l5m6n7o8p" uuid="3a4b5c6d-7e8f-9g0h-1i2j-3k4l5m6n7o8p">
+                        <comment uuid="4b5c6d7e-8f9g-0h1i-2j3k-4l5m6n7o8p9q">Automatically identify and list out action items or tasks mentioned during a conversation (e.g., "I will send the report by Friday").</comment>
+                    </node>
+                </node>
+                <node title="Workflow Exports" priority="medium" status="pending" id="5c6d7e8f-9g0h-1i2j-3k4l-5m6n7o8p9q1r" uuid="5c6d7e8f-9g0h-1i2j-3k4l-5m6n7o8p9q1r">
+                    <comment uuid="6d7e8f9g-0h1i-2j3k-4l5m-6n7o8p9q1r2s">Allow users to export content directly into other productivity tools.</comment>
+                    <node title="Export to To-Do List App" priority="medium" status="pending" id="7e8f9g0h-1i2j-3k4l-5m6n-7o8p9q1r2s3t" uuid="7e8f9g0h-1i2j-3k4l-5m6n-7o8p9q1r2s3t">
+                        <comment uuid="8f9g0h1i-2j3k-4l5m-6n7o-8p9q1r2s3t4u">Integrate with APIs from Todoist, Asana, or Trello to create new tasks from detected action items.</comment>
+                    </node>
+                    <node title="Export to Mind Map" priority="low" status="pending" id="9g0h1i2j-3k4l-5m6n-7o8p-9q1r2s3t4u5v" uuid="9g0h1i2j-3k4l-5m6n-7o8p-9q1r2s3t4u5v">
+                        <comment uuid="0h1i2j3k-4l5m-6n7o-8p9q-1r2s3t4u5v6w">Generate a .XMind or .MM file from the transcript's summary or key topics, allowing for visual exploration of the content.</comment>
+                    </node>
+                </node>
+                <node title="Custom Vocabulary" priority="medium" status="pending" id="1i2j3k4l-5m6n-7o8p-9q1r-2s3t4u5v6w7x" uuid="1i2j3k4l-5m6n-7o8p-9q1r-2s3t4u5v6w7x">
+                    <comment uuid="2j3k4l5m-6n7o-8p9q-1r2s-3t4u5v6w7x8y">Allow users to add a list of custom words, names, or acronyms to improve transcription accuracy for their specific domain (e.g., medical, legal, company-specific jargon).</comment>
                 </node>
             </node>
 
