@@ -280,6 +280,11 @@
             color: var(--color-primary);
         }
 
+        /* Hides the add button when toggled */
+        .add-hidden .icon-add {
+            display: none;
+        }
+
         /* Context Menu */
         .context-menu {
             position: absolute;
@@ -342,6 +347,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zM8 16a.5.5 0 0 1-.5-.5v-3.793l-1.146 1.147a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-.5.5z"/></svg>
                 <span class="btn-text">Expand/Collapse All</span>
             </button>
+            <button class="btn btn-secondary" id="toggleAddBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM11 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm-4.5.5A3.5 3.5 0 0 1 3.5 6h-1v1h1a2.5 2.5 0 0 0 0 5h-1v1h1a3.5 3.5 0 0 1 0-7h.5a3.5 3.5 0 0 1 0 7H6.5z"/><path d="M5 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm-2-5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/></svg>
+                <span class="btn-text">Hide Add Buttons</span>
+            </button>
         </div>
         <div id="mindMap" class="mind-map-container">
             <p id="placeholderText">Start a <a href="#" id="newProjectLink">New Project</a> or upload an XML file to begin.</p>
@@ -361,9 +370,11 @@
             const saveIndicator = document.getElementById('saveIndicator');
             const toggleCommentsBtn = document.getElementById('toggleCommentsBtn');
             const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
+            const toggleAddBtn = document.getElementById('toggleAddBtn');
 
             let autoSaveTimeout;
             let areCommentsVisible = false;
+            let areAddButtonsVisible = true;
 
             // --- Initialization ---
             uploadBtn.addEventListener('click', () => fileInput.click());
@@ -372,6 +383,7 @@
             newProjectBtn.addEventListener('click', createNewProject);
             toggleCommentsBtn.addEventListener('click', toggleAllComments);
             toggleCollapseBtn.addEventListener('click', toggleAllNodes);
+            toggleAddBtn.addEventListener('click', toggleAllAddButtons);
             newProjectLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 createNewProject();
@@ -393,6 +405,8 @@
                     renderMindMap(savedXML);
                     const savedCommentState = localStorage.getItem('horizontalMindMapCommentsVisible') === 'true';
                     applyGlobalCommentState(savedCommentState);
+                    const savedAddState = localStorage.getItem('horizontalMindMapAddVisible') !== 'false'; // Default to true
+                    applyGlobalAddButtonState(savedAddState);
                 }
             }
 
@@ -422,6 +436,12 @@
                 const newState = !areCommentsVisible;
                 localStorage.setItem('horizontalMindMapCommentsVisible', newState);
                 applyGlobalCommentState(newState);
+            }
+
+            function toggleAllAddButtons() {
+                const newState = !areAddButtonsVisible;
+                localStorage.setItem('horizontalMindMapAddVisible', newState);
+                applyGlobalAddButtonState(newState);
             }
 
             function toggleAllNodes() {
@@ -460,12 +480,31 @@
                 updateToggleCommentsButton();
             }
             
+            function applyGlobalAddButtonState(shouldBeVisible) {
+                areAddButtonsVisible = shouldBeVisible;
+                if (areAddButtonsVisible) {
+                    document.body.classList.remove('add-hidden');
+                } else {
+                    document.body.classList.add('add-hidden');
+                }
+                updateToggleAddButtonText();
+            }
+
             function updateToggleCommentsButton() {
                 const btnText = toggleCommentsBtn.querySelector('.btn-text');
                 if (areCommentsVisible) {
                     btnText.textContent = 'Hide Comments';
                 } else {
                     btnText.textContent = 'Show Comments';
+                }
+            }
+
+            function updateToggleAddButtonText() {
+                const btnText = toggleAddBtn.querySelector('.btn-text');
+                if (areAddButtonsVisible) {
+                    btnText.textContent = 'Hide Add Buttons';
+                } else {
+                    btnText.textContent = 'Show Add Buttons';
                 }
             }
 
