@@ -6,7 +6,8 @@
         status="pending" 
         id="q4-launch-root" 
         startDate="2025-10-01" 
-        endDate="2025-12-20">
+        endDate="2025-12-20"
+        daysSpent="5">
         
         <comment>Main project plan for the upcoming Q4 launch. All dates are critical.</comment>
         
@@ -16,7 +17,8 @@
             status="completed" 
             id="phase1-research" 
             startDate="2025-10-01" 
-            endDate="2025-10-15">
+            endDate="2025-10-15"
+            daysSpent="10">
             
             <node 
                 title="Analyze Competitor Landscape" 
@@ -24,7 +26,8 @@
                 status="completed" 
                 id="comp-analysis"
                 startDate="2025-10-01" 
-                endDate="2025-10-07"/>
+                endDate="2025-10-07"
+                daysSpent="4"/>
             
             <node 
                 title="Finalize Target Audience" 
@@ -32,7 +35,8 @@
                 status="completed" 
                 id="target-audience"
                 startDate="2025-10-08" 
-                endDate="2025-10-15"/>
+                endDate="2025-10-15"
+                daysSpent="6"/>
         </node>
         
         <node 
@@ -41,7 +45,8 @@
             status="pending" 
             id="phase2-dev" 
             startDate="2025-10-16" 
-            endDate="2025-11-30">
+            endDate="2025-11-30"
+            daysSpent="0">
             
             <comment>Core development work. Stick to the schedule.</comment>
             
@@ -51,23 +56,17 @@
                 status="pending" 
                 id="feature-a"
                 startDate="2025-10-16" 
-                endDate="2025-11-05"/>
+                endDate="2025-11-05"
+                daysSpent="0"/>
             
-            <node 
-                title="Feature B Implementation" 
-                priority="medium" 
-                status="pending" 
-                id="feature-b"
-                startDate="2025-11-06" 
-                endDate="2025-11-20"/>
-
             <node 
                 title="API Integration (No Dates)" 
                 priority="high" 
                 status="pending" 
                 id="api-integration"
                 startDate="" 
-                endDate=""/>
+                endDate=""
+                daysSpent="3"/>
         </node>
         
         <node 
@@ -76,23 +75,8 @@
             status="pending" 
             id="phase3-marketing" 
             startDate="2025-12-01" 
-            endDate="2025-12-20">
-            
-            <node 
-                title="Prepare Press Release" 
-                priority="medium" 
-                status="pending" 
-                id="press-release"
-                startDate="2025-12-01" 
-                endDate=""/>
-            
-            <node 
-                title="Launch Day Event (End Date Only)" 
-                priority="high" 
-                status="pending" 
-                id="launch-event"
-                startDate="" 
-                endDate="2025-12-20"/>
+            endDate=""
+            daysSpent="0">
         </node>
     </node>
 </project_plan>
