@@ -49,6 +49,11 @@ app.get('/api/load/:filename', async (req, res) => {
         const filePath = path.join('.', filename);
         
         const mergedData = await loadAndMergeXML(filePath);
+        
+        if (!mergedData) {
+            return res.status(400).json({ error: 'Invalid or empty XML file' });
+        }
+        
         res.json(mergedData);
     } catch (error) {
         console.error('Error loading file:', error);
@@ -117,7 +122,20 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
     
     try {
         const xmlContent = await fs.readFile(filePath, 'utf8');
+        
+        // Handle empty files
+        if (!xmlContent.trim()) {
+            console.warn(`Empty XML file: ${filePath}`);
+            return null;
+        }
+        
         const result = await parser.parseStringPromise(xmlContent);
+        
+        // Check if the result has the expected structure
+        if (!result || !result.project_plan) {
+            console.warn(`Invalid XML structure in ${filePath}: missing project_plan root element`);
+            return null;
+        }
         
         // Store the source file for each node
         await tagNodesWithSource(result.project_plan, filePath);
@@ -131,7 +149,7 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
         };
     } catch (error) {
         console.error(`Error loading ${filePath}:`, error);
-        throw error;
+        return null; // Return null instead of throwing to prevent server crashes
     }
 }
 
@@ -160,14 +178,15 @@ async function processImports(node, basePath, processedFiles) {
     
     // Ensure node.node is always an array
     const nodeArray = Array.isArray(node.node) ? node.node : [node.node];
-    const newNodes = [];
     
     for (let i = 0; i < nodeArray.length; i++) {
         const childNode = nodeArray[i];
         
-        // Check for import tags
+        // Check for import tags within this child node
         if (childNode.import) {
             const imports = Array.isArray(childNode.import) ? childNode.import : [childNode.import];
+            const newNodes = [];
+            
             for (const importTag of imports) {
                 if (importTag.$ && importTag.$.src) {
                     const importPath = path.join(basePath, importTag.$.src);
@@ -195,7 +214,7 @@ async function processImports(node, basePath, processedFiles) {
                             // Process nested imports
                             await processImports(importedData.project_plan, path.dirname(importPath), processedFiles);
                             
-                            // Add imported nodes to the current level
+                            // Add imported nodes as children of the current node
                             newNodes.push(...importedNodes);
                         }
                     } catch (error) {
@@ -206,15 +225,23 @@ async function processImports(node, basePath, processedFiles) {
             
             // Remove the import tag after processing
             delete childNode.import;
-        } else {
-            // Process child nodes recursively
-            await processImports(childNode, basePath, processedFiles);
+            
+            // Add imported nodes as children of this node
+            if (newNodes.length > 0) {
+                // Initialize the node array if it doesn't exist
+                if (!childNode.node) {
+                    childNode.node = [];
+                } else if (!Array.isArray(childNode.node)) {
+                    childNode.node = [childNode.node];
+                }
+                
+                // Add imported nodes to this node's children
+                childNode.node.push(...newNodes);
+            }
         }
-    }
-    
-    // Add imported nodes to the node array
-    if (newNodes.length > 0) {
-        node.node.push(...newNodes);
+        
+        // Process child nodes recursively
+        await processImports(childNode, basePath, processedFiles);
     }
 }
 

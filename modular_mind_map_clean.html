@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modular Horizontal Mind Map</title>
+    <title>Modular Vertical Mind Map</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -196,25 +196,30 @@
             box-shadow: 0 4px 10px rgba(72, 187, 120, 0.2);
         }
 
-        /* HORIZONTAL Mind Map Styling - Exact copy from original */
+        /* VERTICAL Mind Map Styling - Clean Design */
         .mind-map-container {
-            padding-top: 1rem;
+            padding: 2rem;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
+            gap: 3rem;
         }
 
         .node {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             position: relative;
-            padding: 1rem 0 1rem 3rem;
+            margin-bottom: 3rem;
         }
-
-        /* Root Node Styling */
-        .mind-map-container > .node {
-            padding-left: 0;
-            margin: 0;
+        
+        /* More space between sibling nodes */
+        .children > .node {
+            margin-bottom: 2.5rem;
+        }
+        
+        /* Extra space after the last child of each parent */
+        .children > .node:last-child {
+            margin-bottom: 4rem;
         }
 
         .node-wrapper {
@@ -223,24 +228,21 @@
             align-items: flex-start;
         }
         
-        .mind-map-container > .node::before,
-        .mind-map-container > .node::after {
-            display: none;
-        }
-        
         .node-content {
             border: 1px solid;
-            border-radius: 8px;
-            padding: 0.6rem 1rem;
+            border-radius: 10px;
+            padding: 1rem 1.4rem;
             font-weight: 500;
             position: relative;
             z-index: 1;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
             flex-shrink: 0;
+            min-width: 280px;
+            margin-bottom: 0.5rem;
         }
         
         .node-content:hover {
@@ -289,62 +291,6 @@
         .status-completed .node-title {
             text-decoration: line-through;
         }
-
-        /* Corrected Connector Lines - Exact copy from original */
-        .node-parent {
-            position: relative;
-            padding-left: 3rem;
-        }
-        
-        .node-parent > .node {
-            padding: 1rem 0 1rem 3rem;
-        }
-
-        /* Draws the horizontal line */
-        .node::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 50%;
-            width: 1.5rem;
-            height: 0;
-            border-top: 3px solid var(--color-line);
-        }
-
-        /* Draws the vertical line segment */
-        .node::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 0;
-            border-left: 3px solid var(--color-line);
-        }
-        
-        /* Line Animation Setup */
-        .lines-animated .node::before, .lines-animated .node::after {
-            animation: connector-color-cycle 4s infinite linear;
-        }
-
-        /* Start the vertical line halfway down for the first child */
-        .node-parent > .node:first-child::before {
-            top: 50%;
-        }
-
-        /* End the vertical line halfway down for the last child */
-        .node-parent > .node:last-child::before {
-            bottom: 50%;
-        }
-
-        /* A single child only needs a horizontal line, no vertical part */
-        .node-parent > .node:only-child::before {
-            display: none;
-        }
-
-        .node-parent.collapsed {
-            display: none;
-        }
         
         /* Icons */
         .node-icon {
@@ -374,12 +320,14 @@
         .node-comment {
             background: var(--color-bg);
             border-radius: 6px;
-            padding: 0.75rem;
-            margin-top: 0.5rem;
+            padding: 0.9rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
             font-size: 0.9rem;
             color: var(--color-text-muted);
             border: 1px solid var(--color-border);
             display: none;
+            line-height: 1.5;
         }
         .node-comment[contenteditable="true"] {
              background: #1a202c;
@@ -394,14 +342,15 @@
         /* Dates & Days Spent */
         .node-dates {
             display: none;
-            margin-top: 0.5rem;
-            padding: 0.5rem 0.75rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
             background-color: var(--color-bg);
             border-radius: 6px;
             font-size: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 2rem;
             white-space: nowrap;
         }
         .date-value {
@@ -460,6 +409,35 @@
             margin-left: 0.5rem;
         }
 
+        /* Children container for vertical layout */
+        .children {
+            margin-left: 4rem;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .children.collapsed {
+            display: none;
+        }
+
+        /* Connector lines for vertical layout */
+        .children::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: -1.5rem;
+            bottom: 50%;
+            width: 2rem;
+            border-left: 2px solid var(--color-line);
+            border-bottom: 2px solid var(--color-line);
+            border-bottom-left-radius: 10px;
+        }
+
+        .children.animated::before {
+            animation: connector-color-cycle 4s ease-in-out infinite;
+        }
+
         /* Context menu */
         .context-menu {
             position: fixed;
@@ -490,16 +468,17 @@
         /* Save indicator */
         .save-indicator {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            background: var(--color-success);
-            color: var(--color-bg);
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: var(--color-success);
+            color: #1a202c;
             padding: 0.5rem 1rem;
             border-radius: 6px;
+            font-size: 0.9rem;
             opacity: 0;
-            transition: opacity 0.3s ease;
-            font-weight: 500;
-            z-index: 1000;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 2000;
         }
 
         .empty-state {
@@ -539,7 +518,7 @@
 
     <div class="main-content">
         <div class="container">
-            <h1>🧠 Modular Horizontal Mind Map</h1>
+            <h1>🧠 Modular Vertical Mind Map</h1>
             
             <div class="controls" id="controls" style="display: none;">
                 <button class="btn btn-success" id="saveBtn">💾 <span class="btn-text">Save All Changes</span></button>
@@ -553,14 +532,14 @@
 
             <div class="mind-map-container" id="mindMapContainer">
                 <div class="empty-state">
-                    <h3>Welcome to Modular Horizontal Mind Map</h3>
+                    <h3>Welcome to Modular Vertical Mind Map</h3>
                     <p>Select a file from the sidebar to begin, or create a new mind map.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="save-indicator" id="saveIndicator">✓ Saved</div>
+    <div class="save-indicator" id="saveIndicator">✓ Saved!</div>
 
     <div class="context-menu" id="contextMenu">
         <div class="context-menu-item" data-priority="high">🔴 High Priority</div>
@@ -639,7 +618,7 @@
             }
         }
 
-        // Render the mind map with horizontal layout
+        // Render the mind map with vertical layout
         function renderMindMap() {
             const container = document.getElementById('mindMapContainer');
             container.innerHTML = '';
@@ -659,7 +638,7 @@
             });
         }
 
-        // Render a single node with exact original structure
+        // Render a single node with clean vertical structure
         function renderNode(nodeData, parentElement) {
             const priority = nodeData.$ && nodeData.$.priority || 'medium';
             const status = nodeData.$ && nodeData.$.status || 'pending';
@@ -781,7 +760,7 @@
             nodeDiv.appendChild(nodeWrapper);
             
             const childrenContainer = document.createElement('div');
-            childrenContainer.className = 'node-parent';
+            childrenContainer.className = 'children';
             nodeDiv.appendChild(childrenContainer);
             
             parentElement.appendChild(nodeDiv);
@@ -790,12 +769,12 @@
             const originalBg = getComputedStyle(nodeContentDiv).getPropertyValue('background-color');
             nodeContentDiv.style.setProperty('--original-bg', originalBg);
             
-            // Add event listeners exactly like the original
+            // Add event listeners exactly like the horizontal version
             toggleSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (!childrenContainer.classList.contains('collapsed')) {
-                    const descendantParents = childrenContainer.querySelectorAll('.node-parent');
-                    descendantParents.forEach(parent => parent.classList.add('collapsed'));
+                    const descendantChildren = childrenContainer.querySelectorAll('.children');
+                    descendantChildren.forEach(child => child.classList.add('collapsed'));
                     
                     const descendantToggles = childrenContainer.querySelectorAll('.node-toggle');
                     descendantToggles.forEach(toggle => toggle.textContent = '➕');
@@ -935,7 +914,7 @@
             return nodeDiv;
         }
 
-        // Helper functions
+        // Helper functions - same as horizontal version
         function generateId() {
             return crypto.randomUUID();
         }
@@ -953,127 +932,12 @@
             else if (newStatus === 'completed') statusIcon.innerHTML = '✅';
             
             // Update children recursively
-            const childrenContainer = node.querySelector('.node-parent');
+            const childrenContainer = node.querySelector('.children');
             if (childrenContainer) {
                 const childNodes = childrenContainer.querySelectorAll(':scope > .node');
                 childNodes.forEach(childNode => {
                     setNodeStatusRecursive(childNode, newStatus);
                 });
-            }
-        }
-
-        function getStatusIcon(status) {
-            switch(status) {
-                case 'completed': return '✅';
-                case 'in-progress': return '🟡';
-                default: return '🔲';
-            }
-        }
-
-        function cycleStatus(node) {
-            const statuses = ['pending', 'in-progress', 'completed'];
-            const currentStatus = node.dataset.status;
-            const currentIndex = statuses.indexOf(currentStatus);
-            const newStatus = statuses[(currentIndex + 1) % 3];
-            
-            node.dataset.status = newStatus;
-            node.querySelector('.status-icon').textContent = getStatusIcon(newStatus);
-            
-            autoSave();
-        }
-
-        function toggleNode(node, toggle) {
-            const parent = node.querySelector('.node-parent');
-            if (parent) {
-                parent.classList.toggle('collapsed');
-                toggle.textContent = parent.classList.contains('collapsed') ? '➕' : '–';
-            }
-        }
-
-        function toggleComment(wrapper) {
-            const comment = wrapper.querySelector('.node-comment');
-            const hasComment = wrapper.classList.contains('has-comment');
-            
-            if (hasComment) {
-                wrapper.classList.remove('has-comment');
-                comment.style.display = 'none';
-                comment.textContent = '';
-            } else {
-                wrapper.classList.add('has-comment');
-                comment.style.display = areCommentsVisible ? 'block' : 'none';
-                comment.focus();
-            }
-            autoSave();
-        }
-
-        function toggleDates(wrapper) {
-            const dates = wrapper.querySelector('.node-dates');
-            const hasDates = wrapper.classList.contains('has-dates');
-            
-            if (hasDates) {
-                wrapper.classList.remove('has-dates');
-                dates.style.display = 'none';
-            } else {
-                wrapper.classList.add('has-dates');
-                dates.style.display = areDatesVisible ? 'flex' : 'none';
-            }
-            autoSave();
-        }
-
-        function changeDays(node, delta) {
-            const daysValue = node.querySelector('.days-value');
-            const current = parseInt(daysValue.textContent);
-            const newValue = Math.max(0, current + delta);
-            daysValue.textContent = newValue;
-            autoSave();
-        }
-
-        function addChildNode(parentNode) {
-            let parent = parentNode.querySelector('.node-parent');
-            
-            // If no parent container exists, create one
-            if (!parent) {
-                parent = document.createElement('div');
-                parent.className = 'node-parent';
-                parentNode.appendChild(parent);
-                
-                // Add toggle button to parent content
-                const content = parentNode.querySelector('.node-content');
-                if (!content.querySelector('.node-toggle')) {
-                    const toggle = document.createElement('span');
-                    toggle.className = 'node-toggle';
-                    toggle.textContent = '–';
-                    toggle.onclick = () => toggleNode(parentNode, toggle);
-                    content.insertBefore(toggle, content.firstChild);
-                }
-            }
-            
-            const newNode = {
-                $: {
-                    title: 'New Node',
-                    priority: 'medium',
-                    status: 'pending',
-                    id: generateId()
-                }
-            };
-            
-            const newEl = renderNode(newNode, true);
-            parent.appendChild(newEl);
-            
-            // Focus on the new node's title
-            const title = newEl.querySelector('.node-title');
-            if (title) {
-                title.focus();
-                title.select();
-            }
-            
-            autoSave();
-        }
-
-        function deleteNode(node) {
-            if (confirm('Delete this node and all its children?')) {
-                node.remove();
-                autoSave();
             }
         }
 
@@ -1086,14 +950,16 @@
             menu.querySelectorAll('.context-menu-item').forEach(item => {
                 item.onclick = () => {
                     node.dataset.priority = item.dataset.priority;
+                    // Remove old priority class and add new one
+                    node.classList.remove('priority-high', 'priority-medium', 'priority-low');
+                    node.classList.add(`priority-${item.dataset.priority}`);
                     menu.classList.remove('visible');
-                    renderMindMap(); // Re-render to apply new priority
                     autoSave();
                 };
             });
         }
 
-        // Build XML from DOM
+        // Build XML from DOM - same structure as horizontal
         function generateXMLString() {
             const nodes = document.querySelectorAll('#mindMapContainer > .node');
             const xmlNodes = Array.from(nodes).map(node => buildNodeXML(node));
@@ -1108,22 +974,26 @@ ${xmlNodes.join('\n')}
             const wrapper = node.querySelector('.node-wrapper');
             const title = wrapper.querySelector('.node-title').textContent;
             const comment = wrapper.querySelector('.node-comment')?.textContent || '';
-            const startDate = wrapper.querySelector('.date-input')?.value || '';
-            const endDate = wrapper.querySelectorAll('.date-input')[1]?.value || '';
-            const daysSpent = wrapper.querySelector('.days-value')?.textContent || '0';
+            const startDateEl = wrapper.querySelector('.date-value[data-type="startDate"]');
+            const endDateEl = wrapper.querySelector('.date-value[data-type="endDate"]');
+            const daysSpentEl = wrapper.querySelector('.days-spent-value');
+            
+            const startDate = startDateEl ? startDateEl.textContent : '';
+            const endDate = endDateEl ? endDateEl.textContent : '';
+            const daysSpent = daysSpentEl ? daysSpentEl.textContent : '0';
             
             const attrs = [
                 `title="${escapeXML(title)}"`,
                 `priority="${node.dataset.priority}"`,
                 `status="${node.dataset.status}"`,
-                `id="${node.dataset.id}"`
+                `id="${wrapper.dataset.id}"`
             ];
             
             if (startDate) attrs.push(`startDate="${startDate}"`);
             if (endDate) attrs.push(`endDate="${endDate}"`);
             if (daysSpent !== '0') attrs.push(`daysSpent="${daysSpent}"`);
             
-            const childContainer = node.querySelector('.node-parent');
+            const childContainer = node.querySelector('.children');
             const childNodes = childContainer ? childContainer.querySelectorAll(':scope > .node') : [];
             
             if (childNodes.length === 0 && !comment) {
@@ -1191,7 +1061,7 @@ ${xmlNodes.join('\n')}
             }
         }
 
-        // Global toggles
+        // Global toggles - same logic as horizontal
         function toggleAllComments() {
             areCommentsVisible = !areCommentsVisible;
             document.querySelectorAll('.node-comment').forEach(comment => {
@@ -1228,16 +1098,16 @@ ${xmlNodes.join('\n')}
             const rootNode = document.querySelector('#mindMapContainer > .node');
             if (!rootNode) return;
             
-            const rootParent = rootNode.querySelector('.node-parent');
-            if (!rootParent) return;
+            const rootChildren = rootNode.querySelector('.children');
+            if (!rootChildren) return;
             
-            const isCollapsed = rootParent.classList.contains('collapsed');
+            const isCollapsed = rootChildren.classList.contains('collapsed');
             
-            document.querySelectorAll('.node-parent').forEach(parent => {
+            document.querySelectorAll('.children').forEach(children => {
                 if (isCollapsed) {
-                    parent.classList.remove('collapsed');
+                    children.classList.remove('collapsed');
                 } else {
-                    parent.classList.add('collapsed');
+                    children.classList.add('collapsed');
                 }
             });
             
@@ -1260,11 +1130,13 @@ ${xmlNodes.join('\n')}
 
         function toggleAnimateLines() {
             areLinesAnimated = !areLinesAnimated;
-            if (areLinesAnimated) {
-                document.body.classList.add('lines-animated');
-            } else {
-                document.body.classList.remove('lines-animated');
-            }
+            document.querySelectorAll('.children').forEach(children => {
+                if (areLinesAnimated) {
+                    children.classList.add('animated');
+                } else {
+                    children.classList.remove('animated');
+                }
+            });
             updateToggleAnimateLinesButton();
         }
 
@@ -1288,11 +1160,13 @@ ${xmlNodes.join('\n')}
             const rootNode = document.querySelector('#mindMapContainer > .node');
             if (!rootNode) return;
             
-            const rootParent = rootNode.querySelector('.node-parent');
-            if (!rootParent) return;
+            const rootChildren = rootNode.querySelector('.children');
+            if (!rootChildren) return;
             
             const btnText = document.querySelector('#toggleAllBtn .btn-text');
-            btnText.textContent = rootParent.classList.contains('collapsed') ? 'Expand All' : 'Collapse All';
+            if (btnText) {
+                btnText.textContent = rootChildren.classList.contains('collapsed') ? 'Expand All' : 'Collapse All';
+            }
         }
 
         function updateToggleFlashButton() {

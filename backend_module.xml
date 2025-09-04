@@ -2,7 +2,7 @@
 <project_plan>
     <node title="Backend Development" priority="high" status="pending" id="backend-001">
         <comment>Server-side implementation tasks</comment>
-        <node title="Setup Node.js Server" priority="high" status="completed" id="backend-002">
+        <node title="Setup Node.js Server" priority="high" status="pending" id="backend-002">
             <comment>Express server with middleware</comment>
         </node>
         <node title="Database Design" priority="high" status="in-progress" id="backend-003">
