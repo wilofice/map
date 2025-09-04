@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node title="Website Development Project" priority="high" status="in-progress" id="website-001">
+        <comment>Complete website redesign project</comment>
+        <node title="Frontend Development" priority="high" status="in-progress" id="website-002">
+            <comment>Client-side implementation</comment>
+            <node title="React Components" priority="high" status="completed" id="website-003"/>
+            <node title="CSS Styling" priority="medium" status="in-progress" id="website-004"/>
+            <node title="Mobile Responsive" priority="high" status="pending" id="website-005"/>
+        </node>
+        <node title="Backend API" priority="high" status="pending" id="website-006">
+            <comment>Server-side implementation</comment>
+            <node title="User Authentication" priority="high" status="pending" id="website-007"/>
+            <node title="Database Schema" priority="medium" status="pending" id="website-008"/>
+        </node>
+        <node title="Testing and Deployment" priority="medium" status="pending" id="website-009">
+            <node title="Unit Tests" priority="medium" status="pending" id="website-010"/>
+            <node title="Production Deploy" priority="high" status="pending" id="website-011"/>
+        </node>
+    </node>
+</project_plan>

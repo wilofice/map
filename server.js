@@ -45,11 +45,75 @@ app.get('/api/files', async (req, res) => {
     }
 });
 
-// Load and merge XML file with imports
-app.get('/api/load/:filename', async (req, res) => {
+// Browse folders and list directories
+app.get('/api/folders', async (req, res) => {
+    try {
+        const currentDir = req.query.path || '.';
+        const absolutePath = path.resolve(currentDir);
+        
+        // Security check: prevent directory traversal attacks
+        if (!absolutePath.includes(path.resolve('.'))) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const entries = await fs.readdir(absolutePath, { withFileTypes: true });
+        const folders = entries
+            .filter(entry => entry.isDirectory())
+            .map(entry => ({
+                name: entry.name,
+                path: path.join(currentDir, entry.name),
+                type: 'folder'
+            }));
+            
+        const parentDir = currentDir !== '.' ? path.dirname(currentDir) : null;
+        
+        res.json({
+            currentPath: currentDir,
+            parentPath: parentDir,
+            folders: folders
+        });
+    } catch (error) {
+        console.error('Error browsing folders:', error);
+        res.status(500).json({ error: 'Failed to browse folders' });
+    }
+});
+
+// List XML files in a specific folder
+app.get('/api/files/:folder(*)', async (req, res) => {
+    try {
+        const folderPath = req.params.folder || '.';
+        const absolutePath = path.resolve(folderPath);
+        
+        // Security check
+        if (!absolutePath.includes(path.resolve('.'))) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const files = await fs.readdir(absolutePath);
+        const xmlFiles = files.filter(file => file.endsWith('.xml'));
+        
+        res.json({
+            folder: folderPath,
+            files: xmlFiles
+        });
+    } catch (error) {
+        console.error('Error listing files in folder:', error);
+        res.status(500).json({ error: 'Failed to list files in folder' });
+    }
+});
+
+// Load and merge XML file with imports (supports folder paths)
+app.get('/api/load/:filename(*)', async (req, res) => {
     try {
         const filename = req.params.filename;
-        const filePath = path.join('.', filename);
+        const folder = req.query.folder || '.';
+        const filePath = path.join(folder, filename);
+        
+        // Security check
+        const absolutePath = path.resolve(filePath);
+        if (!absolutePath.includes(path.resolve('.'))) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
         
         const mergedData = await loadAndMergeXML(filePath);
         
@@ -381,7 +445,8 @@ async function processImports(node, basePath, processedFiles) {
 // Simple save that just saves to main file (bypassing complex XML processing for now)
 app.post('/api/save-split', async (req, res) => {
     try {
-        const { filename, data } = req.body; // filename is the main file
+        const { filename, data, folder } = req.body; // filename is the main file, folder is the working directory
+        const workingFolder = folder || '.';
         const parsedData = await parser.parseStringPromise(data);
 
         if (!parsedData || !parsedData.project_plan) {
@@ -413,7 +478,15 @@ app.post('/api/save-split', async (req, res) => {
             // Ensure there's something to save
             if (fileObject.project_plan && (fileObject.project_plan.node || fileObject.project_plan.import)) {
                 const xmlOutput = builder.buildObject(fileObject);
-                const filePath = path.join('.', fileToSave);
+                const filePath = path.join(workingFolder, fileToSave);
+                
+                // Security check
+                const absolutePath = path.resolve(filePath);
+                if (!absolutePath.includes(path.resolve('.'))) {
+                    console.error(`Security error: Attempt to write outside allowed directory: ${filePath}`);
+                    continue;
+                }
+                
                 await fs.writeFile(filePath, xmlOutput, 'utf8');
             }
         }
