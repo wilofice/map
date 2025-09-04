@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project_plan>
-    <node title="Test Split Working" priority="high" status="pending" id="test-split">
-        <comment>Testing simplified split functionality</comment>
-    </node>
-</project_plan>

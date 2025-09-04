@@ -380,56 +380,147 @@ async function processImports(node, basePath, processedFiles) {
 // Simple save that just saves to main file (bypassing complex XML processing for now)
 app.post('/api/save-split', async (req, res) => {
     try {
-        const { filename, data } = req.body;
-        console.log('\n=== SIMPLE SAVE DEBUG ===');
-        console.log('Filename:', filename);
-        console.log('XML Length:', data.length);
-        console.log('First 200 chars:', data.substring(0, 200));
-        console.log('Looking for invalid IDs:', data.includes('id="undefined"'));
-        console.log('========================\n');
-        
-        // For now, just save to the main file to avoid XML parsing issues
-        // TODO: Implement proper bidirectional synchronization later
-        const filePath = path.join('.', filename);
-        await fs.writeFile(filePath, data, 'utf8');
-        
+        const { filename, data } = req.body; // filename is the main file
+        const parsedData = await parser.parseStringPromise(data);
+
+        if (!parsedData || !parsedData.project_plan) {
+            return res.status(400).json({ error: 'Invalid XML data' });
+        }
+
+        // This map will hold the root object for each file to be saved.
+        // Key: filename (e.g., 'main.xml'), Value: { project_plan: { node: [...], import: [...] } }
+        const filesToSave = new Map();
+
+        // Recursively process the nodes from the client, starting with the top-level nodes.
+        const topLevelNodes = Array.isArray(parsedData.project_plan.node)
+            ? parsedData.project_plan.node
+            : [parsedData.project_plan.node];
+
+        for (const node of topLevelNodes) {
+            // The initial parent source is the main file itself.
+            // The parent container is the root of the main file's object representation.
+            const mainFileRoot = filesToSave.get(filename) || { project_plan: { node: [] } };
+            if (!filesToSave.has(filename)) {
+                filesToSave.set(filename, mainFileRoot);
+            }
+            
+            processNodeForSave(node, filename, filesToSave, mainFileRoot.project_plan);
+        }
+
+        // Now, write each constructed file object to disk.
+        for (const [fileToSave, fileObject] of filesToSave.entries()) {
+            // Ensure there's something to save
+            if (fileObject.project_plan && (fileObject.project_plan.node || fileObject.project_plan.import)) {
+                const xmlOutput = builder.buildObject(fileObject);
+                const filePath = path.join('.', fileToSave);
+                await fs.writeFile(filePath, xmlOutput, 'utf8');
+            }
+        }
+
         res.json({ 
             success: true, 
-            message: 'File saved successfully (simple mode)',
-            filesUpdated: [filename]
+            message: `Saved changes to ${filesToSave.size} files.`,
+            filesUpdated: Array.from(filesToSave.keys())
         });
+
     } catch (error) {
-        console.error('Error saving file:', error);
-        res.status(500).json({ error: 'Failed to save file' });
+        console.error('Error in save-split:', error);
+        res.status(500).json({ error: 'Failed to save files' });
     }
 });
 
-// Helper to split nodes by their source files
-async function splitNodesBySource(node, nodesBySource, defaultSource) {
-    if (!node || !node.node) return;
-    
-    const nodes = Array.isArray(node.node) ? node.node : [node.node];
-    for (const childNode of nodes) {
-        let source = (childNode.$ && childNode.$.dataSource) || defaultSource;
-        // Sanitize the source file path to remove invalid characters
-        source = source.replace(/^\.\//, '');
-        
-        if (!nodesBySource.has(source)) {
-            nodesBySource.set(source, []);
+// Recursively processes a node from the client-sent data and distributes it
+// into the correct file structure for saving.
+function processNodeForSave(node, parentSource, filesToSave, parentContainerInFile) {
+    try {
+        const nodeTitle = (node.$ && node.$.title) || 'Untitled';
+        const nodeId = (node.$ && node.$.id) || 'No ID';
+        console.log(`[SAVE] Processing node: "${nodeTitle}" (id: ${nodeId}), parent source: ${parentSource}`);
+
+        if (!node || !node.$) {
+            console.error('[SAVE-ERROR] Invalid node structure encountered. Node:', JSON.stringify(node));
+            return;
         }
-        
-        // Create a clean copy without data attributes
-        const cleanNode = JSON.parse(JSON.stringify(childNode));
-        if (cleanNode.$) {
-            delete cleanNode.$.dataSource;
-            delete cleanNode.$.dataImported;
-            delete cleanNode.$.dataImportFrom;
+
+        const nodeSource = node.$.dataSource || parentSource;
+
+        // If the node's source is different from its parent's source, it's an import boundary.
+        if (nodeSource !== parentSource) {
+            console.log(`[SAVE] Import boundary: Node source "${nodeSource}" differs from parent "${parentSource}".`);
+            // 1. In the parent's file, add an <import> tag.
+            if (!parentContainerInFile.import) {
+                parentContainerInFile.import = [];
+            }
+            if (!parentContainerInFile.import.some(imp => imp.$.src === nodeSource)) {
+                console.log(`[SAVE]   -> Adding <import src="${nodeSource}"> to ${parentSource}`);
+                parentContainerInFile.import.push({ $: { src: nodeSource } });
+            }
+
+            // 2. The current node becomes a top-level node in its own file.
+            const newFileContainer = filesToSave.get(nodeSource) || { project_plan: { node: [] } };
+            if (!filesToSave.has(nodeSource)) {
+                filesToSave.set(nodeSource, newFileContainer);
+            }
+            const newParentContainer = newFileContainer.project_plan;
+
+            // 3. Add a *clone* of this node to its own file's top-level.
+            const clonedNode = JSON.parse(JSON.stringify(node));
+            const originalChildren = clonedNode.node;
+            delete clonedNode.node; // We'll handle children recursively.
+            
+            if (clonedNode.$) {
+                delete clonedNode.$.dataSource;
+                delete clonedNode.$.dataImported;
+                delete clonedNode.$.dataImportFrom;
+            }
+            
+            console.log(`[SAVE]   -> Adding node "${nodeTitle}" to file "${nodeSource}"`);
+            newParentContainer.node.push(clonedNode);
+
+            // 4. Process the original children, attaching them to the cloned node in the new file.
+            if (originalChildren) {
+                clonedNode.node = []; // CRITICAL: Initialize children array for the clone.
+                const children = Array.isArray(originalChildren) ? originalChildren : [originalChildren];
+                for (const child of children) {
+                    processNodeForSave(child, nodeSource, filesToSave, clonedNode);
+                }
+            }
+
+        } else {
+            // The node belongs in the same file as its parent.
+            const clonedNode = JSON.parse(JSON.stringify(node));
+            const originalChildren = clonedNode.node;
+            delete clonedNode.node; // We'll handle children recursively.
+
+            if (clonedNode.$) {
+                delete clonedNode.$.dataSource;
+                delete clonedNode.$.dataImported;
+                delete clonedNode.$.dataImportFrom;
+            }
+
+            // Ensure the parent container has a 'node' array to push to.
+            if (!parentContainerInFile.node) {
+                parentContainerInFile.node = [];
+            }
+            
+            parentContainerInFile.node.push(clonedNode);
+
+            // Process its children within the same file context.
+            if (originalChildren) {
+                clonedNode.node = []; // CRITICAL: Initialize children array for the clone.
+                const children = Array.isArray(originalChildren) ? originalChildren : [originalChildren];
+                for (const child of children) {
+                    processNodeForSave(child, nodeSource, filesToSave, clonedNode);
+                }
+            }
         }
-        
-        nodesBySource.get(source).push(cleanNode);
-        
-        // Process children
-        await splitNodesBySource(childNode, nodesBySource, source);
+    } catch (e) {
+        console.error('!!! CRITICAL ERROR in processNodeForSave !!!');
+        console.error('Error:', e);
+        console.error('Node being processed:', JSON.stringify(node, null, 2));
+        console.error('Parent Source:', parentSource);
+        console.error('Parent Container:', JSON.stringify(parentContainerInFile, null, 2));
+        throw e; // Re-throw to be caught by the main endpoint handler
     }
 }
 
