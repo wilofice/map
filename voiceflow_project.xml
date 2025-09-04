@@ -3,6 +3,46 @@
     <node title="VoiceFlow Project Plan" priority="high" status="pending" id="a1b2c3d4-e5f6-4a9b-8c7d-1e2f3a4b5c6d" uuid="3e529ecb-6adb-4475-9d2b-9836faca856a">
         <comment uuid="2c70a54d-d041-4c9f-8558-ddb1857dfbb3">This master plan outlines the comprehensive strategy for developing, launching, and scaling the VoiceFlow Project. This fourth revision enhances clarity by providing detailed explanations for each task, ensuring the 'why' behind the 'what' is always clear.</comment>
         
+        <node title="Phase 0: Vision, KPIs &amp; Motivation" priority="medium" status="pending" id="f0a1b2c3-d4e5-4f6a-b7c8-d9e0f1a2b3c4">
+            <comment>This phase defines the 'Why' of the project. It's the North Star that guides all decisions, providing motivation and a clear definition of success. It visualizes the end goal: a profitable, impactful, and growing business.</comment>
+            
+            <node title="Project Vision &amp; Mission" priority="medium" status="pending" id="g1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d">
+                <comment>What is the ultimate dream for VoiceFlow Pro? This is the 'bling bling' - the big picture that motivates every single task in this plan.</comment>
+                <node title="Vision Statement" priority="medium" status="pending" id="h2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e">
+                    <comment>To become the leading, most intuitive, and privacy-focused transcription service for creators and professionals on the web.</comment>
+                </node>
+                <node title="Mission Statement" priority="medium" status="pending" id="i3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f">
+                    <comment>To empower individuals and teams to unlock the value in their audio content by providing a fast, accurate, and user-friendly transcription tool that respects their data and privacy.</comment>
+                </node>
+            </node>
+
+            <node title="Financial Goals (The Return on Investment)" priority="medium" status="pending" id="j4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8g">
+                <comment>The financial targets that will make this project sustainable and profitable. These are the numbers that translate effort into reward.</comment>
+                <node title="Target Monthly Recurring Revenue (MRR)" priority="medium" status="pending" id="k5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8g9h">
+                    <comment>GOAL: Achieve $5,000 MRR within 12 months of launch. This is the primary indicator of financial health and product-market fit.</comment>
+                </node>
+                <node title="Target Average Revenue Per User (ARPU)" priority="medium" status="pending" id="l6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8g9h0i">
+                    <comment>GOAL: Achieve an ARPU of $15. This will be driven by the Pro and Teams pricing tiers. A higher ARPU indicates we are delivering high value to our customers.</comment>
+                </node>
+                <node title="Projected Break-Even Point" priority="medium" status="pending" id="m7b8c9d0-e1f2-4a3b-4c5d-6e7f8g9h0i1j">
+                    <comment>ANALYSIS: Estimate the point at which monthly revenue covers all monthly costs (e.g., hosting, legal, marketing tools). This is the point where the business becomes self-sustaining.</comment>
+                </node>
+            </node>
+
+            <node title="User &amp; Growth KPIs" priority="medium" status="pending" id="n8c9d0e1-f2a3-4b4c-5d6e-7f8g9h0i1j2k">
+                <comment>Metrics that measure our growth and impact on users. This is how we know we are building something people love and are willing to pay for.</comment>
+                <node title="Target Active User Base" priority="medium" status="pending" id="o9d0e1f2-a3b4-4c5d-6e7f-8g9h0i1j2k3l">
+                    <comment>GOAL: Acquire 1,000 paying customers within 6 months of launch. This is a direct measure of market adoption.</comment>
+                </node>
+                <node title="Target Conversion Rate" priority="medium" status="pending" id="p0e1f2a3-b4c5-4d6e-7f8g-9h0i1j2k3l4m">
+                    <comment>GOAL: Achieve a 5% conversion rate from free/trial users to paid subscribers. This measures the effectiveness of our onboarding and the perceived value of our premium features.</comment>
+                </node>
+                <node title="User Satisfaction (NPS)" priority="medium" status="pending" id="q1f2a3b4-c5d6-4e7f-8g9h-0i1j2k3l4m5n">
+                    <comment>GOAL: Maintain a Net Promoter Score (NPS) of 50 or higher. This will be measured via in-app surveys and is a key indicator of user happiness and word-of-mouth potential.</comment>
+                </node>
+            </node>
+        </node>
+        
         <node title="Phase 1: Technical Development" priority="high" status="pending" id="e5f6g7h8-i9j0-4k1l-2m3n-4o5p6q7r8s9t" uuid="d9371909-a7fd-4516-9263-2bd76184f599">
             <comment uuid="4868b04c-750d-478b-ab70-4edf5c526e9a">This phase focuses on building out the core application features beyond the MVP, ensuring a robust and scalable technical foundation. The core transcription engine is complete, so the focus now shifts to user-facing features and infrastructure.</comment>
             

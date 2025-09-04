@@ -30,22 +30,25 @@
             --priority-low-border: #48bb78;
         }
 
+        html {
+            /* THE FIX: Apply the background to the root HTML element.
+               This ensures the color covers the entire scrollable area. */
+            background-color: var(--color-surface);
+        }
+        
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--color-bg);
             color: var(--color-text);
             margin: 0;
             padding: 2rem;
-            text-align: center; /* Center the container */
+            min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .container {
-            display: inline-block; /* Allow the container to grow with content */
-            background: var(--color-surface);
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            min-width: 800px; /* Give it a reasonable minimum size */
+            /* Container is now just for layout, not appearance */
+            background: transparent;
+            padding: 0;
             text-align: left; /* Reset alignment for content inside */
         }
 
@@ -331,6 +334,14 @@
                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
                 Save to File
             </button>
+            <button class="btn btn-secondary" id="toggleCommentsBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/><path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/></svg>
+                <span class="btn-text">Show Comments</span>
+            </button>
+            <button class="btn" id="toggleCollapseBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zM8 16a.5.5 0 0 1-.5-.5v-3.793l-1.146 1.147a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-.5.5z"/></svg>
+                <span class="btn-text">Expand/Collapse All</span>
+            </button>
         </div>
         <div id="mindMap" class="mind-map-container">
             <p id="placeholderText">Start a <a href="#" id="newProjectLink">New Project</a> or upload an XML file to begin.</p>
@@ -348,14 +359,19 @@
             const mindMapContainer = document.getElementById('mindMap');
             const placeholderText = document.getElementById('placeholderText');
             const saveIndicator = document.getElementById('saveIndicator');
+            const toggleCommentsBtn = document.getElementById('toggleCommentsBtn');
+            const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
 
             let autoSaveTimeout;
+            let areCommentsVisible = false;
 
             // --- Initialization ---
             uploadBtn.addEventListener('click', () => fileInput.click());
             fileInput.addEventListener('change', handleFileSelect);
             saveBtn.addEventListener('click', exportXML);
             newProjectBtn.addEventListener('click', createNewProject);
+            toggleCommentsBtn.addEventListener('click', toggleAllComments);
+            toggleCollapseBtn.addEventListener('click', toggleAllNodes);
             newProjectLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 createNewProject();
@@ -375,6 +391,8 @@
                 const savedXML = localStorage.getItem('horizontalMindMapXML');
                 if (savedXML) {
                     renderMindMap(savedXML);
+                    const savedCommentState = localStorage.getItem('horizontalMindMapCommentsVisible') === 'true';
+                    applyGlobalCommentState(savedCommentState);
                 }
             }
 
@@ -400,6 +418,72 @@
                 reader.readAsText(file);
             }
 
+            function toggleAllComments() {
+                const newState = !areCommentsVisible;
+                localStorage.setItem('horizontalMindMapCommentsVisible', newState);
+                applyGlobalCommentState(newState);
+            }
+
+            function toggleAllNodes() {
+                const rootNode = mindMapContainer.querySelector('.node');
+                if (!rootNode) return;
+                
+                const rootChildrenContainer = rootNode.querySelector('.node-parent');
+                if (!rootChildrenContainer) return;
+
+                const isRootCollapsed = rootChildrenContainer.classList.contains('collapsed');
+
+                const allChildrenContainers = document.querySelectorAll('.node-parent');
+                const allToggles = document.querySelectorAll('.node-toggle');
+                
+                if (isRootCollapsed) {
+                    // Action: Expand All Recursively
+                    allChildrenContainers.forEach(container => container.classList.remove('collapsed'));
+                    allToggles.forEach(toggle => toggle.textContent = '–');
+                } else {
+                    // Action: Collapse All Recursively
+                    allChildrenContainers.forEach(container => container.classList.add('collapsed'));
+                    allToggles.forEach(toggle => toggle.textContent = '➕');
+                }
+                updateToggleAllButtonText(); // Update text after action
+            }
+
+            function applyGlobalCommentState(shouldBeVisible) {
+                areCommentsVisible = shouldBeVisible;
+                const allCommentDivs = document.querySelectorAll('.node-comment');
+                allCommentDivs.forEach(commentDiv => {
+                    const wrapper = commentDiv.closest('.node-wrapper');
+                    if (wrapper && wrapper.classList.contains('has-comment')) {
+                        commentDiv.style.display = areCommentsVisible ? 'block' : 'none';
+                    }
+                });
+                updateToggleCommentsButton();
+            }
+            
+            function updateToggleCommentsButton() {
+                const btnText = toggleCommentsBtn.querySelector('.btn-text');
+                if (areCommentsVisible) {
+                    btnText.textContent = 'Hide Comments';
+                } else {
+                    btnText.textContent = 'Show Comments';
+                }
+            }
+
+            function updateToggleAllButtonText() {
+                const rootNode = mindMapContainer.querySelector('.node');
+                const btnText = toggleCollapseBtn.querySelector('.btn-text');
+                if (rootNode) {
+                    const rootChildrenContainer = rootNode.querySelector('.node-parent');
+                    if (rootChildrenContainer && !rootChildrenContainer.classList.contains('collapsed')) {
+                        btnText.textContent = 'Collapse All';
+                    } else {
+                        btnText.textContent = 'Expand All';
+                    }
+                } else {
+                     btnText.textContent = 'Expand/Collapse All';
+                }
+            }
+
             function renderMindMap(xmlString) {
                 try {
                     const parser = new DOMParser();
@@ -418,6 +502,7 @@
                              }
                          });
                     }
+                    updateToggleAllButtonText();
 
                 } catch (e) {
                     console.error("Error parsing XML:", e);
@@ -505,7 +590,6 @@
                 commentDiv.textContent = commentElement ? commentElement.textContent : '';
                 if(commentElement && commentElement.textContent.trim()) {
                     nodeWrapper.classList.add('has-comment');
-                    commentDiv.style.display = 'block';
                 }
                 nodeWrapper.appendChild(commentDiv);
                 
@@ -529,6 +613,7 @@
                     }
                     childrenContainer.classList.toggle('collapsed');
                     toggleSpan.textContent = childrenContainer.classList.contains('collapsed') ? '➕' : '–';
+                    updateToggleAllButtonText();
                 });
 
                 statusIcon.addEventListener('click', (e) => {
@@ -561,7 +646,6 @@
                     if (willHaveComment) {
                        nodeWrapper.classList.add('has-comment');
                     }
-                    if (commentDiv.style.display === 'block') commentDiv.focus();
                 });
 
                 commentDiv.addEventListener('dblclick', e => {
