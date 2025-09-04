@@ -264,7 +264,7 @@ app.post('/api/save', async (req, res) => {
 app.post('/api/create', async (req, res) => {
     try {
         const { filename } = req.body;
-        const filePath = path.join('.', filename);
+        const filePath = path.join(workingRootDir, filename);
         
         // Check if file already exists
         try {
@@ -294,7 +294,9 @@ app.post('/api/create', async (req, res) => {
 app.post('/api/check-changes', async (req, res) => {
     try {
         const { filename, lastCheck } = req.body;
-        const mergedData = await loadAndMergeXML(filename);
+        // Resolve filename relative to workingRootDir  
+        const fullFilePath = path.resolve(workingRootDir, filename);
+        const mergedData = await loadAndMergeXML(fullFilePath);
         
         if (!mergedData) {
             return res.json({ needsReload: false });
@@ -332,7 +334,7 @@ app.post('/api/check-changes', async (req, res) => {
 app.post('/api/cleanup-ids', async (req, res) => {
     try {
         // Get all XML files
-        const files = await fs.readdir('.');
+        const files = await fs.readdir(workingRootDir);
         const xmlFiles = files.filter(file => file.endsWith('.xml'));
         
         const usedIds = new Set();
@@ -342,7 +344,8 @@ app.post('/api/cleanup-ids', async (req, res) => {
             console.log(`Cleaning up ${file}...`);
             
             try {
-                const xmlContent = await fs.readFile(file, 'utf8');
+                const filePath = path.resolve(workingRootDir, file);
+                const xmlContent = await fs.readFile(filePath, 'utf8');
                 if (!xmlContent.trim()) continue;
                 
                 const result = await parser.parseStringPromise(xmlContent);
@@ -353,7 +356,7 @@ app.post('/api/cleanup-ids', async (req, res) => {
                 
                 // Write back to file
                 const cleanXml = builder.buildObject(result);
-                await fs.writeFile(file, cleanXml, 'utf8');
+                await fs.writeFile(filePath, cleanXml, 'utf8');
                 cleanedFiles.push(file);
                 
             } catch (error) {
@@ -560,6 +563,11 @@ app.post('/api/save-split', async (req, res) => {
     try {
         const { filename, data, folder } = req.body; // filename is the main file, folder is the working directory
         const workingFolder = folder || '.';
+        // Resolve working folder relative to workingRootDir
+        const absoluteWorkingFolder = path.isAbsolute(workingFolder) ? 
+            workingFolder : 
+            path.resolve(workingRootDir, workingFolder);
+        
         const parsedData = await parser.parseStringPromise(data);
 
         if (!parsedData || !parsedData.project_plan) {
@@ -591,16 +599,10 @@ app.post('/api/save-split', async (req, res) => {
             // Ensure there's something to save
             if (fileObject.project_plan && (fileObject.project_plan.node || fileObject.project_plan.import)) {
                 const xmlOutput = builder.buildObject(fileObject);
-                const filePath = path.join(workingFolder, fileToSave);
-                
-                // Security check
-                const absolutePath = path.resolve(filePath);
-                if (!absolutePath.includes(path.resolve('.'))) {
-                    console.error(`Security error: Attempt to write outside allowed directory: ${filePath}`);
-                    continue;
-                }
+                const filePath = path.join(absoluteWorkingFolder, fileToSave);
                 
                 await fs.writeFile(filePath, xmlOutput, 'utf8');
+                console.log(`Saved file: ${filePath}`);
             }
         }
 
