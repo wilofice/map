@@ -1,25 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
-    <node title="Backend Development" priority="high" id="backend-001" status="pending">
+    <node title="Backend Development" priority="high" status="pending" id="backend-001">
         <comment>Server-side implementation tasks</comment>
-        
-        <node title="Setup Node.js Server" priority="high" id="backend-002" status="completed">
+        <node title="Setup Node.js Server" priority="high" status="completed" id="backend-002">
             <comment>Express server with middleware</comment>
         </node>
-        
-        <node title="Database Design" priority="high" id="backend-003" status="pending">
+        <node title="Database Design" priority="high" status="in-progress" id="backend-003">
             <comment>Design and implement database schema</comment>
-            
-            <node title="User Schema" priority="high" id="backend-004" status="pending"/>
-            <node title="Project Schema" priority="medium" id="backend-005" status="pending"/>
-            <node title="Analytics Schema" priority="low" id="backend-006" status="pending"/>
+            <node title="User Schema" priority="high" status="pending" id="backend-004"/>
+            <node title="Project Schema" priority="medium" status="pending" id="backend-005"/>
+            <node title="Analytics Schema" priority="low" status="pending" id="backend-006"/>
         </node>
-        
-        <node title="API Endpoints" priority="medium" id="backend-007" status="pending">
+        <node title="API Endpoints" priority="medium" status="pending" id="backend-007">
             <comment>RESTful API implementation</comment>
-            
-            <node title="Authentication Routes" priority="high" id="backend-008" status="pending"/>
-            <node title="CRUD Operations" priority="medium" id="backend-009" status="pending"/>
+            <node title="Authentication Routes" priority="high" status="pending" id="backend-008"/>
+            <node title="CRUD Operations" priority="medium" status="pending" id="backend-009"/>
         </node>
     </node>
 </project_plan>
