@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
-    <node title="Frontend Development" priority="high" status="in-progress" id="undefined">
+    <node title="Frontend Development" priority="high" status="in-progress" id="frontend-001">
         <comment>All frontend-related tasks</comment>
-        <node title="Setup React Framework" priority="high" status="completed" id="undefined">
+        <node title="Setup React Framework" priority="high" status="completed" id="frontend-002">
             <comment>Initialize React application with TypeScript</comment>
         </node>
-        <node title="Design Component Library" priority="medium" status="completed" id="undefined">
+        <node title="Design Component Library" priority="medium" status="completed" id="frontend-003">
             <comment>Create reusable UI components</comment>
-            <node title="Button Component" priority="low" status="completed" id="undefined"/>
-            <node title="Form Components" priority="medium" status="completed" id="undefined"/>
-            <node title="Navigation Menu" priority="high" status="completed" id="undefined"/>
+            <node title="Button Component" priority="low" status="completed" id="frontend-004"/>
+            <node title="Form Components" priority="medium" status="completed" id="frontend-005"/>
+            <node title="Navigation Menu" priority="high" status="completed" id="frontend-006"/>
         </node>
-        <node title="Implement State Management" priority="high" status="pending" id="undefined">
+        <node title="Implement State Management" priority="high" status="pending" id="frontend-007">
             <comment>Setup Redux or Context API</comment>
         </node>
     </node>

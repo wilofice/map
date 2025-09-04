@@ -549,6 +549,7 @@
                 <button class="btn btn-secondary" id="toggleAllBtn">📂 <span class="btn-text">Toggle All</span></button>
                 <button class="btn" id="toggleFlashBtn">✨ <span class="btn-text">Start Flash</span></button>
                 <button class="btn" id="toggleAnimateLinesBtn">〰️ <span class="btn-text">Animate Lines</span></button>
+                <button class="btn" id="cleanupBtn" style="background: #f59e0b; color: white;">🔧 <span class="btn-text">Clean up IDs</span></button>
             </div>
 
             <div class="mind-map-container" id="mindMapContainer">
@@ -574,6 +575,8 @@
         let currentFile = null;
         let xmlData = null;
         let autoSaveTimeout = null;
+        let lastCheckTime = Date.now();
+        let syncCheckInterval;
         
         // UI state
         let areCommentsVisible = false;
@@ -590,9 +593,12 @@
 
         // Load list of XML files
         async function loadFileList() {
+            console.log('Loading file list from:', `${API_BASE}/files`);
             try {
                 const response = await fetch(`${API_BASE}/files`);
+                console.log('Response status:', response.status);
                 const files = await response.json();
+                console.log('Files received:', files);
                 
                 const fileList = document.getElementById('fileList');
                 if (files.length === 0) {
@@ -632,10 +638,15 @@
                 
                 document.getElementById('controls').style.display = 'flex';
                 renderMindMap();
+                
+                // Start sync checking for this file
+                lastCheckTime = Date.now();
+                startSyncCheck();
             } catch (error) {
                 console.error('Failed to load file:', error);
                 document.getElementById('mindMapContainer').innerHTML = 
                     '<div class="error">Failed to load file. Please try again.</div>';
+                stopSyncCheck(); // Stop sync checking on error
             }
         }
 
@@ -663,7 +674,17 @@
         function renderNode(nodeData, parentElement) {
             const priority = nodeData.$ && nodeData.$.priority || 'medium';
             const status = nodeData.$ && nodeData.$.status || 'pending';
-            const nodeId = nodeData.$ && nodeData.$.id || generateId();
+            let nodeId = nodeData.$ && nodeData.$.id;
+            
+            // Fix undefined or missing IDs
+            if (!nodeId || nodeId === 'undefined') {
+                nodeId = generateId();
+                if (nodeData.$) {
+                    nodeData.$.id = nodeId;
+                }
+                console.warn('Fixed undefined node ID in renderNode, generated:', nodeId);
+            }
+            
             const title = nodeData.$ && nodeData.$.title || 'New Node';
             const startDate = nodeData.$ && nodeData.$.startDate || '';
             const endDate = nodeData.$ && nodeData.$.endDate || '';
@@ -673,6 +694,18 @@
             nodeDiv.className = 'node';
             nodeDiv.dataset.priority = priority;
             nodeDiv.dataset.status = status;
+            nodeDiv.dataset.id = nodeId;
+            
+            // Set data attributes for save-split functionality
+            if (nodeData.$ && nodeData.$.dataSource) {
+                nodeDiv.dataset.dataSource = nodeData.$.dataSource;
+            }
+            if (nodeData.$ && nodeData.$.dataImported) {
+                nodeDiv.dataset.dataImported = nodeData.$.dataImported;
+            }
+            if (nodeData.$ && nodeData.$.dataImportFrom) {
+                nodeDiv.dataset.dataImportFrom = nodeData.$.dataImportFrom;
+            }
             
             nodeDiv.classList.add(`priority-${priority}`);
             nodeDiv.classList.add(`status-${status}`);
@@ -1057,6 +1090,14 @@
                 }
             };
             
+            // Inherit data attributes from parent for save-split functionality
+            if (parentNode.dataset.dataSource) {
+                newNode.$.dataSource = parentNode.dataset.dataSource;
+            } else {
+                // If parent has no dataSource, use current file as source
+                newNode.$.dataSource = currentFile;
+            }
+            
             const newEl = renderNode(newNode, true);
             parent.appendChild(newEl);
             
@@ -1096,12 +1137,20 @@
         // Build XML from DOM
         function generateXMLString() {
             const nodes = document.querySelectorAll('#mindMapContainer > .node');
-            const xmlNodes = Array.from(nodes).map(node => buildNodeXML(node));
+            console.log('Generating XML for', nodes.length, 'nodes');
+            const xmlNodes = Array.from(nodes).map((node, i) => {
+                console.log(`Node ${i}: id="${node.dataset.id}", title="${node.querySelector('.node-title')?.textContent}"`);
+                return buildNodeXML(node);
+            });
             
-            return `<?xml version="1.0" encoding="UTF-8"?>
+            const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
 ${xmlNodes.join('\n')}
 </project_plan>`;
+            
+            console.log('Generated XML contains "undefined":', xml.includes('id="undefined"'));
+            console.log('First 300 chars of generated XML:', xml.substring(0, 300));
+            return xml;
         }
 
         function buildNodeXML(node, indent = '    ') {
@@ -1112,16 +1161,27 @@ ${xmlNodes.join('\n')}
             const endDate = wrapper.querySelectorAll('.date-input')[1]?.value || '';
             const daysSpent = wrapper.querySelector('.days-value')?.textContent || '0';
             
+            // Fix undefined IDs on the fly
+            let nodeId = node.dataset.id;
+            if (!nodeId || nodeId === 'undefined') {
+                nodeId = generateId();
+                node.dataset.id = nodeId;
+                console.warn('Fixed undefined ID, generated new ID:', nodeId);
+            }
+            
             const attrs = [
                 `title="${escapeXML(title)}"`,
                 `priority="${node.dataset.priority}"`,
                 `status="${node.dataset.status}"`,
-                `id="${node.dataset.id}"`
+                `id="${nodeId}"`
             ];
             
             if (startDate) attrs.push(`startDate="${startDate}"`);
             if (endDate) attrs.push(`endDate="${endDate}"`);
             if (daysSpent !== '0') attrs.push(`daysSpent="${daysSpent}"`);
+            
+            // Note: Removed data attributes as they cause XML parsing errors
+            // The server's cleanup function will handle source attribution properly
             
             const childContainer = node.querySelector('.node-parent');
             const childNodes = childContainer ? childContainer.querySelectorAll(':scope > .node') : [];
@@ -1158,10 +1218,14 @@ ${xmlNodes.join('\n')}
 
         // Auto-save functionality
         function autoSave() {
+            console.log('AutoSave triggered for file:', currentFile);
             clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(() => {
                 if (currentFile) {
+                    console.log('Executing saveFile() for:', currentFile);
                     saveFile();
+                } else {
+                    console.log('No currentFile set, skipping save');
                 }
             }, 1000);
         }
@@ -1186,8 +1250,63 @@ ${xmlNodes.join('\n')}
                 const indicator = document.getElementById('saveIndicator');
                 indicator.style.opacity = '1';
                 setTimeout(() => indicator.style.opacity = '0', 1500);
+                
+                // Update check time after successful save
+                lastCheckTime = Date.now();
             } catch (error) {
                 console.error('Failed to save:', error);
+            }
+        }
+
+        // Check for file changes and reload if necessary
+        async function checkForChanges() {
+            if (!currentFile) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/check-changes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFile,
+                        lastCheck: lastCheckTime
+                    })
+                });
+
+                const result = await response.json();
+                if (result.needsReload) {
+                    console.log('Files have changed, reloading...');
+                    await loadFile(currentFile);
+                    lastCheckTime = Date.now();
+                    
+                    // Show notification
+                    const indicator = document.getElementById('saveIndicator');
+                    indicator.textContent = 'Synced!';
+                    indicator.style.opacity = '1';
+                    indicator.style.backgroundColor = '#10b981';
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                        indicator.textContent = 'Saved';
+                        indicator.style.backgroundColor = '#3b82f6';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error checking for changes:', error);
+            }
+        }
+
+        // Start sync checking when file is loaded
+        function startSyncCheck() {
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+            }
+            syncCheckInterval = setInterval(checkForChanges, 3000); // Check every 3 seconds
+        }
+
+        // Stop sync checking
+        function stopSyncCheck() {
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
             }
         }
 
@@ -1352,6 +1471,7 @@ ${xmlNodes.join('\n')}
             document.getElementById('toggleAllBtn').onclick = toggleAllNodes;
             document.getElementById('toggleFlashBtn').onclick = toggleFlash;
             document.getElementById('toggleAnimateLinesBtn').onclick = toggleAnimateLines;
+            document.getElementById('cleanupBtn').onclick = cleanupIds;
             
             // Hide context menu on click
             document.addEventListener('click', () => {
@@ -1359,8 +1479,70 @@ ${xmlNodes.join('\n')}
             });
         }
 
+        // Clean up IDs across all XML files
+        async function cleanupIds() {
+            const button = document.getElementById('cleanupBtn');
+            const originalText = button.innerHTML;
+            
+            try {
+                button.innerHTML = '🔧 <span class="btn-text">Cleaning...</span>';
+                button.disabled = true;
+                
+                const response = await fetch(`${API_BASE}/cleanup-ids`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    button.innerHTML = '✅ <span class="btn-text">Cleaned!</span>';
+                    button.style.background = '#10b981';
+                    
+                    // Show success message
+                    const indicator = document.getElementById('saveIndicator');
+                    indicator.textContent = `Cleaned ${result.files.length} files (${result.totalIds} unique IDs)`;
+                    indicator.style.opacity = '1';
+                    indicator.style.backgroundColor = '#10b981';
+                    
+                    setTimeout(async () => {
+                        indicator.style.opacity = '0';
+                        indicator.textContent = 'Saved';
+                        indicator.style.backgroundColor = '#3b82f6';
+                        
+                        // Reset button
+                        button.innerHTML = originalText;
+                        button.style.background = '#f59e0b';
+                        button.disabled = false;
+                        
+                        // Reload current file to reflect changes
+                        if (currentFile) {
+                            await loadFile(currentFile);
+                        }
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(result.error || 'Cleanup failed');
+                }
+                
+            } catch (error) {
+                console.error('Cleanup error:', error);
+                button.innerHTML = '❌ <span class="btn-text">Error</span>';
+                button.style.background = '#ef4444';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#f59e0b';
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Stop sync checking when page unloads
+        window.addEventListener('beforeunload', stopSyncCheck);
+        
         // Initialize on load
-        init();
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

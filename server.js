@@ -5,6 +5,9 @@ const path = require('path');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
 
+// Track file modification times for sync
+const fileModTimes = new Map();
+
 const app = express();
 const PORT = 3000;
 
@@ -110,6 +113,132 @@ app.post('/api/create', async (req, res) => {
     }
 });
 
+// Check if files have been modified (for sync)
+app.post('/api/check-changes', async (req, res) => {
+    try {
+        const { filename, lastCheck } = req.body;
+        const mergedData = await loadAndMergeXML(filename);
+        
+        if (!mergedData) {
+            return res.json({ needsReload: false });
+        }
+        
+        // Get all files that this merged data depends on
+        const dependentFiles = new Set([filename]);
+        await collectDependentFiles(mergedData.data.project_plan, dependentFiles);
+        
+        // Check if any dependent file has been modified since lastCheck
+        let needsReload = false;
+        for (const file of dependentFiles) {
+            try {
+                const stats = await fs.stat(file);
+                const modTime = stats.mtime.getTime();
+                
+                if (modTime > lastCheck) {
+                    needsReload = true;
+                    break;
+                }
+            } catch (error) {
+                // File might not exist, skip
+                continue;
+            }
+        }
+        
+        res.json({ needsReload });
+    } catch (error) {
+        console.error('Error checking changes:', error);
+        res.json({ needsReload: false });
+    }
+});
+
+// Clean up all XML files with proper unique IDs
+app.post('/api/cleanup-ids', async (req, res) => {
+    try {
+        // Get all XML files
+        const files = await fs.readdir('.');
+        const xmlFiles = files.filter(file => file.endsWith('.xml'));
+        
+        const usedIds = new Set();
+        const cleanedFiles = [];
+        
+        for (const file of xmlFiles) {
+            console.log(`Cleaning up ${file}...`);
+            
+            try {
+                const xmlContent = await fs.readFile(file, 'utf8');
+                if (!xmlContent.trim()) continue;
+                
+                const result = await parser.parseStringPromise(xmlContent);
+                if (!result || !result.project_plan) continue;
+                
+                // Clean up all node IDs in this file
+                await cleanupNodeIds(result.project_plan, usedIds);
+                
+                // Write back to file
+                const cleanXml = builder.buildObject(result);
+                await fs.writeFile(file, cleanXml, 'utf8');
+                cleanedFiles.push(file);
+                
+            } catch (error) {
+                console.error(`Error processing ${file}:`, error);
+            }
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Cleaned up ${cleanedFiles.length} files`,
+            files: cleanedFiles,
+            totalIds: usedIds.size
+        });
+    } catch (error) {
+        console.error('Error cleaning up IDs:', error);
+        res.status(500).json({ error: 'Failed to cleanup IDs' });
+    }
+});
+
+// Recursively clean up node IDs
+async function cleanupNodeIds(node, usedIds) {
+    if (!node || !node.node) return;
+    
+    const nodes = Array.isArray(node.node) ? node.node : [node.node];
+    for (const childNode of nodes) {
+        if (childNode.$) {
+            // Generate unique ID if missing or duplicate
+            let nodeId = childNode.$.id;
+            if (!nodeId || nodeId === 'undefined' || usedIds.has(nodeId)) {
+                do {
+                    nodeId = 'node-' + Math.random().toString(36).substr(2, 9);
+                } while (usedIds.has(nodeId));
+                
+                childNode.$.id = nodeId;
+                console.log(`Generated new ID: ${nodeId}`);
+            }
+            usedIds.add(nodeId);
+            
+            // Remove problematic data attributes that cause XML parsing issues
+            delete childNode.$.dataSource;
+            delete childNode.$.dataImported;
+            delete childNode.$.dataImportFrom;
+        }
+        
+        // Process children recursively
+        await cleanupNodeIds(childNode, usedIds);
+    }
+}
+
+// Helper to collect all files that a project depends on
+async function collectDependentFiles(node, fileSet) {
+    if (!node || !node.node) return;
+    
+    const nodes = Array.isArray(node.node) ? node.node : [node.node];
+    for (const childNode of nodes) {
+        if (childNode.$ && childNode.$.dataSource) {
+            fileSet.add(childNode.$.dataSource);
+        }
+        await collectDependentFiles(childNode, fileSet);
+    }
+}
+
 // Helper function to load and merge XML files with imports
 async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = null) {
     // Prevent circular imports
@@ -160,7 +289,9 @@ async function tagNodesWithSource(node, sourceFile) {
         const nodes = Array.isArray(node.node) ? node.node : [node.node];
         for (let childNode of nodes) {
             if (!childNode.$) childNode.$ = {};
-            childNode.$.dataSource = sourceFile;
+            // Sanitize the sourceFile to be valid for XML attributes (remove ./ prefix)
+            const sanitizedSource = sourceFile.replace(/^\.\//, '');
+            childNode.$.dataSource = sanitizedSource;
             
             // Process child nodes recursively
             if (childNode.node) {
@@ -208,7 +339,8 @@ async function processImports(node, basePath, processedFiles) {
                             for (let importedNode of importedNodes) {
                                 if (!importedNode.$) importedNode.$ = {};
                                 importedNode.$.dataImported = 'true';
-                                importedNode.$.dataImportFrom = importTag.$.src;
+                                // Sanitize the import source to be valid for XML attributes
+                                importedNode.$.dataImportFrom = importTag.$.src.replace(/^\.\//, '');
                             }
                             
                             // Process nested imports
@@ -249,6 +381,12 @@ async function processImports(node, basePath, processedFiles) {
 app.post('/api/save-split', async (req, res) => {
     try {
         const { filename, data } = req.body;
+        console.log('\n=== SAVE DEBUG ===');
+        console.log('Filename:', filename);
+        console.log('XML Length:', data.length);
+        console.log('First 200 chars:', data.substring(0, 200));
+        console.log('Looking for invalid IDs:', data.includes('id="undefined"'));
+        console.log('==================\n');
         const parsedData = await parser.parseStringPromise(data);
         
         // Group nodes by their source files
@@ -265,6 +403,10 @@ app.post('/api/save-split', async (req, res) => {
             
             const xmlContent = builder.buildObject(fileData);
             await fs.writeFile(sourceFile, xmlContent, 'utf8');
+            
+            // Update modification time tracking
+            const stats = await fs.stat(sourceFile);
+            fileModTimes.set(sourceFile, stats.mtime.getTime());
         }
         
         res.json({ 
