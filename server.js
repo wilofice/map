@@ -156,7 +156,7 @@ app.post('/api/cleanup-ids', async (req, res) => {
     try {
         // Get all XML files
         const files = await fs.readdir('.');
-        const xmlFiles = files.filter file => file.endsWith('.xml'));
+        const xmlFiles = files.filter(file => file.endsWith('.xml'));
         
         const usedIds = new Set();
         const cleanedFiles = [];
