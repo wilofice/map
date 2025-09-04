@@ -1,17 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
-    <node title="Main Project Overview" priority="high" id="main-001" status="pending">
+    <node title="Main Project Overview" priority="high" status="pending" id="main-001">
         <comment>This is the main project file that imports modules</comment>
-        
-        <node title="Project Setup" priority="high" id="main-002" status="completed">
+        <node title="Project Setup" priority="high" status="completed" id="main-002">
             <comment>Initial project configuration and setup</comment>
         </node>
-        
-        <import src="frontend_module.xml"/>
-        <import src="backend_module.xml"/>
-        
-        <node title="Deployment Phase" priority="medium" id="main-003" status="pending">
+        <node title="Deployment Phase" priority="medium" status="pending" id="main-003">
             <comment>Final deployment and release tasks</comment>
+        </node>
+        <node title="Frontend Development🔗 frontend_module.xml" priority="high" status="in-progress" id="frontend-001">
+            <comment>All frontend-related tasks</comment>
+            <node title="Setup React Framework" priority="high" status="completed" id="frontend-002">
+                <comment>Initialize React application with TypeScript</comment>
+            </node>
+            <node title="Design Component Library" priority="medium" status="completed" id="frontend-003">
+                <comment>Create reusable UI components</comment>
+                <node title="Button Component" priority="low" status="completed" id="frontend-004"/>
+                <node title="Form Components" priority="medium" status="completed" id="frontend-005"/>
+                <node title="Navigation Menu" priority="high" status="completed" id="frontend-006"/>
+            </node>
+            <node title="Implement State Management" priority="high" status="in-progress" id="frontend-007">
+                <comment>Setup Redux or Context API</comment>
+            </node>
+        </node>
+        <node title="Backend Development🔗 backend_module.xml" priority="high" status="pending" id="backend-001">
+            <comment>Server-side implementation tasks</comment>
+            <node title="Setup Node.js Server" priority="high" status="pending" id="backend-002">
+                <comment>Express server with middleware</comment>
+            </node>
+            <node title="Database Design" priority="high" status="in-progress" id="backend-003">
+                <comment>Design and implement database schema</comment>
+                <node title="User Schema" priority="high" status="pending" id="backend-004"/>
+                <node title="Project Schema" priority="medium" status="pending" id="backend-005"/>
+                <node title="Analytics Schema" priority="low" status="pending" id="backend-006"/>
+            </node>
+            <node title="API Endpoints" priority="medium" status="pending" id="backend-007">
+                <comment>RESTful API implementation</comment>
+                <node title="Authentication Routes" priority="high" status="pending" id="backend-008"/>
+                <node title="CRUD Operations" priority="medium" status="pending" id="backend-009"/>
+            </node>
         </node>
     </node>
 </project_plan>

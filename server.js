@@ -156,7 +156,7 @@ app.post('/api/cleanup-ids', async (req, res) => {
     try {
         // Get all XML files
         const files = await fs.readdir('.');
-        const xmlFiles = files.filter(file => file.endsWith('.xml'));
+        const xmlFiles = files.filter file => file.endsWith('.xml'));
         
         const usedIds = new Set();
         const cleanedFiles = [];
@@ -288,7 +288,7 @@ async function tagNodesWithSource(node, sourceFile) {
         // Ensure node.node is always an array
         const nodes = Array.isArray(node.node) ? node.node : [node.node];
         for (let childNode of nodes) {
-            if (!childNode.$) childNode.$ = {};
+            if (!childNode.$) childNode.$ = {}; // Ensure the attribute object exists
             // Sanitize the sourceFile to be valid for XML attributes (remove ./ prefix)
             const sanitizedSource = sourceFile.replace(/^\.\//, '');
             childNode.$.dataSource = sanitizedSource;
@@ -433,16 +433,45 @@ app.post('/api/save-split', async (req, res) => {
 // into the correct file structure for saving.
 function processNodeForSave(node, parentSource, filesToSave, parentContainerInFile) {
     try {
-        const nodeTitle = (node.$ && node.$.title) || 'Untitled';
-        const nodeId = (node.$ && node.$.id) || 'No ID';
-        console.log(`[SAVE] Processing node: "${nodeTitle}" (id: ${nodeId}), parent source: ${parentSource}`);
-
         if (!node || !node.$) {
             console.error('[SAVE-ERROR] Invalid node structure encountered. Node:', JSON.stringify(node));
             return;
         }
 
-        const nodeSource = node.$.dataSource || parentSource;
+        // --- NEW LOGIC START ---
+        let nodeSource = node.$.dataSource || parentSource;
+        let originalTitle = node.$.title || 'Untitled';
+
+        // Check for the special marker in the title to determine the true source
+        const titleParts = originalTitle.split('🔗');
+        if (titleParts.length === 2) {
+            originalTitle = titleParts[0];
+            nodeSource = titleParts[1];
+            console.log(`[SAVE] Parsed source from title: "${nodeSource}" for node "${originalTitle}"`);
+            // Clean the title on the node object before it gets cloned
+            node.$.title = originalTitle;
+        }
+        const nodeId = node.$.id || 'No ID';
+        console.log(`[SAVE] Processing node: "${originalTitle}" (id: ${nodeId}), source: ${nodeSource}, parent source: ${parentSource}`);
+        // --- NEW LOGIC END ---
+
+        // 1. Clone the node and separate its children
+        const clonedNode = JSON.parse(JSON.stringify(node));
+        const originalChildren = clonedNode.node;
+        delete clonedNode.node; // We'll handle children recursively.
+
+        // 2. Clean attributes and invalid keys from the cloned node
+        if (clonedNode.$) {
+            delete clonedNode.$.dataSource;
+            delete clonedNode.$.dataImported;
+            delete clonedNode.$.dataImportFrom;
+        }
+        for (const key in clonedNode) {
+            if (key !== '$' && /[^a-zA-Z0-9_.\-]/.test(key)) {
+                console.log(`[SAVE] Sanitizing invalid key "${key}" from node "${originalTitle}"`);
+                delete clonedNode[key];
+            }
+        }
 
         // If the node's source is different from its parent's source, it's an import boundary.
         if (nodeSource !== parentSource) {
@@ -462,19 +491,8 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
                 filesToSave.set(nodeSource, newFileContainer);
             }
             const newParentContainer = newFileContainer.project_plan;
-
-            // 3. Add a *clone* of this node to its own file's top-level.
-            const clonedNode = JSON.parse(JSON.stringify(node));
-            const originalChildren = clonedNode.node;
-            delete clonedNode.node; // We'll handle children recursively.
             
-            if (clonedNode.$) {
-                delete clonedNode.$.dataSource;
-                delete clonedNode.$.dataImported;
-                delete clonedNode.$.dataImportFrom;
-            }
-            
-            console.log(`[SAVE]   -> Adding node "${nodeTitle}" to file "${nodeSource}"`);
+            console.log(`[SAVE]   -> Adding node "${originalTitle}" to file "${nodeSource}"`);
             newParentContainer.node.push(clonedNode);
 
             // 4. Process the original children, attaching them to the cloned node in the new file.
@@ -482,23 +500,13 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
                 clonedNode.node = []; // CRITICAL: Initialize children array for the clone.
                 const children = Array.isArray(originalChildren) ? originalChildren : [originalChildren];
                 for (const child of children) {
+                    // The new parentSource for children is the source we just determined.
                     processNodeForSave(child, nodeSource, filesToSave, clonedNode);
                 }
             }
 
         } else {
             // The node belongs in the same file as its parent.
-            const clonedNode = JSON.parse(JSON.stringify(node));
-            const originalChildren = clonedNode.node;
-            delete clonedNode.node; // We'll handle children recursively.
-
-            if (clonedNode.$) {
-                delete clonedNode.$.dataSource;
-                delete clonedNode.$.dataImported;
-                delete clonedNode.$.dataImportFrom;
-            }
-
-            // Ensure the parent container has a 'node' array to push to.
             if (!parentContainerInFile.node) {
                 parentContainerInFile.node = [];
             }
@@ -510,6 +518,7 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
                 clonedNode.node = []; // CRITICAL: Initialize children array for the clone.
                 const children = Array.isArray(originalChildren) ? originalChildren : [originalChildren];
                 for (const child of children) {
+                    // Parent source remains the same.
                     processNodeForSave(child, nodeSource, filesToSave, clonedNode);
                 }
             }
