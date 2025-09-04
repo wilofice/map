@@ -1233,7 +1233,7 @@ ${xmlNodes.join('\n')}
         async function saveFile() {
             try {
                 const xml = generateXMLString();
-                const response = await fetch(`${API_BASE}/save`, {
+                const response = await fetch(`${API_BASE}/save-split`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
