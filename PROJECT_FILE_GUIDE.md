@@ -53,10 +53,10 @@ Attributes are used to store metadata about a node. They are key-value pairs add
 
 #### **Optional Attributes**
 *   `priority`: (string) The priority of the task (e.g., "high", "medium", "low").
-*   `status`: (string) The current status of the task (e.g., "pending", "in-progress", "completed", "blocked").
+*   `status`: (string) The current status of the task (e.g., "pending", "in-progress", "completed").
 *   `assignee`: (string) The person or team assigned to the task.
-*   `startDate`: (date string) The planned start date. Recommended format: `YYYY-MM-DD` (e.g., "2023-01-15").
-*   `endDate`: (date string) The planned end date. Recommended format: `YYYY-MM-DD` (e.g., "2023-01-30").
+*   `startDate`: (date string) The planned start date. Recommended format: `DD MM YYYY` (e.g., "15-Jan-2025").
+*   `endDate`: (date string) The planned end date. Recommended format: `DD MM YYYY` (e.g., "15-Sep-2025").
 *   `daysSpent`: (integer) The number of days spent on the task so far. Should be a string representing a whole number (e.g., "2").
 
 **Example of a node with attributes:**
@@ -67,8 +67,8 @@ Attributes are used to store metadata about a node. They are key-value pairs add
     priority="high" 
     status="in-progress"
     assignee="Alex"
-    startDate="2023-09-01"
-    endDate="2023-09-05"
+    startDate="15-Jan-2025"
+    endDate="15-Sep-2025"
     daysSpent="2">
 </node>
 ```
@@ -96,7 +96,7 @@ First, decide how you want to organize your files. A good approach is to have a 
 ```
 /my-project/
 ├── main.xml
-└── modules/
+└── arch/
     ├── frontend.xml
     └── backend.xml
 ```
@@ -104,7 +104,7 @@ First, decide how you want to organize your files. A good approach is to have a 
 ### Step 2: Create Your Module Files
 Create the individual module files. These are just standard, self-contained project files.
 
-**`modules/frontend.xml`:**
+**`arch/frontend.xml`:**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
@@ -115,7 +115,7 @@ Create the individual module files. These are just standard, self-contained proj
 </project_plan>
 ```
 
-**`modules/backend.xml`:**
+**`arch/backend.xml`:**
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <project_plan>
@@ -137,8 +137,8 @@ Now, create your main file and use `<import>` tags to pull in the modules. The `
         <node title="Phase 1: Planning" id="main-planning-phase"/>
         
         <!-- Import modules. The path is relative to main.xml -->
-        <import src="modules/frontend.xml"/>
-        <import src="modules/backend.xml"/>
+        <import src="arch/frontend.xml"/>
+        <import src="arch/backend.xml"/>
         
         <node title="Phase 3: Deployment" id="main-deployment-phase"/>
     </node>
@@ -147,11 +147,11 @@ Now, create your main file and use `<import>` tags to pull in the modules. The `
 
 ### Step 4: How Loading and Saving Works
 -   **Loading:** When you open `main.xml` in the application, it will read the `<import>` tags and seamlessly merge the content from `frontend.xml` and `backend.xml` into the main map view. It will look like one giant project.
--   **Saving:** This is the magic part. If you edit a node that originally came from `frontend.xml` (e.g., you rename "Implement Login Page"), and click save, the application is smart enough to **write that change back to `modules/frontend.xml`**. The `main.xml` file itself is not changed (other than its timestamp). This keeps your modules independent and your main file clean.
+-   **Saving:** This is the magic part. If you edit a node that originally came from `frontend.xml` (e.g., you rename "Implement Login Page"), and click save, the application is smart enough to **write that change back to `arch/frontend.xml`**. The `main.xml` file itself is not changed (other than its timestamp). This keeps your modules independent and your main file clean.
 
 ## 5. Common Pitfalls and How to Avoid Them
 
 -   **Incorrect Paths:** The most common error is an incorrect `src` path in the `<import>` tag. The path is always relative to the file containing the tag. If a module doesn't load, double-check your path.
 -   **Duplicate IDs:** As mentioned before, do not reuse IDs. If `main.xml` has a node with `id="task-1"` and `frontend.xml` also has a node with `id="task-1"`, it will cause unpredictable save behavior.
 -   **Circular Imports:** Do not create import loops (e.g., `a.xml` imports `b.xml`, and `b.xml` imports `a.xml`). The application has a safeguard to prevent a crash, but the import will fail.
--   **Whitespace in Paths:** Ensure there is no leading or trailing whitespace in the `src` attribute (e.g., use `src="modules/frontend.xml"` not `src=" modules/frontend.xml "`). The application tries to correct this, but clean data is always better.
+-   **Whitespace in Paths:** Ensure there is no leading or trailing whitespace in the `src` attribute (e.g., use `src="arch/frontend.xml"` not `src=" arch/frontend.xml "`). The application tries to correct this, but clean data is always better.
