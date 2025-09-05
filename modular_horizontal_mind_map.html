@@ -493,9 +493,9 @@
         }
 
         .node-wrapper {
-            display: flex;
+            display: inline-flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
         }
         
         .mind-map-container > .node::before,
@@ -718,9 +718,7 @@
             color: var(--color-text-muted);
             border: 1px solid var(--color-border);
             display: none;
-            width: 100%;
-            max-width: 300px;
-            min-width: 200px;
+            width: auto;
             word-wrap: break-word;
             overflow-wrap: break-word;
             white-space: pre-wrap;
