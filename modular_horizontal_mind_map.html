@@ -72,12 +72,54 @@
             padding: 1.5rem;
             overflow-y: auto;
             flex-shrink: 0;
+            transition: width 0.3s ease, padding 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 50px;
+            padding: 1rem 0.5rem;
+        }
+
+        .sidebar.collapsed .sidebar-content {
+            display: none;
+        }
+
+        .sidebar.collapsed h2 {
+            display: none;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            margin-bottom: 0;
         }
 
         .sidebar h2 {
-            margin: 0 0 1.5rem 0;
+            margin: 0;
             font-size: 1.2rem;
             color: var(--color-text);
+        }
+
+        .sidebar-toggle {
+            background: var(--color-secondary);
+            color: var(--color-text);
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--color-secondary-hover);
         }
 
         .file-list {
@@ -754,40 +796,45 @@
 </head>
 <body>
     <div class="sidebar">
-        <h2>📁 Project Files</h2>
-        
-        <!-- Working Root Directory -->
-        <div class="working-root-section">
-            <div class="working-root-display">
-                <span class="folder-icon">🏠</span>
-                <span class="working-root-path" id="workingRootPath">Loading...</span>
-            </div>
-            <button class="folder-btn" id="changeRootBtn" title="Change working root directory">📂 Change Root</button>
+        <div class="sidebar-header">
+            <h2>📁 Project Files</h2>
+            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">‹</button>
         </div>
         
-        <!-- Folder Navigation -->
-        <div class="folder-navigation">
-            <div class="current-folder" id="currentFolder">
-                <span class="folder-icon">📂</span>
-                <span class="folder-path">.</span>
+        <div class="sidebar-content">
+            <!-- Working Root Directory -->
+            <div class="working-root-section">
+                <div class="working-root-display">
+                    <span class="folder-icon">🏠</span>
+                    <span class="working-root-path" id="workingRootPath">Loading...</span>
+                </div>
+                <button class="folder-btn" id="changeRootBtn" title="Change working root directory">📂 Change Root</button>
             </div>
-            <div class="folder-controls">
-                <button class="folder-btn" id="parentFolderBtn" title="Go to parent folder">↑ Parent</button>
+            
+            <!-- Folder Navigation -->
+            <div class="folder-navigation">
+                <div class="current-folder" id="currentFolder">
+                    <span class="folder-icon">📂</span>
+                    <span class="folder-path">.</span>
+                </div>
+                <div class="folder-controls">
+                    <button class="folder-btn" id="parentFolderBtn" title="Go to parent folder">↑ Parent</button>
+                </div>
             </div>
-        </div>
-        
-        <!-- Folder List -->
-        <div class="folder-section">
-            <h3>📂 Folders</h3>
-            <ul class="folder-list" id="folderList">
-                <li class="loading">Loading folders...</li>
+            
+            <!-- Folder List -->
+            <div class="folder-section">
+                <h3>📂 Folders</h3>
+                <ul class="folder-list" id="folderList">
+                    <li class="loading">Loading folders...</li>
+                </ul>
+            </div>
+            
+            <button class="new-file-btn" id="newFileBtn">+ New Mind Map</button>
+            <ul class="file-list" id="fileList">
+                <li class="loading">Loading files...</li>
             </ul>
         </div>
-        
-        <button class="new-file-btn" id="newFileBtn">+ New Mind Map</button>
-        <ul class="file-list" id="fileList">
-            <li class="loading">Loading files...</li>
-        </ul>
     </div>
 
     <div class="main-content">
@@ -1907,8 +1954,27 @@ ${xmlNodes.join('\n')}
             btnText.textContent = areLinesAnimated ? 'Stop Lines' : 'Animate Lines';
         }
 
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggle.textContent = '›';
+                toggle.title = 'Expand Sidebar';
+            } else {
+                toggle.textContent = '‹';
+                toggle.title = 'Collapse Sidebar';
+            }
+        }
+
         // Setup event listeners
         function setupEventListeners() {
+            // Sidebar toggle button
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            
             // Change Root button
             document.getElementById('changeRootBtn').addEventListener('click', showFilesystemBrowser);
             
