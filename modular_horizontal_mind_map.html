@@ -883,8 +883,8 @@
         let areCommentsVisible = false;
         let areDatesVisible = false;
         let areAddButtonsVisible = true;
-        let areFlashesVisible = false;
-        let areLinesAnimated = false;
+        let areFlashesVisible = true;  // Default to true
+        let areLinesAnimated = true;    // Default to true
 
         // Initialize application
         async function init() {
@@ -1168,6 +1168,16 @@
                 document.getElementById('controls').style.display = 'flex';
                 renderMindMap();
                 
+                // Apply default animations state
+                if (areFlashesVisible) {
+                    document.body.classList.add('flash-active');
+                }
+                if (areLinesAnimated) {
+                    document.body.classList.add('lines-animated');
+                }
+                updateToggleFlashButton();
+                updateToggleAnimateLinesButton();
+                
                 // Start sync checking for this file
                 lastCheckTime = Date.now();
                 startSyncCheck();
@@ -1313,6 +1323,10 @@
             datesDiv.append(dateRangeSpan, daysSpentControl);
             if (startDate || endDate || parseInt(daysSpent, 10) > 0) {
                 nodeWrapper.classList.add('has-dates');
+            }
+            // Apply global dates visibility state
+            if (!areDatesVisible) {
+                datesDiv.style.display = 'none';
             }
             nodeWrapper.appendChild(datesDiv);
             
@@ -1686,9 +1700,9 @@ ${xmlNodes.join('\n')}
             const wrapper = node.querySelector('.node-wrapper');
             const title = wrapper.querySelector('.node-title').textContent;
             const comment = wrapper.querySelector('.node-comment')?.textContent || '';
-            const startDate = wrapper.querySelector('.date-input')?.value || '';
-            const endDate = wrapper.querySelectorAll('.date-input')[1]?.value || '';
-            const daysSpent = wrapper.querySelector('.days-value')?.textContent || '0';
+            const startDate = wrapper.querySelector('.date-value[data-type="startDate"]')?.textContent || '';
+            const endDate = wrapper.querySelector('.date-value[data-type="endDate"]')?.textContent || '';
+            const daysSpent = wrapper.querySelector('.days-spent-value')?.textContent || '0';
             
             // Fix undefined IDs on the fly
             let nodeId = node.dataset.id;
@@ -1855,10 +1869,7 @@ ${xmlNodes.join('\n')}
         function toggleAllDates() {
             areDatesVisible = !areDatesVisible;
             document.querySelectorAll('.node-dates').forEach(dates => {
-                const wrapper = dates.closest('.node-wrapper');
-                if (wrapper && wrapper.classList.contains('has-dates')) {
-                    dates.style.display = areDatesVisible ? 'flex' : 'none';
-                }
+                dates.style.display = areDatesVisible ? 'flex' : 'none';
             });
             updateToggleDatesButton();
         }
