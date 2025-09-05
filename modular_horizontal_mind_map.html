@@ -546,10 +546,28 @@
             font-size: 1.2rem;
         }
 
-        /* Priority Colors */
-        .priority-high > .node-wrapper > .node-content { background-color: var(--priority-high-bg); border-color: var(--priority-high-border); }
-        .priority-medium > .node-wrapper > .node-content { background-color: var(--priority-medium-bg); border-color: var(--priority-medium-border); }
-        .priority-low > .node-wrapper > .node-content { background-color: var(--priority-low-bg); border-color: var(--priority-low-border); }
+        /* Priority Colors with Gradients */
+        .priority-high > .node-wrapper > .node-content { 
+            background: linear-gradient(135deg, 
+                rgba(252, 129, 129, 0.3) 0%, 
+                rgba(239, 68, 68, 0.15) 50%,
+                rgba(252, 129, 129, 0.25) 100%);
+            border-color: var(--priority-high-border);
+        }
+        .priority-medium > .node-wrapper > .node-content { 
+            background: linear-gradient(135deg, 
+                rgba(252, 211, 77, 0.3) 0%, 
+                rgba(245, 158, 11, 0.15) 50%,
+                rgba(252, 211, 77, 0.25) 100%);
+            border-color: var(--priority-medium-border);
+        }
+        .priority-low > .node-wrapper > .node-content { 
+            background: linear-gradient(135deg, 
+                rgba(56, 189, 248, 0.3) 0%, 
+                rgba(14, 165, 233, 0.15) 50%,
+                rgba(56, 189, 248, 0.25) 100%);
+            border-color: var(--priority-low-border);
+        }
 
         /* Apply bounce to all nodes when flash is active */
         .flash-active .node-wrapper {
@@ -598,10 +616,16 @@
         }
         
         .status-completed > .node-wrapper > .node-content {
-            opacity: 0.6;
+            opacity: 0.8;
+            background: linear-gradient(135deg, 
+                rgba(113, 128, 150, 0.4) 0%, 
+                rgba(71, 85, 105, 0.25) 50%,
+                rgba(45, 55, 72, 0.35) 100%) !important;
+            border-color: var(--color-secondary) !important;
         }
         .status-completed .node-title {
             text-decoration: line-through;
+            opacity: 0.8;
         }
 
         /* Corrected Connector Lines - Exact copy from original */
