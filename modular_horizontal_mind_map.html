@@ -50,6 +50,15 @@
             66% { border-color: var(--priority-low-border); }
         }
 
+        @keyframes rotating-border {
+            0% {
+                background-position: 0% 50%;
+            }
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
         html {
             background-color: var(--color-surface);
         }
@@ -542,13 +551,52 @@
         .priority-medium > .node-wrapper > .node-content { background-color: var(--priority-medium-bg); border-color: var(--priority-medium-border); }
         .priority-low > .node-wrapper > .node-content { background-color: var(--priority-low-bg); border-color: var(--priority-low-border); }
 
-        /* Status Styling & Animations */
-        .status-in-progress > .node-wrapper {
-            animation: bounce-in-place 0.8s infinite;
+        /* Apply bounce to all nodes when flash is active */
+        .flash-active .node-wrapper {
+            animation: bounce-in-place 2s infinite ease-in-out;
         }
-        .flash-active .status-in-progress .node-content {
-             animation: color-flash 2s infinite;
+        
+        /* Rotating border for in-progress nodes */
+        .status-in-progress > .node-wrapper > .node-content {
+            position: relative;
+            overflow: visible;
         }
+        
+        .status-in-progress > .node-wrapper > .node-content::before {
+            content: "";
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, 
+                var(--priority-high-border) 0%, 
+                var(--priority-medium-border) 33%, 
+                var(--priority-low-border) 66%, 
+                var(--priority-high-border) 100%);
+            background-size: 300% 100%;
+            z-index: -1;
+            animation: rotating-border 3s linear infinite;
+            opacity: 0;
+        }
+        
+        .flash-active .status-in-progress > .node-wrapper > .node-content::before {
+            opacity: 1;
+        }
+        
+        .status-in-progress > .node-wrapper > .node-content::after {
+            content: "";
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 9px;
+            background: inherit;
+            z-index: -1;
+        }
+        
         .status-completed > .node-wrapper > .node-content {
             opacity: 0.6;
         }
