@@ -293,9 +293,12 @@ app.post('/api/create', async (req, res) => {
 // Check if files have been modified (for sync)
 app.post('/api/check-changes', async (req, res) => {
     try {
-        const { filename, lastCheck } = req.body;
-        // Resolve filename relative to workingRootDir  
-        const fullFilePath = path.resolve(workingRootDir, filename);
+        const { filename, folder, lastCheck } = req.body;
+        // Resolve path the same way as /api/load endpoint
+        const folderPath = folder ? (path.isAbsolute(folder) ? 
+            folder : 
+            path.resolve(workingRootDir, folder)) : workingRootDir;
+        const fullFilePath = path.join(folderPath, filename);
         const mergedData = await loadAndMergeXML(fullFilePath);
         
         if (!mergedData) {

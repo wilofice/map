@@ -1889,6 +1889,7 @@ ${xmlNodes.join('\n')}
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filename: currentFile,
+                        folder: currentFolder,
                         lastCheck: lastCheckTime
                     })
                 });
