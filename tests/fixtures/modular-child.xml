@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="child-root" title="Child Module">
+        <node id="imported-task" title="Imported Task">
+            This task is imported from another file
+        </node>
+    </node>
+</project_plan>

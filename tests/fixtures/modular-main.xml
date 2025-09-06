@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="main-root" title="Main Project File">
+        <node id="local-task" title="Local Task">
+            This task is defined in the main file
+        </node>
+    </node>
+    <import src="./modular-child.xml" />
+</project_plan>

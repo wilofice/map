@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="root" title="Basic Valid Project">
+        <node id="task1" title="First Task" priority="high" status="pending" startDate="01-Jan-2024" endDate="15-Jan-2024" daysSpent="5">
+            Basic task description here
+        </node>
+        <node id="task2" title="Second Task" priority="medium" status="in-progress">
+            Another task with different attributes
+        </node>
+    </node>
+</project_plan>

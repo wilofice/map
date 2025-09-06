@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="root" title="Security Test File">
+        <node id="sensitive-code" title="Code with sensitive info">
+            <code language="javascript">
+                const config = {
+                    api_key: "sk-1234567890abcdef",
+                    password: "mySecretPassword123"
+                };
+            </code>
+        </node>
+        <node id="dangerous-command" title="Dangerous CLI command">
+            <cli_command>rm -rf /tmp/*</cli_command>
+        </node>
+        <node id="sensitive-prompt" title="Prompt with secrets">
+            <task_prompt_for_llm>
+                Create a script that uses this API key: "secret_12345"
+                and connects to database with password="admin123"
+            </task_prompt_for_llm>
+        </node>
+    </node>
+</project_plan>

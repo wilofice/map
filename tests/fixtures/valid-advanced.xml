@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="root" title="Advanced Features Project">
+        <node id="code-task" title="Code Implementation Task">
+            <code language="javascript">
+                function calculateTotal(items) {
+                    return items.reduce((sum, item) => sum + item.price, 0);
+                }
+            </code>
+        </node>
+        <node id="llm-task" title="LLM Assisted Task">
+            <task_prompt_for_llm>
+                Create a function that validates user input for email addresses. 
+                Include proper regex validation and error handling.
+            </task_prompt_for_llm>
+        </node>
+        <node id="cli-task" title="Command Line Task">
+            <cli_command>npm install express cors</cli_command>
+        </node>
+    </node>
+</project_plan>

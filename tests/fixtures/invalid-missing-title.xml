@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node id="root" title="Project With Invalid Nodes">
+        <node id="task1">
+            This node is missing the required title attribute
+        </node>
+    </node>
+</project_plan>
