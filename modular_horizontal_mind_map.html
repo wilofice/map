@@ -1113,7 +1113,102 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:3000/api';
+        // Dynamic API base URL detection with fallback mechanism
+        let API_BASE = null;
+        let currentApiBaseIndex = 0;
+        
+        const getApiBaseCandidates = () => {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const currentPort = window.location.port;
+            
+            const candidates = [
+                `${protocol}//${hostname}:3000/api`, // Default development port
+                `${protocol}//${hostname}:8000/api`, // Alternative port
+                `${protocol}//${hostname}:8080/api`, // Alternative port
+            ];
+            
+            // If we have a current port, also try port+1 and the same port
+            if (currentPort) {
+                candidates.unshift(`${protocol}//${hostname}:${parseInt(currentPort) + 1}/api`);
+                candidates.unshift(`${protocol}//${hostname}:${currentPort}/api`);
+            }
+            
+            return [...new Set(candidates)]; // Remove duplicates
+        };
+        
+        const API_CANDIDATES = getApiBaseCandidates();
+        
+        // Function to test API connectivity
+        async function testApiConnection(apiBase) {
+            try {
+                const response = await fetch(`${apiBase}/files`, { 
+                    method: 'GET',
+                    timeout: 2000 // 2 second timeout
+                });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Function to find working API base
+        async function findWorkingApiBase() {
+            for (let i = 0; i < API_CANDIDATES.length; i++) {
+                const candidate = API_CANDIDATES[i];
+                console.log(`Testing API connection to: ${candidate}`);
+                
+                if (await testApiConnection(candidate)) {
+                    console.log(`✅ API server found at: ${candidate}`);
+                    API_BASE = candidate;
+                    currentApiBaseIndex = i;
+                    return candidate;
+                }
+            }
+            
+            // If no API found, use the first candidate as fallback
+            console.warn('⚠️ No working API server found, using default:', API_CANDIDATES[0]);
+            API_BASE = API_CANDIDATES[0];
+            currentApiBaseIndex = 0;
+            return API_BASE;
+        }
+        
+        // Function to retry with next API candidate on error
+        async function retryWithNextApi() {
+            if (currentApiBaseIndex < API_CANDIDATES.length - 1) {
+                currentApiBaseIndex++;
+                API_BASE = API_CANDIDATES[currentApiBaseIndex];
+                console.log(`🔄 Retrying with API: ${API_BASE}`);
+                return true;
+            }
+            return false;
+        }
+        
+        // Enhanced fetch with automatic API fallback
+        async function fetchWithFallback(endpoint, options = {}) {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt < API_CANDIDATES.length; attempt++) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint}`, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`❌ API call failed to ${API_BASE}${endpoint}:`, error.message);
+                    
+                    // Try next API candidate
+                    if (await retryWithNextApi()) {
+                        continue;
+                    }
+                }
+                break;
+            }
+            
+            throw lastError || new Error('All API endpoints failed');
+        }
         
         let currentFile = null;
         let currentFolder = '.';
@@ -1131,6 +1226,9 @@
 
         // Initialize application
         async function init() {
+            // First, find a working API server
+            await findWorkingApiBase();
+            
             await loadWorkingRoot();
             await loadFolderList();
             await loadFileList();
