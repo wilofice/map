@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
@@ -9,11 +12,27 @@ const os = require('os');
 // Track file modification times for sync
 const fileModTimes = new Map();
 
-// Working root directory - can be changed by the user
-let workingRootDir = process.cwd();
+// Configuration from environment variables
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || undefined; // undefined means all interfaces
+const DEBUG = process.env.DEBUG === 'true';
+
+// Working root directory - configurable via .env file
+let workingRootDir = process.env.WORKING_ROOT_DIR || process.cwd();
+
+// Resolve relative paths
+if (!path.isAbsolute(workingRootDir)) {
+    workingRootDir = path.resolve(process.cwd(), workingRootDir);
+}
+
+// Debug logging function
+const log = (...args) => {
+    if (DEBUG) {
+        console.log('[DEBUG]', ...args);
+    }
+};
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -725,7 +744,21 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
     }
 }
 
-app.listen(PORT, () => {
-    console.log(`Mind Map Server running at http://localhost:${PORT}`);
-    console.log('Open this URL in your browser to use the application');
+app.listen(PORT, HOST, () => {
+    const host = HOST || 'localhost';
+    console.log(`🚀 Mind Map Server started successfully!`);
+    console.log(`📍 Server URL: http://${host}:${PORT}`);
+    console.log(`📂 Working Directory: ${workingRootDir}`);
+    console.log(`🔧 Debug Mode: ${DEBUG ? 'ON' : 'OFF'}`);
+    console.log('');
+    console.log('💡 Open the server URL in your browser to use the application');
+    
+    if (DEBUG) {
+        console.log('');
+        console.log('📝 Configuration:');
+        console.log(`   PORT: ${PORT}`);
+        console.log(`   HOST: ${HOST || 'all interfaces'}`);
+        console.log(`   WORKING_ROOT_DIR: ${process.env.WORKING_ROOT_DIR || 'default (current directory)'}`);
+        console.log(`   Resolved working path: ${workingRootDir}`);
+    }
 });

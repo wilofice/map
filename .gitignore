@@ -1,3 +1,4 @@
+node_modules/*
 node_modules/.package-lock.json
 node_modules/.bin/mime
 node_modules/.bin/nodemon
@@ -6275,3 +6276,18 @@ node_modules/yocto-queue/index.js
 node_modules/yocto-queue/license
 node_modules/yocto-queue/package.json
 node_modules/yocto-queue/readme.md
+# Environment variables
+.env
+.env.local
+node_modules/dotenv/CHANGELOG.md
+node_modules/dotenv/config.d.ts
+node_modules/dotenv/config.js
+node_modules/dotenv/LICENSE
+node_modules/dotenv/package.json
+node_modules/dotenv/README-es.md
+node_modules/dotenv/README.md
+node_modules/dotenv/SECURITY.md
+node_modules/dotenv/lib/cli-options.js
+node_modules/dotenv/lib/env-options.js
+node_modules/dotenv/lib/main.d.ts
+node_modules/dotenv/lib/main.js
