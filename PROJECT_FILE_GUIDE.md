@@ -86,7 +86,129 @@ Consider social logins for v2.
 </node>
 ```
 
-## 4. Tutorial: Creating a Modular Project with `<import>`
+## 4. The `<code>` Element
+
+You can add code snippets to any node using the `<code>` element with a `language` attribute. The code will be displayed with syntax highlighting based on the specified language.
+
+**Supported Languages:** cpp, csharp, javascript, js, typescript, ts, python, java, html, css, markdown, json, xml, yaml, sql, bash, shell, and more.
+
+```xml
+<node title="API Endpoint Implementation" id="api-endpoint-001">
+    <comment>User authentication endpoint</comment>
+    <code language="javascript">
+async function authenticateUser(req, res) {
+    const { username, password } = req.body;
+    
+    try {
+        const user = await User.findOne({ username });
+        if (!user || !await bcrypt.compare(password, user.password)) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+        res.json({ token });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+}
+    </code>
+</node>
+```
+
+## 5. The `<task_prompt_for_llm>` Element
+
+You can add AI/LLM task prompts to guide development or documentation tasks. This element contains instructions that can be used with AI assistants to generate code, documentation, or complete specific tasks.
+
+```xml
+<node title="Generate API Documentation" id="doc-task-001">
+    <comment>Documentation generation task</comment>
+    <task_prompt_for_llm>
+Create comprehensive API documentation for a REST API with the following endpoints:
+- POST /api/auth/login - User login with username and password
+- POST /api/auth/register - New user registration
+- GET /api/users/:id - Get user profile by ID
+- PUT /api/users/:id - Update user profile
+
+Include:
+1. Endpoint descriptions
+2. Request/response examples
+3. Error codes and their meanings
+4. Authentication requirements
+5. Rate limiting information
+    </task_prompt_for_llm>
+</node>
+```
+
+## 6. The `<cli_command>` Element
+
+You can add command-line instructions that can be executed directly. These are displayed with special formatting and can be easily copied to the clipboard.
+
+```xml
+<node title="Deploy to Production" id="deploy-001">
+    <comment>Production deployment steps</comment>
+    <cli_command>
+# Build the production bundle
+npm run build
+
+# Run tests before deployment
+npm test
+
+# Deploy to AWS
+aws s3 sync ./dist s3://my-bucket --delete
+aws cloudfront create-invalidation --distribution-id ABCD1234 --paths "/*"
+    </cli_command>
+</node>
+```
+
+## 7. Combining Multiple Elements
+
+Nodes can contain multiple elements to provide comprehensive documentation:
+
+```xml
+<node title="Complete Feature Implementation" id="feature-001" priority="high" status="in-progress">
+    <comment>
+        This feature implements user profile management with avatar upload
+    </comment>
+    
+    <task_prompt_for_llm>
+        Design a user profile management system with:
+        - Profile picture upload with image validation
+        - Bio and personal information fields
+        - Privacy settings
+        - Email verification workflow
+    </task_prompt_for_llm>
+    
+    <code language="javascript">
+// Profile update controller
+const updateProfile = async (req, res) => {
+    const updates = req.body;
+    const allowedUpdates = ['name', 'bio', 'email', 'avatar'];
+    const isValidOperation = Object.keys(updates).every(update => 
+        allowedUpdates.includes(update)
+    );
+    
+    if (!isValidOperation) {
+        return res.status(400).json({ error: 'Invalid updates' });
+    }
+    
+    // Update logic here
+};
+    </code>
+    
+    <cli_command>
+# Install required dependencies
+npm install multer sharp bcryptjs
+
+# Run database migrations
+npm run migrate:latest
+
+# Start development server
+npm run dev
+    </cli_command>
+</node>
+```
+
+## 8. Tutorial: Creating a Modular Project with `<import>`
 
 To keep large projects organized, you can split them into smaller "module" files and include them in a main project file using the `<import>` tag.
 
@@ -149,7 +271,7 @@ Now, create your main file and use `<import>` tags to pull in the modules. The `
 -   **Loading:** When you open `main.xml` in the application, it will read the `<import>` tags and seamlessly merge the content from `frontend.xml` and `backend.xml` into the main map view. It will look like one giant project.
 -   **Saving:** This is the magic part. If you edit a node that originally came from `frontend.xml` (e.g., you rename "Implement Login Page"), and click save, the application is smart enough to **write that change back to `arch/frontend.xml`**. The `main.xml` file itself is not changed (other than its timestamp). This keeps your modules independent and your main file clean.
 
-## 5. Common Pitfalls and How to Avoid Them
+## 9. Common Pitfalls and How to Avoid Them
 
 -   **Incorrect Paths:** The most common error is an incorrect `src` path in the `<import>` tag. The path is always relative to the file containing the tag. If a module doesn't load, double-check your path.
 -   **Duplicate IDs:** As mentioned before, do not reuse IDs. If `main.xml` has a node with `id="task-1"` and `frontend.xml` also has a node with `id="task-1"`, it will cause unpredictable save behavior.

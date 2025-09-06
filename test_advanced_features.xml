@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node title="Advanced Features Demo" id="demo-001" priority="high" status="in-progress">
+        <comment>This demonstrates the new XML features</comment>
+        
+        <node title="Code Example" id="code-demo-001" priority="medium">
+            <comment>JavaScript authentication example</comment>
+            <code language="javascript">
+async function authenticateUser(req, res) {
+    const { username, password } = req.body;
+    
+    try {
+        const user = await User.findOne({ username });
+        if (!user || !await bcrypt.compare(password, user.password)) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+        res.json({ token, user: { id: user._id, username: user.username } });
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+}
+            </code>
+        </node>
+        
+        <node title="LLM Task" id="task-demo-001" priority="high">
+            <task_prompt_for_llm>
+Create a comprehensive REST API documentation for a user management system with the following endpoints:
+
+1. POST /api/auth/register - User registration
+2. POST /api/auth/login - User login
+3. GET /api/users/:id - Get user profile
+4. PUT /api/users/:id - Update user profile
+5. DELETE /api/users/:id - Delete user account
+
+Include request/response examples, error codes, and authentication requirements.
+            </task_prompt_for_llm>
+        </node>
+        
+        <node title="Deployment Commands" id="cli-demo-001" priority="low">
+            <cli_command>
+# Build the production bundle
+npm run build
+
+# Run all tests
+npm test -- --coverage
+
+# Deploy to production
+npm run deploy:prod
+
+# Check deployment status
+kubectl get pods -n production
+            </cli_command>
+        </node>
+        
+        <node title="Combined Example" id="combined-001" priority="high">
+            <comment>This node has all features</comment>
+            <task_prompt_for_llm>
+Design a user profile component with avatar upload functionality
+            </task_prompt_for_llm>
+            <code language="javascript">
+const ProfileComponent = ({ user }) => {
+    const [avatar, setAvatar] = useState(user.avatar);
+    
+    const handleUpload = async (file) => {
+        const formData = new FormData();
+        formData.append('avatar', file);
+        
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        setAvatar(data.url);
+    };
+    
+    return (
+        &lt;div className="profile"&gt;
+            &lt;img src={avatar} alt="Profile" /&gt;
+            &lt;input type="file" onChange={e =&gt; handleUpload(e.target.files[0])} /&gt;
+        &lt;/div&gt;
+    );
+};
+            </code>
+            <cli_command>
+# Install dependencies for image handling
+npm install multer sharp
+
+# Create uploads directory
+mkdir -p public/uploads/avatars
+
+# Set permissions
+chmod 755 public/uploads/avatars
+            </cli_command>
+        </node>
+    </node>
+</project_plan>

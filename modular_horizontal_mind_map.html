@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modular Horizontal Mind Map</title>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -734,6 +750,156 @@
             color: var(--color-primary);
         }
 
+        /* Code Block Styles */
+        .node-code {
+            background: #2d2d2d;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            display: none;
+            width: auto;
+            max-width: 600px;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .node-code pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+
+        .node-code pre code {
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .code-language {
+            color: var(--color-primary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .copy-btn {
+            background: var(--color-secondary);
+            color: var(--color-text);
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--color-secondary-hover);
+        }
+
+        .copy-btn.copied {
+            background: var(--color-success);
+        }
+
+        /* Task Prompt Styles */
+        .node-task-prompt {
+            background: linear-gradient(135deg, 
+                rgba(147, 51, 234, 0.1) 0%, 
+                rgba(79, 70, 229, 0.1) 100%);
+            border: 1px solid rgba(147, 51, 234, 0.3);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--color-text);
+            display: none;
+            width: auto;
+            position: relative;
+        }
+
+        .task-prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(147, 51, 234, 0.2);
+        }
+
+        .task-prompt-label {
+            color: #a78bfa;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .task-prompt-content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* CLI Command Styles */
+        .node-cli-command {
+            background: #1a1a1a;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #22c55e;
+            display: none;
+            width: auto;
+            position: relative;
+        }
+
+        .cli-command-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .cli-command-label {
+            color: #22c55e;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cli-command-content {
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        /* Icon indicators for new elements */
+        .has-code .icon-code {
+            color: var(--color-primary);
+        }
+
+        .has-task-prompt .icon-task {
+            color: #a78bfa;
+        }
+
+        .has-cli-command .icon-cli {
+            color: #22c55e;
+        }
+
         /* Dates & Days Spent */
         .node-dates {
             display: none;
@@ -1367,6 +1533,21 @@
             commentIcon.innerHTML = '💬';
             commentIcon.title = "Toggle Comment";
             
+            const codeIcon = document.createElement('span');
+            codeIcon.className = 'node-icon icon-code';
+            codeIcon.innerHTML = '💻';
+            codeIcon.title = "Toggle Code";
+            
+            const taskIcon = document.createElement('span');
+            taskIcon.className = 'node-icon icon-task';
+            taskIcon.innerHTML = '🤖';
+            taskIcon.title = "Toggle Task Prompt";
+            
+            const cliIcon = document.createElement('span');
+            cliIcon.className = 'node-icon icon-cli';
+            cliIcon.innerHTML = '⚡';
+            cliIcon.title = "Toggle CLI Command";
+            
             const addIcon = document.createElement('span');
             addIcon.className = 'node-icon icon-add';
             addIcon.innerHTML = '➕';
@@ -1377,7 +1558,7 @@
             deleteIcon.innerHTML = '🗑️';
             deleteIcon.title = "Delete Node";
             
-            nodeContentDiv.append(toggleSpan, statusIcon, titleSpan, dateIcon, commentIcon, addIcon, deleteIcon);
+            nodeContentDiv.append(toggleSpan, statusIcon, titleSpan, dateIcon, commentIcon, codeIcon, taskIcon, cliIcon, addIcon, deleteIcon);
             nodeWrapper.appendChild(nodeContentDiv);
             
             // Dates Div
