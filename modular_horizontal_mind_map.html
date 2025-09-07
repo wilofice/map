@@ -1108,7 +1108,7 @@
             background: white;
             border: 1px solid var(--color-border);
             border-radius: 8px;
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -2331,6 +2331,11 @@
                     setNodeStatusRecursive(childNode, newStatus);
                 });
             }
+            
+            // Refresh board view if currently active with animation
+            if (isBoardView) {
+                refreshBoardWithAnimation();
+            }
         }
 
         function getStatusIcon(status) {
@@ -2785,11 +2790,126 @@ ${xmlNodes.join('\n')}
         }
 
         // Populate board with nodes based on their status
+        function refreshBoard() {
+            if (!isBoardView) return;
+            
+            // For now, do a full refresh - could be optimized later
+            populateBoard();
+        }
+        
+        // Enhanced refresh that moves individual cards between columns
+        function refreshBoardWithAnimation() {
+            if (!isBoardView) return;
+            
+            if (!xmlData) {
+                console.log('No XML data for board refresh');
+                return;
+            }
+            
+            // Get all current nodes
+            const allNodes = [];
+            // Handle different XML root structures (project_plan, mindmap, etc.)
+            const rootData = xmlData.project_plan || xmlData.mindmap || xmlData.root || xmlData;
+            collectNodesRecursively(rootData, allNodes);
+            
+            // Get column containers
+            const todoCards = document.getElementById('todoCards');
+            const inProgressCards = document.getElementById('inProgressCards');
+            const doneCards = document.getElementById('doneCards');
+            
+            if (!todoCards || !inProgressCards || !doneCards) {
+                console.error('Board container elements not found for animation refresh');
+                return;
+            }
+            
+            // Check each existing card to see if it needs to be moved
+            const allCards = [...todoCards.children, ...inProgressCards.children, ...doneCards.children];
+            
+            // If no existing cards, do a full populate instead
+            if (allCards.length === 0) {
+                console.log('No existing cards, doing full populate');
+                populateBoard();
+                return;
+            }
+            
+            allCards.forEach(card => {
+                const nodeId = card.dataset.nodeId;
+                const node = allNodes.find(n => n.id === nodeId);
+                
+                if (!node) {
+                    // Node was deleted, remove card with animation
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => card.remove(), 300);
+                    return;
+                }
+                
+                const nodeStatus = node.status || 'pending';
+                const currentColumn = card.parentElement;
+                let targetColumn;
+                
+                // Determine target column based on status
+                if (nodeStatus === 'pending') targetColumn = todoCards;
+                else if (nodeStatus === 'in-progress') targetColumn = inProgressCards;
+                else if (nodeStatus === 'completed') targetColumn = doneCards;
+                
+                // Move card if it's in the wrong column
+                if (currentColumn !== targetColumn) {
+                    card.style.transform = 'translateX(20px)';
+                    card.style.opacity = '0.7';
+                    
+                    setTimeout(() => {
+                        targetColumn.appendChild(card);
+                        card.style.transform = 'translateX(0)';
+                        card.style.opacity = '1';
+                    }, 200);
+                }
+            });
+            
+            // Add any new cards that don't exist yet
+            allNodes.forEach(node => {
+                const existingCard = document.querySelector(`[data-node-id="${node.id}"]`);
+                if (!existingCard) {
+                    const nodeStatus = node.status || 'pending';
+                    let targetColumn;
+                    let columnType;
+                    
+                    if (nodeStatus === 'pending') {
+                        targetColumn = todoCards;
+                        columnType = 'todo';
+                    } else if (nodeStatus === 'in-progress') {
+                        targetColumn = inProgressCards;
+                        columnType = 'in-progress';
+                    } else if (nodeStatus === 'completed') {
+                        targetColumn = doneCards;
+                        columnType = 'done';
+                    }
+                    
+                    const newCard = createTaskCard(node, columnType);
+                    newCard.style.opacity = '0';
+                    newCard.style.transform = 'scale(0.8)';
+                    targetColumn.appendChild(newCard);
+                    
+                    // Animate in
+                    setTimeout(() => {
+                        newCard.style.opacity = '1';
+                        newCard.style.transform = 'scale(1)';
+                    }, 100);
+                }
+            });
+        }
+        
         function populateBoard() {
+            console.log('Populating board...');
             const todoCards = document.getElementById('todoCards');
             const inProgressCards = document.getElementById('inProgressCards');
             const doneCards = document.getElementById('doneCards');
             const boardTitle = document.getElementById('boardTitle');
+            
+            if (!todoCards || !inProgressCards || !doneCards) {
+                console.error('Board container elements not found');
+                return;
+            }
             
             // Clear existing cards
             todoCards.innerHTML = '';
@@ -2797,9 +2917,15 @@ ${xmlNodes.join('\n')}
             doneCards.innerHTML = '';
             
             // Set board title from current file
-            boardTitle.textContent = currentFile || 'Project';
+            if (boardTitle) {
+                boardTitle.textContent = currentFile || 'Project';
+            }
+            
+            console.log('xmlData:', xmlData);
+            console.log('currentFile:', currentFile);
             
             if (!xmlData) {
+                console.log('No XML data available');
                 // Show empty state
                 showEmptyBoard();
                 return;
@@ -2807,12 +2933,17 @@ ${xmlNodes.join('\n')}
             
             // Collect all nodes recursively
             const allNodes = [];
-            collectNodesRecursively(xmlData, allNodes);
+            // Handle different XML root structures (project_plan, mindmap, etc.)
+            const rootData = xmlData.project_plan || xmlData.mindmap || xmlData.root || xmlData;
+            collectNodesRecursively(rootData, allNodes);
+            console.log('Collected nodes:', allNodes.length);
             
             // Group nodes by status
             const todoNodes = allNodes.filter(node => !node.status || node.status === 'pending');
             const inProgressNodes = allNodes.filter(node => node.status === 'in-progress');
             const doneNodes = allNodes.filter(node => node.status === 'completed');
+            
+            console.log('Todo nodes:', todoNodes.length, 'In Progress:', inProgressNodes.length, 'Done:', doneNodes.length);
             
             // Populate columns
             populateColumn(todoCards, todoNodes, 'todo');
@@ -2856,71 +2987,16 @@ ${xmlNodes.join('\n')}
             });
         }
         
-        // Create a task card element
+        // Create a task card element (simplified - title only)
         function createTaskCard(node, columnType) {
             const card = document.createElement('div');
             card.className = `task-card${node.priority ? ` priority-${node.priority}` : ''}`;
             card.dataset.nodeId = node.id;
             
-            // Task title
+            // Task title only
             const title = document.createElement('div');
             title.className = 'task-title';
             title.textContent = node.title || 'Untitled Task';
-            
-            // Task content (node text content if any)
-            const content = document.createElement('div');
-            content.className = 'task-content';
-            if (node._ && node._.trim()) {
-                content.textContent = node._.trim();
-            } else {
-                content.textContent = 'No description';
-                content.style.fontStyle = 'italic';
-                content.style.opacity = '0.6';
-            }
-            
-            // Task path (breadcrumb)
-            if (node.parentPath) {
-                const path = document.createElement('div');
-                path.className = 'task-content';
-                path.style.fontSize = '0.75rem';
-                path.style.color = 'var(--color-text-muted)';
-                path.innerHTML = `📂 ${node.parentPath}`;
-                content.appendChild(document.createElement('br'));
-                content.appendChild(path);
-            }
-            
-            // Task meta information
-            const meta = document.createElement('div');
-            meta.className = 'task-meta';
-            
-            // Date info
-            const dates = document.createElement('div');
-            dates.className = 'task-dates';
-            if (node.startDate) {
-                const startDate = document.createElement('span');
-                startDate.textContent = `📅 ${node.startDate}`;
-                dates.appendChild(startDate);
-            }
-            if (node.endDate) {
-                const endDate = document.createElement('span');
-                endDate.textContent = `🏁 ${node.endDate}`;
-                dates.appendChild(endDate);
-            }
-            if (node.daysSpent) {
-                const daysSpent = document.createElement('span');
-                daysSpent.textContent = `⏱️ ${node.daysSpent} days`;
-                dates.appendChild(daysSpent);
-            }
-            
-            // Priority badge
-            if (node.priority) {
-                const priority = document.createElement('span');
-                priority.className = `task-priority ${node.priority}`;
-                priority.textContent = node.priority;
-                meta.appendChild(priority);
-            }
-            
-            meta.appendChild(dates);
             
             // Add click handler to focus on node in mind map
             card.addEventListener('click', () => {
@@ -2942,8 +3018,6 @@ ${xmlNodes.join('\n')}
             });
             
             card.appendChild(title);
-            card.appendChild(content);
-            card.appendChild(meta);
             
             return card;
         }
