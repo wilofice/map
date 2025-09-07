@@ -1035,6 +1035,184 @@
             padding: 2rem;
             color: var(--color-text-muted);
         }
+
+        /* Kanban Board Styles */
+        .board-container {
+            padding: 2rem 0;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .board-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .board-header h3 {
+            margin: 0;
+            color: var(--color-text);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .board-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 2rem;
+            min-height: 500px;
+        }
+
+        .board-column {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 2px solid var(--color-border);
+        }
+
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .column-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .task-count {
+            background: var(--color-primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            min-width: 1.5rem;
+            text-align: center;
+        }
+
+        .column-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 400px;
+        }
+
+        .task-card {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-color: var(--color-primary);
+        }
+
+        .task-card.priority-high {
+            border-left: 4px solid #ef4444;
+        }
+
+        .task-card.priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .task-card.priority-low {
+            border-left: 4px solid #10b981;
+        }
+
+        .task-title {
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            line-height: 1.3;
+        }
+
+        .task-content {
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .task-dates {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .task-priority {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .task-priority.high {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .task-priority.medium {
+            background: #fefbf2;
+            color: #f59e0b;
+        }
+
+        .task-priority.low {
+            background: #f0fdf4;
+            color: #10b981;
+        }
+
+        .empty-column {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--color-text-muted);
+            font-style: italic;
+            text-align: center;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Responsive design for board */
+        @media (max-width: 1200px) {
+            .board-columns {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .board-container {
+                padding: 1rem 0;
+            }
+            
+            .task-card {
+                padding: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1092,6 +1270,7 @@
                 <button class="btn btn-secondary" id="toggleAllBtn">📂 <span class="btn-text">Toggle All</span></button>
                 <button class="btn" id="toggleFlashBtn">✨ <span class="btn-text">Start Flash</span></button>
                 <button class="btn" id="toggleAnimateLinesBtn">〰️ <span class="btn-text">Animate Lines</span></button>
+                <button class="btn btn-info" id="toggleViewBtn">📋 <span class="btn-text">Board View</span></button>
                 <button class="btn" id="cleanupBtn" style="background: #f59e0b; color: white;">🔧 <span class="btn-text">Clean up IDs</span></button>
             </div>
 
@@ -1099,6 +1278,44 @@
                 <div class="empty-state">
                     <h3>Welcome to Modular Horizontal Mind Map</h3>
                     <p>Select a file from the sidebar to begin, or create a new mind map.</p>
+                </div>
+            </div>
+
+            <!-- Kanban Board View -->
+            <div class="board-container" id="boardContainer" style="display: none;">
+                <div class="board-header">
+                    <h3>📋 Project Board - <span id="boardTitle">Project</span></h3>
+                </div>
+                <div class="board-columns">
+                    <div class="board-column" id="todoColumn">
+                        <div class="column-header">
+                            <h4>📝 To Do</h4>
+                            <span class="task-count" id="todoCount">0</span>
+                        </div>
+                        <div class="column-content" id="todoCards">
+                            <!-- Cards will be dynamically populated -->
+                        </div>
+                    </div>
+                    
+                    <div class="board-column" id="inProgressColumn">
+                        <div class="column-header">
+                            <h4>⚡ In Progress</h4>
+                            <span class="task-count" id="inProgressCount">0</span>
+                        </div>
+                        <div class="column-content" id="inProgressCards">
+                            <!-- Cards will be dynamically populated -->
+                        </div>
+                    </div>
+                    
+                    <div class="board-column" id="doneColumn">
+                        <div class="column-header">
+                            <h4>✅ Done</h4>
+                            <span class="task-count" id="doneCount">0</span>
+                        </div>
+                        <div class="column-content" id="doneCards">
+                            <!-- Cards will be dynamically populated -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2537,6 +2754,213 @@ ${xmlNodes.join('\n')}
             updateToggleAnimateLinesButton();
         }
 
+        // Board view state
+        let isBoardView = false;
+
+        // Board view toggle functionality
+        function toggleBoardView() {
+            isBoardView = !isBoardView;
+            const mindMapContainer = document.getElementById('mindMapContainer');
+            const boardContainer = document.getElementById('boardContainer');
+            const toggleBtn = document.getElementById('toggleViewBtn');
+            
+            if (isBoardView) {
+                // Show board, hide mind map
+                mindMapContainer.style.display = 'none';
+                boardContainer.style.display = 'block';
+                toggleBtn.innerHTML = '🧠 <span class="btn-text">Mind Map</span>';
+                toggleBtn.classList.remove('btn-info');
+                toggleBtn.classList.add('btn-success');
+                
+                // Populate the board with current data
+                populateBoard();
+            } else {
+                // Show mind map, hide board
+                mindMapContainer.style.display = 'flex';
+                boardContainer.style.display = 'none';
+                toggleBtn.innerHTML = '📋 <span class="btn-text">Board View</span>';
+                toggleBtn.classList.remove('btn-success');
+                toggleBtn.classList.add('btn-info');
+            }
+        }
+
+        // Populate board with nodes based on their status
+        function populateBoard() {
+            const todoCards = document.getElementById('todoCards');
+            const inProgressCards = document.getElementById('inProgressCards');
+            const doneCards = document.getElementById('doneCards');
+            const boardTitle = document.getElementById('boardTitle');
+            
+            // Clear existing cards
+            todoCards.innerHTML = '';
+            inProgressCards.innerHTML = '';
+            doneCards.innerHTML = '';
+            
+            // Set board title from current file
+            boardTitle.textContent = currentFile || 'Project';
+            
+            if (!xmlData) {
+                // Show empty state
+                showEmptyBoard();
+                return;
+            }
+            
+            // Collect all nodes recursively
+            const allNodes = [];
+            collectNodesRecursively(xmlData, allNodes);
+            
+            // Group nodes by status
+            const todoNodes = allNodes.filter(node => !node.status || node.status === 'pending');
+            const inProgressNodes = allNodes.filter(node => node.status === 'in-progress');
+            const doneNodes = allNodes.filter(node => node.status === 'completed');
+            
+            // Populate columns
+            populateColumn(todoCards, todoNodes, 'todo');
+            populateColumn(inProgressCards, inProgressNodes, 'in-progress');
+            populateColumn(doneCards, doneNodes, 'done');
+            
+            // Update counters
+            document.getElementById('todoCount').textContent = todoNodes.length;
+            document.getElementById('inProgressCount').textContent = inProgressNodes.length;
+            document.getElementById('doneCount').textContent = doneNodes.length;
+        }
+        
+        // Recursively collect all nodes from XML data
+        function collectNodesRecursively(nodeData, allNodes, parentPath = '') {
+            if (nodeData.node) {
+                const nodes = Array.isArray(nodeData.node) ? nodeData.node : [nodeData.node];
+                nodes.forEach((node, index) => {
+                    const nodePath = parentPath ? `${parentPath} > ${node.title || 'Untitled'}` : (node.title || 'Untitled');
+                    allNodes.push({
+                        ...node,
+                        path: nodePath,
+                        parentPath: parentPath
+                    });
+                    
+                    // Recursively collect child nodes
+                    collectNodesRecursively(node, allNodes, nodePath);
+                });
+            }
+        }
+        
+        // Populate a specific column with nodes
+        function populateColumn(container, nodes, columnType) {
+            if (nodes.length === 0) {
+                container.innerHTML = '<div class="empty-column">No tasks</div>';
+                return;
+            }
+            
+            nodes.forEach(node => {
+                const card = createTaskCard(node, columnType);
+                container.appendChild(card);
+            });
+        }
+        
+        // Create a task card element
+        function createTaskCard(node, columnType) {
+            const card = document.createElement('div');
+            card.className = `task-card${node.priority ? ` priority-${node.priority}` : ''}`;
+            card.dataset.nodeId = node.id;
+            
+            // Task title
+            const title = document.createElement('div');
+            title.className = 'task-title';
+            title.textContent = node.title || 'Untitled Task';
+            
+            // Task content (node text content if any)
+            const content = document.createElement('div');
+            content.className = 'task-content';
+            if (node._ && node._.trim()) {
+                content.textContent = node._.trim();
+            } else {
+                content.textContent = 'No description';
+                content.style.fontStyle = 'italic';
+                content.style.opacity = '0.6';
+            }
+            
+            // Task path (breadcrumb)
+            if (node.parentPath) {
+                const path = document.createElement('div');
+                path.className = 'task-content';
+                path.style.fontSize = '0.75rem';
+                path.style.color = 'var(--color-text-muted)';
+                path.innerHTML = `📂 ${node.parentPath}`;
+                content.appendChild(document.createElement('br'));
+                content.appendChild(path);
+            }
+            
+            // Task meta information
+            const meta = document.createElement('div');
+            meta.className = 'task-meta';
+            
+            // Date info
+            const dates = document.createElement('div');
+            dates.className = 'task-dates';
+            if (node.startDate) {
+                const startDate = document.createElement('span');
+                startDate.textContent = `📅 ${node.startDate}`;
+                dates.appendChild(startDate);
+            }
+            if (node.endDate) {
+                const endDate = document.createElement('span');
+                endDate.textContent = `🏁 ${node.endDate}`;
+                dates.appendChild(endDate);
+            }
+            if (node.daysSpent) {
+                const daysSpent = document.createElement('span');
+                daysSpent.textContent = `⏱️ ${node.daysSpent} days`;
+                dates.appendChild(daysSpent);
+            }
+            
+            // Priority badge
+            if (node.priority) {
+                const priority = document.createElement('span');
+                priority.className = `task-priority ${node.priority}`;
+                priority.textContent = node.priority;
+                meta.appendChild(priority);
+            }
+            
+            meta.appendChild(dates);
+            
+            // Add click handler to focus on node in mind map
+            card.addEventListener('click', () => {
+                // Switch back to mind map view and highlight the node
+                if (isBoardView) {
+                    toggleBoardView();
+                }
+                // Find and highlight the node
+                setTimeout(() => {
+                    const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+                    if (nodeElement) {
+                        nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        nodeElement.style.animation = 'pulse 2s ease-in-out';
+                        setTimeout(() => {
+                            nodeElement.style.animation = '';
+                        }, 2000);
+                    }
+                }, 300);
+            });
+            
+            card.appendChild(title);
+            card.appendChild(content);
+            card.appendChild(meta);
+            
+            return card;
+        }
+        
+        // Show empty board state
+        function showEmptyBoard() {
+            const columns = ['todoCards', 'inProgressCards', 'doneCards'];
+            columns.forEach(columnId => {
+                document.getElementById(columnId).innerHTML = '<div class="empty-column">No data loaded</div>';
+            });
+            
+            // Reset counters
+            document.getElementById('todoCount').textContent = '0';
+            document.getElementById('inProgressCount').textContent = '0';
+            document.getElementById('doneCount').textContent = '0';
+        }
+
         // Button text updates
         function updateToggleCommentsButton() {
             const btnText = document.querySelector('#toggleCommentsBtn .btn-text');
@@ -2652,6 +3076,7 @@ ${xmlNodes.join('\n')}
             document.getElementById('toggleFlashBtn').onclick = toggleFlash;
             document.getElementById('toggleAnimateLinesBtn').onclick = toggleAnimateLines;
             document.getElementById('cleanupBtn').onclick = cleanupIds;
+            document.getElementById('toggleViewBtn').onclick = toggleBoardView;
             
             // Hide context menu on click
             document.addEventListener('click', () => {
