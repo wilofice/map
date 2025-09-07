@@ -465,12 +465,13 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
         }
         
         // Sanitize XML content to handle special characters
-        try {
-            xmlContent = xmlSanitizer.sanitize(xmlContent);
-        } catch (sanitizationError) {
-            console.warn(`XML sanitization failed for ${filePath}:`, sanitizationError.message);
-            // Continue with original content if sanitization fails
-        }
+        // DISABLED - Was corrupting content unnecessarily
+        // try {
+        //     xmlContent = xmlSanitizer.sanitize(xmlContent);
+        // } catch (sanitizationError) {
+        //     console.warn(`XML sanitization failed for ${filePath}:`, sanitizationError.message);
+        //     // Continue with original content if sanitization fails
+        // }
         
         const result = await parser.parseStringPromise(xmlContent);
         
