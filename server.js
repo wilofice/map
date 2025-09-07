@@ -8,6 +8,7 @@ const path = require('path');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
+const XMLSanitizer = require('./xml-sanitizer');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -19,6 +20,9 @@ const DEBUG = process.env.DEBUG === 'true';
 
 // Working root directory - configurable via .env file
 let workingRootDir = process.env.WORKING_ROOT_DIR || process.cwd();
+
+// Initialize XML sanitizer
+const xmlSanitizer = new XMLSanitizer();
 
 // Resolve relative paths
 if (!path.isAbsolute(workingRootDir)) {
@@ -452,12 +456,20 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
     processedFiles.add(absolutePath);
     
     try {
-        const xmlContent = await fs.readFile(filePath, 'utf8');
+        let xmlContent = await fs.readFile(filePath, 'utf8');
         
         // Handle empty files
         if (!xmlContent.trim()) {
             console.warn(`Empty XML file: ${filePath}`);
             return null;
+        }
+        
+        // Sanitize XML content to handle special characters
+        try {
+            xmlContent = xmlSanitizer.sanitize(xmlContent);
+        } catch (sanitizationError) {
+            console.warn(`XML sanitization failed for ${filePath}:`, sanitizationError.message);
+            // Continue with original content if sanitization fails
         }
         
         const result = await parser.parseStringPromise(xmlContent);
