@@ -2961,11 +2961,23 @@ ${xmlNodes.join('\n')}
             if (nodeData.node) {
                 const nodes = Array.isArray(nodeData.node) ? nodeData.node : [nodeData.node];
                 nodes.forEach((node, index) => {
-                    const nodePath = parentPath ? `${parentPath} > ${node.title || 'Untitled'}` : (node.title || 'Untitled');
+                    // Extract attributes from $ property if they exist
+                    const nodeAttrs = node.$ || {};
+                    const title = nodeAttrs.title || node.title || 'Untitled';
+                    const nodePath = parentPath ? `${parentPath} > ${title}` : title;
+                    
                     allNodes.push({
-                        ...node,
+                        id: nodeAttrs.id || node.id,
+                        title: title,
+                        status: nodeAttrs.status || node.status || 'pending',
+                        priority: nodeAttrs.priority || node.priority,
+                        assignee: nodeAttrs.assignee || node.assignee,
+                        startDate: nodeAttrs.startDate || node.startDate,
+                        endDate: nodeAttrs.endDate || node.endDate,
+                        comment: node.comment,
                         path: nodePath,
-                        parentPath: parentPath
+                        parentPath: parentPath,
+                        originalNode: node // Keep original node data
                     });
                     
                     // Recursively collect child nodes
