@@ -76,7 +76,43 @@
         }
 
         html {
-            background-color: var(--color-surface);
+            background: linear-gradient(-45deg, 
+                #1e3a8a, #3b82f6, #1e40af, #2563eb, #1d4ed8);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Floating particles effect */
+        html::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.1), transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.08), transparent),
+                radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.06), transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.04), transparent),
+                radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,0.1), transparent);
+            background-repeat: repeat;
+            background-size: 200px 100px;
+            animation: particleFloat 20s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes particleFloat {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
         }
         
         body {
@@ -92,8 +128,12 @@
         /* Sidebar Styles */
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--color-bg);
-            border-right: 1px solid var(--color-border);
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             padding: 1.5rem;
             overflow-y: auto;
             flex-shrink: 0;
@@ -472,6 +512,13 @@
             flex-direction: column;
             padding: 2rem;
             overflow: auto;
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            margin: 1rem;
+            border-radius: 12px;
         }
 
         .container {
@@ -582,7 +629,10 @@
         
         .node-content:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(59, 130, 246, 0.3),
+                0 0 40px rgba(59, 130, 246, 0.1);
         }
         
         .node-title {
@@ -1722,9 +1772,6 @@
                             <span class="file-name" data-full-name="${file}">${file}</span>
                         </li>
                     `).join('');
-                    
-                    // Debug: Check if tooltip elements are created properly
-                    console.log('File items created:', document.querySelectorAll('.file-name').length);
                 }
             } catch (error) {
                 console.error('Failed to load files:', error);
