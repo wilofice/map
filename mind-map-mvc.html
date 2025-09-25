@@ -110,6 +110,9 @@
     <script type="module" src="js/models/DataModel.js"></script>
     <script type="module" src="js/models/FileModel.js"></script>
     <script type="module" src="js/models/SyncModel.js"></script>
+    <script type="module" src="js/views/UIRenderer.js"></script>
+    <script type="module" src="js/views/BoardView.js"></script>
+    <script type="module" src="js/views/SidebarView.js"></script>
     <script type="module" src="js/progress-tracker.js"></script>
     <script type="module" src="js/node-manager.js"></script>
     
@@ -119,35 +122,45 @@
         import { dataModel } from './js/models/DataModel.js';
         import { fileModel } from './js/models/FileModel.js';
         import { syncModel } from './js/models/SyncModel.js';
+        import { uiRenderer } from './js/views/UIRenderer.js';
+        import { boardView } from './js/views/BoardView.js';
+        import { sidebarView } from './js/views/SidebarView.js';
         
-        // Simple MVC app initialization
+        // Enhanced MVC app with view components
         class MindMapApp {
             constructor() {
                 this.initialized = false;
+                this.currentView = 'mindmap'; // 'mindmap' or 'board'
             }
             
             async init() {
                 try {
-                    console.log('🚀 Initializing Mind Map MVC App...');
+                    console.log('🚀 Initializing Mind Map MVC App (Phase 2)...');
                     
                     // Initialize API client
                     await apiClient.initialize();
                     console.log('✅ API client initialized');
                     
+                    // Initialize view components
+                    uiRenderer.initialize('mindMapContainer');
+                    boardView.initialize('boardContainer');
+                    sidebarView.initialize('sidebar');
+                    console.log('✅ View components initialized');
+                    
                     // Load working root
-                    await fileModel.loadWorkingRoot();
+                    await sidebarView.loadWorkingRoot();
                     console.log('✅ Working root loaded');
                     
-                    // Setup basic event listeners
+                    // Setup event listeners
                     this.setupEventListeners();
                     console.log('✅ Event listeners setup');
                     
                     // Load initial file list
-                    await this.loadFileList();
+                    await sidebarView.loadFileList();
                     console.log('✅ File list loaded');
                     
                     this.initialized = true;
-                    console.log('🎉 Mind Map MVC App initialized successfully!');
+                    console.log('🎉 Mind Map MVC App (Phase 2) initialized successfully!');
                     
                 } catch (error) {
                     console.error('❌ Failed to initialize app:', error);
@@ -160,64 +173,14 @@
                     syncModel.manualSave();
                 });
                 
-                // Sidebar toggle
-                document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-                    document.getElementById('sidebar').classList.toggle('collapsed');
-                });
-                
                 // Board view toggle
                 document.getElementById('toggleBoardView')?.addEventListener('click', () => {
-                    this.toggleBoardView();
+                    this.toggleView();
                 });
-            }
-            
-            async loadFileList() {
-                try {
-                    const files = await fileModel.loadFileList();
-                    this.renderFileList(files);
-                } catch (error) {
-                    console.error('Error loading file list:', error);
-                }
-            }
-            
-            renderFileList(files) {
-                const container = document.getElementById('fileListContainer');
-                if (!container) return;
-                
-                const jsonFiles = files.json || [];
-                const xmlFiles = files.xml || [];
-                
-                container.innerHTML = `
-                    <div class="file-section">
-                        <h4>JSON Files</h4>
-                        <div class="file-list">
-                            ${jsonFiles.map(file => `
-                                <div class="file-item" data-filename="${file}" data-type="json">
-                                    <span class="file-icon">📄</span>
-                                    <span class="file-name">${file}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                    <div class="file-section">
-                        <h4>XML Files</h4>
-                        <div class="file-list">
-                            ${xmlFiles.map(file => `
-                                <div class="file-item" data-filename="${file}" data-type="xml">
-                                    <span class="file-icon">📄</span>
-                                    <span class="file-name">${file}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                
-                // Add file click listeners
-                container.querySelectorAll('.file-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const filename = item.dataset.filename;
-                        this.loadFile(filename);
-                    });
+
+                // Set up file selection handler
+                sidebarView.setFileSelectHandler(async (filename, type) => {
+                    await this.loadFile(filename);
                 });
             }
             
@@ -226,50 +189,72 @@
                     console.log(`Loading file: ${filename}`);
                     const fileData = await fileModel.loadFile(filename);
                     
-                    // Update UI to show file is loaded
-                    document.getElementById('mindMapContainer').innerHTML = `
-                        <div class="file-loaded-state">
-                            <h2>📄 ${filename}</h2>
-                            <p>File loaded successfully!</p>
-                            <p>Format: ${fileData.type.toUpperCase()}</p>
-                            ${fileData.statistics ? `
-                                <div class="file-stats">
-                                    <p>Total nodes: ${fileData.statistics.total}</p>
-                                    <p>Completed: ${fileData.statistics.completed}</p>
-                                    <p>In Progress: ${fileData.statistics.inProgress}</p>
-                                    <p>Pending: ${fileData.statistics.pending}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
+                    // Render based on current view
+                    if (this.currentView === 'board') {
+                        boardView.populateBoard();
+                    } else {
+                        uiRenderer.renderMindMap();
+                    }
+                    
+                    // Show success message
+                    const container = this.currentView === 'board' ? 
+                        document.getElementById('boardContainer') :
+                        document.getElementById('mindMapContainer');
+                        
+                    if (container && !container.querySelector('.node, .task-card')) {
+                        container.innerHTML = `
+                            <div class="file-loaded-state">
+                                <h2>📄 ${filename}</h2>
+                                <p>File loaded successfully!</p>
+                                <p>Format: ${fileData.type.toUpperCase()}</p>
+                                ${fileData.statistics ? `
+                                    <div class="file-stats">
+                                        <p>Total nodes: ${fileData.statistics.total}</p>
+                                        <p>Completed: ${fileData.statistics.completed}</p>
+                                        <p>In Progress: ${fileData.statistics.inProgress}</p>
+                                        <p>Pending: ${fileData.statistics.pending}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
                     
                     // Start sync monitoring
                     syncModel.startSyncCheck();
                     
                 } catch (error) {
                     console.error('Error loading file:', error);
-                    document.getElementById('mindMapContainer').innerHTML = `
-                        <div class="error-state">
-                            <h2>❌ Error Loading File</h2>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
+                    uiRenderer.showErrorState(error);
                 }
             }
             
-            toggleBoardView() {
+            toggleView() {
                 const mindMap = document.getElementById('mindMapContainer');
                 const board = document.getElementById('boardContainer');
                 const btn = document.getElementById('toggleBoardView');
                 
-                if (board.style.display === 'none') {
+                if (this.currentView === 'mindmap') {
+                    // Switch to board view
                     mindMap.style.display = 'none';
                     board.style.display = 'block';
                     btn.textContent = '🧠 Mind Map';
+                    this.currentView = 'board';
+                    
+                    // Refresh board if data is loaded
+                    if (dataModel.getCurrentFile()) {
+                        boardView.populateBoard();
+                    }
                 } else {
+                    // Switch to mind map view
                     mindMap.style.display = 'block';
                     board.style.display = 'none';
                     btn.textContent = '📋 Board View';
+                    this.currentView = 'mindmap';
+                    
+                    // Refresh mind map if data is loaded
+                    if (dataModel.getCurrentFile()) {
+                        uiRenderer.renderMindMap();
+                    }
                 }
             }
         }
