@@ -478,31 +478,63 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
         return null;
     }
     processedFiles.add(absolutePath);
-    
+
     try {
-        let xmlContent = await fs.readFile(filePath, 'utf8');
-        
+        // Detect file type based on extension
+        const fileExtension = path.extname(filePath).toLowerCase();
+        const isJsonFile = fileExtension === '.json';
+
+        let content = await fs.readFile(filePath, 'utf8');
+
         // Handle empty files
-        if (!xmlContent.trim()) {
-            console.warn(`Empty XML file: ${filePath}`);
+        if (!content.trim()) {
+            console.warn(`Empty ${isJsonFile ? 'JSON' : 'XML'} file: ${filePath}`);
             return null;
         }
-        
-        // Sanitize XML content to handle special characters
-        // DISABLED - Was corrupting content unnecessarily
-        // try {
-        //     xmlContent = xmlSanitizer.sanitize(xmlContent);
-        // } catch (sanitizationError) {
-        //     console.warn(`XML sanitization failed for ${filePath}:`, sanitizationError.message);
-        //     // Continue with original content if sanitization fails
-        // }
-        
-        const result = await parser.parseStringPromise(xmlContent);
-        
-        // Check if the result has the expected structure
-        if (!result || !result.project_plan) {
-            console.warn(`Invalid XML structure in ${filePath}: missing project_plan root element`);
-            return null;
+
+        let result;
+
+        if (isJsonFile) {
+            // Handle JSON files - convert to XML-like structure for compatibility
+            try {
+                const jsonData = JSON.parse(content);
+
+                // Convert JSON structure to XML-compatible format
+                if (jsonData.project_plan) {
+                    result = jsonData;
+                } else if (jsonData.nodes) {
+                    // Handle JSON files with direct nodes array
+                    result = {
+                        project_plan: {
+                            node: jsonData.nodes
+                        }
+                    };
+                } else {
+                    console.warn(`Invalid JSON structure in ${filePath}: missing project_plan or nodes`);
+                    return null;
+                }
+            } catch (jsonError) {
+                console.error(`JSON parsing failed for ${filePath}:`, jsonError);
+                return null;
+            }
+        } else {
+            // Handle XML files (existing logic)
+            // Sanitize XML content to handle special characters
+            // DISABLED - Was corrupting content unnecessarily
+            // try {
+            //     content = xmlSanitizer.sanitize(content);
+            // } catch (sanitizationError) {
+            //     console.warn(`XML sanitization failed for ${filePath}:`, sanitizationError.message);
+            //     // Continue with original content if sanitization fails
+            // }
+
+            result = await parser.parseStringPromise(content);
+
+            // Check if the result has the expected structure
+            if (!result || !result.project_plan) {
+                console.warn(`Invalid XML structure in ${filePath}: missing project_plan root element`);
+                return null;
+            }
         }
         
         // Store the source file for each node

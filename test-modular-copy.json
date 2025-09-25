@@ -1,0 +1,13 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "nodes": [
+    {
+      "type": "node",
+      "id": "modular-test-1",
+      "title": "Modular System Test",
+      "priority": "high",
+      "comment": "Testing the modularized system"
+    }
+  ]
+}
