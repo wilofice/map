@@ -9,6 +9,7 @@ const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const XMLSanitizer = require('./xml-sanitizer');
+const { MindMapConverter } = require('./mindmap-models');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -60,12 +61,21 @@ const builder = new xml2js.Builder({
     xmldec: { version: '1.0', encoding: 'UTF-8' }
 });
 
-// List all XML files in the working root directory
+// List all XML and JSON files in the working root directory
 app.get('/api/files', async (req, res) => {
     try {
         const files = await fs.readdir(workingRootDir);
+        const projectFiles = files.filter(file => file.endsWith('.xml') || file.endsWith('.json'));
+        
+        // Separate by file type for UI
         const xmlFiles = files.filter(file => file.endsWith('.xml'));
-        res.json(xmlFiles);
+        const jsonFiles = files.filter(file => file.endsWith('.json'));
+        
+        res.json({
+            all: projectFiles,
+            xml: xmlFiles,
+            json: jsonFiles
+        });
     } catch (error) {
         console.error('Error listing files:', error);
         res.status(500).json({ error: 'Failed to list files' });
@@ -756,6 +766,247 @@ function processNodeForSave(node, parentSource, filesToSave, parentContainerInFi
         throw e; // Re-throw to be caught by the main endpoint handler
     }
 }
+
+// JSON Format Endpoints
+
+// Load JSON file and optionally convert to XML format
+app.get('/api/load-json/:filename(*)', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const folder = req.query.folder || '.';
+        const format = req.query.format || 'json'; // 'json' or 'xml'
+        
+        const folderPath = path.isAbsolute(folder) ? 
+            folder : 
+            path.resolve(workingRootDir, folder);
+        const filePath = path.join(folderPath, filename);
+        
+        console.log(`Loading JSON file: ${filePath}`);
+        
+        // Check if file exists
+        try {
+            await fs.access(filePath);
+        } catch (error) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        const jsonContent = await fs.readFile(filePath, 'utf8');
+        
+        // Validate JSON format
+        const validation = MindMapConverter.validateJson(jsonContent);
+        if (!validation.valid) {
+            return res.status(400).json({ 
+                error: 'Invalid JSON format', 
+                details: validation.error 
+            });
+        }
+        
+        if (format === 'xml') {
+            // Convert JSON to XML format for existing UI
+            const xmlContent = MindMapConverter.jsonToXml(jsonContent);
+            const parsedData = await parser.parseStringPromise(xmlContent);
+            res.json({
+                data: parsedData,
+                originalFormat: 'json',
+                filename: filename
+            });
+        } else {
+            // Return raw JSON
+            const jsonData = JSON.parse(jsonContent);
+            res.json({
+                data: jsonData,
+                originalFormat: 'json',
+                filename: filename
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error loading JSON file:', error);
+        res.status(500).json({ error: 'Failed to load JSON file', details: error.message });
+    }
+});
+
+// Save data as JSON file
+app.post('/api/save-json', async (req, res) => {
+    try {
+        const { filename, data, folder, sourceFormat } = req.body;
+        const workingFolder = folder || '.';
+        const absoluteWorkingFolder = path.isAbsolute(workingFolder) ? 
+            workingFolder : 
+            path.resolve(workingRootDir, workingFolder);
+        
+        const filePath = path.join(absoluteWorkingFolder, filename);
+        
+        let jsonContent;
+        
+        if (sourceFormat === 'xml') {
+            // Convert XML data to JSON
+            const xmlString = builder.buildObject(data);
+            jsonContent = await MindMapConverter.xmlToJson(xmlString);
+        } else {
+            // Data is already in JSON format
+            if (typeof data === 'string') {
+                jsonContent = data;
+            } else {
+                jsonContent = JSON.stringify(data, null, 2);
+            }
+        }
+        
+        // Validate JSON before saving
+        const validation = MindMapConverter.validateJson(jsonContent);
+        if (!validation.valid) {
+            return res.status(400).json({
+                error: 'Invalid JSON data',
+                details: validation.error
+            });
+        }
+        
+        await fs.writeFile(filePath, jsonContent, 'utf8');
+        
+        res.json({ 
+            success: true, 
+            message: `JSON file saved: ${filename}`,
+            format: 'json'
+        });
+        
+    } catch (error) {
+        console.error('Error saving JSON file:', error);
+        res.status(500).json({ 
+            error: 'Failed to save JSON file', 
+            details: error.message 
+        });
+    }
+});
+
+// Convert between JSON and XML formats
+app.post('/api/convert', async (req, res) => {
+    try {
+        const { content, fromFormat, toFormat } = req.body;
+        
+        if (!content || !fromFormat || !toFormat) {
+            return res.status(400).json({
+                error: 'Missing required fields: content, fromFormat, toFormat'
+            });
+        }
+        
+        let result;
+        
+        if (fromFormat === 'xml' && toFormat === 'json') {
+            result = await MindMapConverter.xmlToJson(content);
+        } else if (fromFormat === 'json' && toFormat === 'xml') {
+            result = MindMapConverter.jsonToXml(content);
+        } else {
+            return res.status(400).json({
+                error: 'Invalid conversion. Supported: xml->json, json->xml'
+            });
+        }
+        
+        res.json({
+            success: true,
+            convertedContent: result,
+            fromFormat,
+            toFormat
+        });
+        
+    } catch (error) {
+        console.error('Error converting format:', error);
+        res.status(500).json({
+            error: 'Format conversion failed',
+            details: error.message
+        });
+    }
+});
+
+// Create new JSON file with template
+app.post('/api/create-json', async (req, res) => {
+    try {
+        const { filename, folder, template } = req.body;
+        const workingFolder = folder || '.';
+        const absoluteWorkingFolder = path.isAbsolute(workingFolder) ? 
+            workingFolder : 
+            path.resolve(workingRootDir, workingFolder);
+        
+        const filePath = path.join(absoluteWorkingFolder, filename);
+        
+        // Check if file already exists
+        try {
+            await fs.access(filePath);
+            return res.status(400).json({ error: 'File already exists' });
+        } catch (error) {
+            // File doesn't exist, which is what we want
+        }
+        
+        let jsonTemplate;
+        
+        if (template === 'empty') {
+            jsonTemplate = {
+                type: 'project_plan',
+                version: '1.0',
+                nodes: [{
+                    type: 'node',
+                    id: 'root-' + Date.now(),
+                    title: 'New Project',
+                    priority: 'medium',
+                    status: 'pending',
+                    children: []
+                }]
+            };
+        } else {
+            // Default template with sample content
+            jsonTemplate = {
+                type: 'project_plan',
+                version: '1.0',
+                nodes: [{
+                    type: 'node',
+                    id: 'sample-' + Date.now(),
+                    title: 'Sample Project',
+                    priority: 'high',
+                    status: 'pending',
+                    comment: 'This is a sample project to demonstrate the JSON format.',
+                    children: [
+                        {
+                            type: 'node',
+                            id: 'task-1-' + Date.now(),
+                            title: 'Planning Phase',
+                            priority: 'high',
+                            status: 'completed'
+                        },
+                        {
+                            type: 'node',
+                            id: 'task-2-' + Date.now(),
+                            title: 'Development Phase',
+                            priority: 'medium',
+                            status: 'in-progress'
+                        },
+                        {
+                            type: 'node',
+                            id: 'task-3-' + Date.now(),
+                            title: 'Testing Phase',
+                            priority: 'low',
+                            status: 'pending'
+                        }
+                    ]
+                }]
+            };
+        }
+        
+        const jsonContent = JSON.stringify(jsonTemplate, null, 2);
+        await fs.writeFile(filePath, jsonContent, 'utf8');
+        
+        res.json({ 
+            success: true, 
+            message: `JSON file created: ${filename}`,
+            template: jsonTemplate
+        });
+        
+    } catch (error) {
+        console.error('Error creating JSON file:', error);
+        res.status(500).json({ 
+            error: 'Failed to create JSON file', 
+            details: error.message 
+        });
+    }
+});
 
 app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
