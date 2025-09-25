@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map - MVC Architecture</title>
+    
+    <!-- CSS Module Imports -->
+    <link rel="stylesheet" href="css/main-styles.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/progress-styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 Project Files</h2>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">‹</button>
+            </div>
+            
+            <div class="sidebar-content" id="sidebarContent">
+                <!-- Working Root Directory -->
+                <div class="working-root-section">
+                    <div class="working-root-display">
+                        <span class="folder-icon">🏠</span>
+                        <span class="working-root-path" id="workingRootPath">Loading...</span>
+                    </div>
+                    <button class="folder-btn" id="changeRootBtn" title="Change working root directory">📂 Change Root</button>
+                </div>
+                
+                <!-- File List -->
+                <div id="fileListContainer">
+                    <div class="file-list-loading">Loading files...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <button class="control-btn" id="saveBtn" title="Save File">💾 Save</button>
+                    <button class="control-btn" id="newFileBtn" title="New File">📄 New</button>
+                    <div id="saveIndicator" class="save-indicator">Saved</div>
+                </div>
+                
+                <div class="control-group">
+                    <button class="toggle-btn" id="toggleComments" title="Toggle Comments">💬</button>
+                    <button class="toggle-btn" id="toggleDates" title="Toggle Dates">📅</button>
+                    <button class="toggle-btn" id="toggleBoardView" title="Board View">📋</button>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="progress-container" style="display: none;">
+                <div class="progress-header">
+                    <h3>Project Progress</h3>
+                    <div class="progress-stats">
+                        <span>✅ <span id="completedCount">0</span></span>
+                        <span>🟡 <span id="inProgressCount">0</span></span>
+                        <span>🔲 <span id="pendingCount">0</span></span>
+                        <span>📊 <span id="totalCount">0</span> total</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+                    <div id="progressPercentage" class="progress-percentage">0%</div>
+                </div>
+            </div>
+
+            <!-- Mind Map Container -->
+            <div id="mindMapContainer" class="mind-map-container">
+                <div class="empty-state">
+                    <h2>🧠 Mind Map</h2>
+                    <p>Select a file from the sidebar to get started</p>
+                </div>
+            </div>
+
+            <!-- Board View Container -->
+            <div id="boardContainer" class="board-container" style="display: none;">
+                <div class="board-columns">
+                    <div class="board-column" id="pendingColumn">
+                        <h3 class="column-header">🔲 Pending</h3>
+                        <div class="column-content"></div>
+                    </div>
+                    <div class="board-column" id="inProgressColumn">
+                        <h3 class="column-header">🟡 In Progress</h3>
+                        <div class="column-content"></div>
+                    </div>
+                    <div class="board-column" id="completedColumn">
+                        <h3 class="column-header">✅ Completed</h3>
+                        <div class="column-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" data-priority="high">🔴 High Priority</div>
+        <div class="context-menu-item" data-priority="medium">🟡 Medium Priority</div>
+        <div class="context-menu-item" data-priority="low">🟢 Low Priority</div>
+    </div>
+
+    <!-- MVC Module Imports -->
+    <script type="module" src="js/utils/ApiClient.js"></script>
+    <script type="module" src="js/models/DataModel.js"></script>
+    <script type="module" src="js/models/FileModel.js"></script>
+    <script type="module" src="js/models/SyncModel.js"></script>
+    <script type="module" src="js/progress-tracker.js"></script>
+    <script type="module" src="js/node-manager.js"></script>
+    
+    <!-- Main App Entry Point -->
+    <script type="module">
+        import { apiClient } from './js/utils/ApiClient.js';
+        import { dataModel } from './js/models/DataModel.js';
+        import { fileModel } from './js/models/FileModel.js';
+        import { syncModel } from './js/models/SyncModel.js';
+        
+        // Simple MVC app initialization
+        class MindMapApp {
+            constructor() {
+                this.initialized = false;
+            }
+            
+            async init() {
+                try {
+                    console.log('🚀 Initializing Mind Map MVC App...');
+                    
+                    // Initialize API client
+                    await apiClient.initialize();
+                    console.log('✅ API client initialized');
+                    
+                    // Load working root
+                    await fileModel.loadWorkingRoot();
+                    console.log('✅ Working root loaded');
+                    
+                    // Setup basic event listeners
+                    this.setupEventListeners();
+                    console.log('✅ Event listeners setup');
+                    
+                    // Load initial file list
+                    await this.loadFileList();
+                    console.log('✅ File list loaded');
+                    
+                    this.initialized = true;
+                    console.log('🎉 Mind Map MVC App initialized successfully!');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize app:', error);
+                }
+            }
+            
+            setupEventListeners() {
+                // Save button
+                document.getElementById('saveBtn')?.addEventListener('click', () => {
+                    syncModel.manualSave();
+                });
+                
+                // Sidebar toggle
+                document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('collapsed');
+                });
+                
+                // Board view toggle
+                document.getElementById('toggleBoardView')?.addEventListener('click', () => {
+                    this.toggleBoardView();
+                });
+            }
+            
+            async loadFileList() {
+                try {
+                    const files = await fileModel.loadFileList();
+                    this.renderFileList(files);
+                } catch (error) {
+                    console.error('Error loading file list:', error);
+                }
+            }
+            
+            renderFileList(files) {
+                const container = document.getElementById('fileListContainer');
+                if (!container) return;
+                
+                const jsonFiles = files.json || [];
+                const xmlFiles = files.xml || [];
+                
+                container.innerHTML = `
+                    <div class="file-section">
+                        <h4>JSON Files</h4>
+                        <div class="file-list">
+                            ${jsonFiles.map(file => `
+                                <div class="file-item" data-filename="${file}" data-type="json">
+                                    <span class="file-icon">📄</span>
+                                    <span class="file-name">${file}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="file-section">
+                        <h4>XML Files</h4>
+                        <div class="file-list">
+                            ${xmlFiles.map(file => `
+                                <div class="file-item" data-filename="${file}" data-type="xml">
+                                    <span class="file-icon">📄</span>
+                                    <span class="file-name">${file}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                // Add file click listeners
+                container.querySelectorAll('.file-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const filename = item.dataset.filename;
+                        this.loadFile(filename);
+                    });
+                });
+            }
+            
+            async loadFile(filename) {
+                try {
+                    console.log(`Loading file: ${filename}`);
+                    const fileData = await fileModel.loadFile(filename);
+                    
+                    // Update UI to show file is loaded
+                    document.getElementById('mindMapContainer').innerHTML = `
+                        <div class="file-loaded-state">
+                            <h2>📄 ${filename}</h2>
+                            <p>File loaded successfully!</p>
+                            <p>Format: ${fileData.type.toUpperCase()}</p>
+                            ${fileData.statistics ? `
+                                <div class="file-stats">
+                                    <p>Total nodes: ${fileData.statistics.total}</p>
+                                    <p>Completed: ${fileData.statistics.completed}</p>
+                                    <p>In Progress: ${fileData.statistics.inProgress}</p>
+                                    <p>Pending: ${fileData.statistics.pending}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    
+                    // Start sync monitoring
+                    syncModel.startSyncCheck();
+                    
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    document.getElementById('mindMapContainer').innerHTML = `
+                        <div class="error-state">
+                            <h2>❌ Error Loading File</h2>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            toggleBoardView() {
+                const mindMap = document.getElementById('mindMapContainer');
+                const board = document.getElementById('boardContainer');
+                const btn = document.getElementById('toggleBoardView');
+                
+                if (board.style.display === 'none') {
+                    mindMap.style.display = 'none';
+                    board.style.display = 'block';
+                    btn.textContent = '🧠 Mind Map';
+                } else {
+                    mindMap.style.display = 'block';
+                    board.style.display = 'none';
+                    btn.textContent = '📋 Board View';
+                }
+            }
+        }
+        
+        // Initialize the app
+        const app = new MindMapApp();
+        app.init();
+        
+        // Make app globally available
+        window.mindMapApp = app;
+        
+    </script>
+</body>
+</html>
