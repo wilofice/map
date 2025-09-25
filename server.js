@@ -10,6 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const XMLSanitizer = require('./xml-sanitizer');
 const { MindMapConverter } = require('./mindmap-models');
+const { PureJSONHandler } = require('./pure-json-models');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -1003,6 +1004,220 @@ app.post('/api/create-json', async (req, res) => {
         console.error('Error creating JSON file:', error);
         res.status(500).json({ 
             error: 'Failed to create JSON file', 
+            details: error.message 
+        });
+    }
+});
+
+// PURE JSON Endpoints (XML-Independent)
+// These endpoints work without any XML dependencies and can replace XML system
+
+// Load pure JSON file (no XML conversion)
+app.get('/api/pure-json/:filename(*)', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const folder = req.query.folder || '.';
+        
+        const folderPath = path.isAbsolute(folder) ? 
+            folder : 
+            path.resolve(workingRootDir, folder);
+        const filePath = path.join(folderPath, filename);
+        
+        console.log(`Loading Pure JSON file: ${filePath}`);
+        
+        // Check if file exists
+        try {
+            await fs.access(filePath);
+        } catch (error) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        const jsonContent = await fs.readFile(filePath, 'utf8');
+        
+        // Validate using pure JSON handler
+        const validation = PureJSONHandler.validateJSON(jsonContent);
+        if (!validation.valid) {
+            return res.status(400).json({ 
+                error: 'Invalid JSON format', 
+                details: validation.error 
+            });
+        }
+        
+        // Load using pure JSON handler (no XML involved)
+        const projectPlan = PureJSONHandler.loadFromJSON(jsonContent);
+        
+        res.json({
+            data: projectPlan.toObject(),
+            format: 'pure-json',
+            filename: filename,
+            statistics: projectPlan.getStatistics()
+        });
+        
+    } catch (error) {
+        console.error('Error loading pure JSON file:', error);
+        res.status(500).json({ 
+            error: 'Failed to load pure JSON file', 
+            details: error.message 
+        });
+    }
+});
+
+// Save pure JSON file (no XML conversion)
+app.post('/api/save-pure-json', async (req, res) => {
+    try {
+        const { filename, data, folder } = req.body;
+        const workingFolder = folder || '.';
+        const absoluteWorkingFolder = path.isAbsolute(workingFolder) ? 
+            workingFolder : 
+            path.resolve(workingRootDir, workingFolder);
+        
+        const filePath = path.join(absoluteWorkingFolder, filename);
+        
+        // Handle different data formats
+        let projectPlan;
+        if (typeof data === 'string') {
+            // Data is JSON string
+            projectPlan = PureJSONHandler.loadFromJSON(data);
+        } else if (data.type === 'project_plan') {
+            // Data is already in correct object format
+            projectPlan = PureJSONHandler.loadFromJSON(JSON.stringify(data));
+        } else {
+            throw new Error('Invalid data format');
+        }
+        
+        // Save using pure JSON handler
+        const jsonContent = PureJSONHandler.saveToJSON(projectPlan);
+        await fs.writeFile(filePath, jsonContent, 'utf8');
+        
+        res.json({ 
+            success: true, 
+            message: `Pure JSON file saved: ${filename}`,
+            format: 'pure-json',
+            statistics: projectPlan.getStatistics()
+        });
+        
+    } catch (error) {
+        console.error('Error saving pure JSON file:', error);
+        res.status(500).json({ 
+            error: 'Failed to save pure JSON file', 
+            details: error.message 
+        });
+    }
+});
+
+// Create new pure JSON file with templates
+app.post('/api/create-pure-json', async (req, res) => {
+    try {
+        const { filename, folder, template, title } = req.body;
+        const workingFolder = folder || '.';
+        const absoluteWorkingFolder = path.isAbsolute(workingFolder) ? 
+            workingFolder : 
+            path.resolve(workingRootDir, workingFolder);
+        
+        const filePath = path.join(absoluteWorkingFolder, filename);
+        
+        // Check if file already exists
+        try {
+            await fs.access(filePath);
+            return res.status(400).json({ error: 'File already exists' });
+        } catch (error) {
+            // File doesn't exist, which is what we want
+        }
+        
+        let projectPlan;
+        
+        if (template === 'empty') {
+            projectPlan = PureJSONHandler.createEmptyProject(title || 'New Project');
+        } else {
+            projectPlan = PureJSONHandler.createSampleProject();
+            if (title) {
+                // Update the root node title
+                if (projectPlan.nodes.length > 0) {
+                    projectPlan.nodes[0].title = title;
+                }
+            }
+        }
+        
+        const jsonContent = PureJSONHandler.saveToJSON(projectPlan);
+        await fs.writeFile(filePath, jsonContent, 'utf8');
+        
+        res.json({ 
+            success: true, 
+            message: `Pure JSON file created: ${filename}`,
+            format: 'pure-json',
+            template: projectPlan.toObject(),
+            statistics: projectPlan.getStatistics()
+        });
+        
+    } catch (error) {
+        console.error('Error creating pure JSON file:', error);
+        res.status(500).json({ 
+            error: 'Failed to create pure JSON file', 
+            details: error.message 
+        });
+    }
+});
+
+// Validate pure JSON content
+app.post('/api/validate-pure-json', async (req, res) => {
+    try {
+        const { content } = req.body;
+        
+        if (!content) {
+            return res.status(400).json({
+                error: 'Missing content field'
+            });
+        }
+        
+        const validation = PureJSONHandler.validateJSON(content);
+        
+        if (validation.valid) {
+            const projectPlan = PureJSONHandler.loadFromJSON(content);
+            res.json({
+                valid: true,
+                statistics: projectPlan.getStatistics()
+            });
+        } else {
+            res.json({
+                valid: false,
+                error: validation.error
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error validating pure JSON:', error);
+        res.status(400).json({
+            valid: false,
+            error: error.message
+        });
+    }
+});
+
+// Get project statistics from pure JSON file
+app.get('/api/pure-json-stats/:filename(*)', async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const folder = req.query.folder || '.';
+        
+        const folderPath = path.isAbsolute(folder) ? 
+            folder : 
+            path.resolve(workingRootDir, folder);
+        const filePath = path.join(folderPath, filename);
+        
+        const jsonContent = await fs.readFile(filePath, 'utf8');
+        const projectPlan = PureJSONHandler.loadFromJSON(jsonContent);
+        
+        res.json({
+            filename: filename,
+            format: 'pure-json',
+            statistics: projectPlan.getStatistics(),
+            nodeCount: projectPlan.getAllNodes().length
+        });
+        
+    } catch (error) {
+        console.error('Error getting pure JSON stats:', error);
+        res.status(500).json({ 
+            error: 'Failed to get statistics', 
             details: error.message 
         });
     }
