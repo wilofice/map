@@ -1,0 +1,213 @@
+/* Horizontal Mind Map Layout CSS */
+
+/* Mind Map Container - Root level */
+.mind-map-container {
+    display: flex;
+    flex-direction: row;  /* HORIZONTAL layout - nodes flow left to right */
+    align-items: flex-start;
+    padding: 2rem;
+    min-height: 100%;
+    overflow: auto;
+    position: relative;
+}
+
+/* Node Structure */
+.node {
+    display: flex;
+    flex-direction: row;  /* HORIZONTAL - content and children side by side */
+    align-items: flex-start;
+    position: relative;
+    margin: 0.5rem 0;
+}
+
+/* Root node special styling */
+.mind-map-container > .node {
+    margin-left: 2rem;
+}
+
+/* Node wrapper contains content and parent container */
+.node-wrapper {
+    display: flex;
+    flex-direction: column;  /* Stack content above children */
+    align-items: flex-start;
+    position: relative;
+}
+
+/* Node parent container - holds child nodes horizontally */
+.node-parent {
+    display: flex;
+    flex-direction: column;  /* Stack children vertically */
+    margin-left: 2rem;  /* Indent children to the right */
+    position: relative;
+    padding-left: 20px;  /* Space for connection lines */
+}
+
+/* When collapsed, hide children */
+.node-parent.collapsed {
+    display: none;
+}
+
+/* Node content styling remains the same */
+.node-content {
+    border: 1px solid;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    background: var(--color-surface);
+    backdrop-filter: blur(10px);
+    min-width: 200px;
+    white-space: nowrap;
+}
+
+/* Connection Lines for Horizontal Layout */
+/* Horizontal line from parent to children */
+.node-parent::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        var(--color-line) 10%,
+        var(--color-line) 90%,
+        transparent 100%
+    );
+}
+
+/* Horizontal connector from vertical line to each child */
+.node-parent > .node::before {
+    content: '';
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 2px;
+    background: var(--color-line);
+}
+
+/* First child - curve from top */
+.node-parent > .node:first-child::before {
+    height: 50%;
+    top: 50%;
+    transform: none;
+    background: linear-gradient(
+        to right,
+        var(--color-line) 0%,
+        var(--color-line) 50%,
+        transparent 50%
+    );
+    border-left: 2px solid var(--color-line);
+    border-top: 2px solid var(--color-line);
+    border-top-left-radius: 10px;
+}
+
+/* Last child - curve from bottom */
+.node-parent > .node:last-child::before {
+    height: 50%;
+    top: 0;
+    transform: none;
+    background: linear-gradient(
+        to right,
+        var(--color-line) 0%,
+        var(--color-line) 50%,
+        transparent 50%
+    );
+    border-left: 2px solid var(--color-line);
+    border-bottom: 2px solid var(--color-line);
+    border-bottom-left-radius: 10px;
+}
+
+/* Single child - straight line */
+.node-parent > .node:only-child::before {
+    height: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 0;
+    background: var(--color-line);
+}
+
+/* Hide lines for root node */
+.mind-map-container > .node::before,
+.mind-map-container > .node::after {
+    display: none;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .node-parent {
+        margin-left: 1rem;
+        padding-left: 15px;
+    }
+    
+    .node-parent::before {
+        left: -15px;
+    }
+    
+    .node-parent > .node::before {
+        left: -15px;
+        width: 15px;
+    }
+}
+
+/* Animation for expanding/collapsing */
+.node-parent {
+    transition: all 0.3s ease;
+}
+
+/* Line animations */
+.node-parent::before,
+.node-parent > .node::before {
+    transition: all 0.3s ease;
+}
+
+/* Status-based line colors */
+.node[data-status="completed"] .node-parent::before,
+.node[data-status="completed"] > .node-parent > .node::before {
+    background-color: var(--color-success);
+}
+
+.node[data-status="in-progress"] .node-parent::before,
+.node[data-status="in-progress"] > .node-parent > .node::before {
+    background-color: var(--color-primary);
+}
+
+/* Priority-based enhancements */
+.node.priority-high .node-parent::before {
+    width: 3px;
+}
+
+.node.priority-high > .node-parent > .node::before {
+    height: 3px;
+}
+
+/* Board view should remain unchanged */
+.board-container {
+    display: none;
+}
+
+.board-container .board-columns {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    height: 100%;
+}
+
+/* Ensure toggle button shows correct state */
+.node-toggle {
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.3s ease;
+}
+
+.node-parent.collapsed + .node-toggle {
+    transform: rotate(-90deg);
+}

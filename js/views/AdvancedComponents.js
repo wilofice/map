@@ -327,11 +327,18 @@ export class AdvancedComponents {
      */
     initializePrismHighlighting(container = document) {
         if (!this.prismLoaded) return;
+        if (!window.Prism || typeof window.Prism.highlightElement !== 'function') {
+            console.warn('Prism.js not properly loaded');
+            return;
+        }
         
         const codeBlocks = container.querySelectorAll('code[class*="language-"]');
         codeBlocks.forEach(block => {
             try {
-                window.Prism.highlightElement(block);
+                // Ensure the code block has a parent and proper structure
+                if (block && block.parentElement) {
+                    window.Prism.highlightElement(block);
+                }
             } catch (error) {
                 console.warn('Failed to highlight code block:', error);
             }
