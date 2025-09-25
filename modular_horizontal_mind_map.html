@@ -3001,6 +3001,102 @@ ${xmlNodes.join('\n')}
                 .replace(/'/g, '&apos;');
         }
 
+        // JSON Generation Functions
+        function generateJSONString() {
+            const nodes = document.querySelectorAll('#mindMapContainer > .node');
+            console.log('Generating JSON for', nodes.length, 'nodes');
+            
+            const jsonNodes = Array.from(nodes).map((node, i) => {
+                console.log(`Node ${i}: id="${node.dataset.id}", title="${node.querySelector('.node-title')?.textContent}"`);
+                return buildNodeJSON(node);
+            });
+            
+            const jsonData = {
+                type: "project_plan",
+                version: "1.0",
+                nodes: jsonNodes
+            };
+            
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            console.log('Generated JSON contains "undefined":', jsonString.includes('"id":"undefined"'));
+            console.log('First 300 chars of generated JSON:', jsonString.substring(0, 300));
+            return jsonString;
+        }
+
+        function buildNodeJSON(node) {
+            const wrapper = node.querySelector('.node-wrapper');
+            const title = wrapper.querySelector('.node-title').textContent;
+            const comment = wrapper.querySelector('.node-comment')?.textContent || '';
+            const startDate = wrapper.querySelector('.date-value[data-type="startDate"]')?.textContent || '';
+            const endDate = wrapper.querySelector('.date-value[data-type="endDate"]')?.textContent || '';
+            const daysSpent = wrapper.querySelector('.days-spent-value')?.textContent || '0';
+            
+            // Extract advanced elements
+            const codeDiv = wrapper.querySelector('.node-code');
+            const taskDiv = wrapper.querySelector('.node-task-prompt');
+            const cliDiv = wrapper.querySelector('.node-cli-command');
+            
+            const codeData = codeDiv && codeDiv.style.display !== 'none' ? {
+                language: codeDiv.querySelector('.code-language')?.textContent.toLowerCase() || 'javascript',
+                content: codeDiv.querySelector('code')?.textContent || ''
+            } : null;
+            
+            const taskText = taskDiv && taskDiv.style.display !== 'none' ? 
+                taskDiv.querySelector('.task-prompt-content')?.textContent || '' : '';
+                
+            const cliText = cliDiv && cliDiv.style.display !== 'none' ? 
+                cliDiv.querySelector('.cli-command-content')?.textContent || '' : '';
+            
+            // Build JSON node structure
+            const nodeData = {
+                type: "node",
+                id: node.dataset.id,
+                title: title,
+                priority: node.dataset.priority || 'medium',
+                status: node.dataset.status || 'pending'
+            };
+            
+            // Add optional properties
+            if (comment.trim()) {
+                nodeData.comment = comment;
+            }
+            
+            if (startDate.trim()) {
+                nodeData.startDate = startDate;
+            }
+            
+            if (endDate.trim()) {
+                nodeData.endDate = endDate;
+            }
+            
+            if (parseInt(daysSpent) > 0) {
+                nodeData.daysSpent = parseInt(daysSpent);
+            }
+            
+            if (codeData) {
+                nodeData.code = codeData;
+            }
+            
+            if (taskText.trim()) {
+                nodeData.taskPromptForLlm = taskText;
+            }
+            
+            if (cliText.trim()) {
+                nodeData.cliCommand = cliText;
+            }
+            
+            // Handle children
+            const childContainer = node.querySelector('.node-parent');
+            if (childContainer && !childContainer.classList.contains('collapsed')) {
+                const childNodes = childContainer.querySelectorAll(':scope > .node');
+                if (childNodes.length > 0) {
+                    nodeData.children = Array.from(childNodes).map(childNode => buildNodeJSON(childNode));
+                }
+            }
+            
+            return nodeData;
+        }
+
         // Auto-save functionality
         function autoSave() {
             console.log('AutoSave triggered for file:', currentFile);
@@ -3017,13 +3113,26 @@ ${xmlNodes.join('\n')}
 
         async function saveFile() {
             try {
-                const xml = generateXMLString();
-                const response = await fetch(`${API_BASE}/save-split`, {
+                const isJsonFile = window.currentFileFormat === 'json' || currentFile.endsWith('.json');
+                
+                let data, endpoint;
+                
+                if (isJsonFile) {
+                    // Generate JSON data for JSON files
+                    data = generateJSONString();
+                    endpoint = `${API_BASE}/save-pure-json`;
+                } else {
+                    // Generate XML data for XML files
+                    data = generateXMLString();
+                    endpoint = `${API_BASE}/save-split`;
+                }
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filename: currentFile,
-                        data: xml,
+                        data: data,
                         folder: currentFolder
                     })
                 });
@@ -3039,6 +3148,8 @@ ${xmlNodes.join('\n')}
                 
                 // Update check time after successful save
                 lastCheckTime = Date.now();
+                
+                console.log(`Saved ${isJsonFile ? 'JSON' : 'XML'} file: ${currentFile}`);
             } catch (error) {
                 console.error('Failed to save:', error);
             }

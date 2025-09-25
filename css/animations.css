@@ -1,0 +1,70 @@
+/* Keyframe Animations */
+
+@keyframes bounce-in-place {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+@keyframes color-flash {
+    0%, 100% { background-color: var(--original-bg); }
+    30% { background-color: var(--priority-high-bg); }
+    60% { background-color: var(--priority-medium-bg); }
+    90% { background-color: var(--priority-low-bg); }
+}
+
+@keyframes connector-color-cycle {
+    0%, 100% { border-color: var(--priority-high-border); }
+    33% { border-color: var(--priority-medium-border); }
+    66% { border-color: var(--priority-low-border); }
+}
+
+@keyframes rotating-border {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes particleFloat {
+    0% { transform: translateY(100vh) rotate(0deg); }
+    100% { transform: translateY(-100vh) rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shimmer {
+    to {
+        left: calc(100% + 200px);
+    }
+}
+
+@keyframes pulseGreen {
+    0%, 100% { 
+        box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+    }
+    50% { 
+        box-shadow: 0 4px 20px rgba(72, 187, 120, 0.6);
+    }
+}
