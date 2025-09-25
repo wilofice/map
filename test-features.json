@@ -1,4 +1,5 @@
 {
+  "type": "project_plan",
   "nodes": [
     {
       "id": "test-root-001",

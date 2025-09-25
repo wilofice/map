@@ -326,24 +326,51 @@ export class AdvancedComponents {
      * @param {HTMLElement} container - Container to search for code blocks
      */
     initializePrismHighlighting(container = document) {
-        if (!window.Prism || typeof window.Prism.highlightElement !== 'function') {
-            console.warn('Prism.js not properly loaded');
+        // More robust Prism.js checking
+        if (typeof window === 'undefined' || !window.Prism) {
+            console.warn('Prism.js not available');
             return;
         }
         
-        const codeBlocks = container.querySelectorAll('code[class*="language-"]');
-        codeBlocks.forEach(block => {
-            try {
-                // Ensure the code block has a parent and proper structure
-                if (block && block.parentElement && block.parentElement.tagName === 'PRE') {
-                    // Clear any existing highlighting classes to prevent conflicts
-                    block.className = block.className.replace(/\btoken\b\S*/g, '');
-                    window.Prism.highlightElement(block);
+        // Ensure Prism functions exist
+        if (typeof window.Prism.highlightElement !== 'function') {
+            console.warn('Prism.highlightElement not available');
+            return;
+        }
+        
+        try {
+            const codeBlocks = container.querySelectorAll('code[class*="language-"]');
+            codeBlocks.forEach(block => {
+                try {
+                    // Ensure the code block has proper DOM structure
+                    if (!block || !block.parentElement) {
+                        return;
+                    }
+                    
+                    // Only highlight if it's a proper code block structure
+                    if (block.parentElement.tagName === 'PRE') {
+                        // Prevent re-highlighting already processed blocks
+                        if (block.classList.contains('prism-highlighted')) {
+                            return;
+                        }
+                        
+                        // Mark as being processed to avoid infinite loops
+                        block.classList.add('prism-highlighted');
+                        
+                        // Safely call Prism highlighting
+                        window.Prism.highlightElement(block);
+                    }
+                } catch (blockError) {
+                    console.warn('Failed to highlight individual code block:', blockError);
+                    // Remove the processing flag if highlighting failed
+                    if (block && block.classList) {
+                        block.classList.remove('prism-highlighted');
+                    }
                 }
-            } catch (error) {
-                console.warn('Failed to highlight code block:', error);
-            }
-        });
+            });
+        } catch (error) {
+            console.warn('Failed to initialize Prism highlighting:', error);
+        }
     }
 }
 

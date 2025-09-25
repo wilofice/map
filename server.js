@@ -240,11 +240,11 @@ app.get('/api/files/:folder(*)', async (req, res) => {
             path.resolve(workingRootDir, folderPath);
         
         const files = await fs.readdir(absolutePath);
-        const xmlFiles = files.filter(file => file.endsWith('.xml'));
+        const projectFiles = files.filter(file => file.endsWith('.xml') || file.endsWith('.json'));
         
         res.json({
             folder: folderPath,
-            files: xmlFiles
+            files: projectFiles
         });
     } catch (error) {
         console.error('Error listing files in folder:', error);
