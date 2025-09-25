@@ -4,55 +4,156 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Interactive mind map application for visualizing and managing project plans from structured XML files. The project consists of standalone HTML files with embedded JavaScript for browser-based mind mapping, plus a Python utility for XML processing.
+Interactive mind map application for visualizing and managing hierarchical project plans from XML files. The system supports modular XML composition with server-based file management and real-time editing capabilities.
 
 ## Architecture
 
-### Current Implementation
-- **horizontal_mind_map.html**: Main horizontal tree-layout mind map viewer with dark theme
-- **interactive.html**: Alternative vertical layout mind map viewer  
-- **assign_uuid.py**: Python script to assign unique IDs to XML nodes
-- Uses vanilla JavaScript (ES6+), no external frameworks
-- LocalStorage for data persistence
-- CSS animations with @keyframes
+### Core Components
 
-### Data Model
-XML structure with nestable `<node>` elements containing:
-- Attributes: title, priority (high/medium/low), status (pending/in-progress/completed), id, startDate, endDate, daysSpent
-- Child element: `<comment>` for detailed notes
+- **Server (server.js)**: Node.js/Express backend with XML import resolution
+  - Handles modular XML with `<import src="file.xml"/>` tags
+  - Intelligent save splitting to source files based on node origins
+  - XML sanitization for code content preservation (xml-sanitizer.js)
+  - File browsing API with security restrictions
 
-### Planned Modular Architecture
-The project is transitioning to a server-based modular system with:
-- Node.js/Express server for file management
-- Support for `<import src="file.xml"/>` tags to compose maps from multiple files
-- Intelligent saving that splits changes back to correct source files
+- **Main UI (modular_horizontal_mind_map.html)**: Primary application interface
+  - Horizontal tree layout with animated connectors
+  - Dark glassmorphic theme with gradient background
+  - Syntax-highlighted code block support (Prism.js)
+  - Real-time CRUD operations with auto-save
+  - Sidebar file browser with folder navigation
 
-## Key Features
+- **Alternative UIs**:
+  - horizontal_mind_map.html: Standalone version without server
+  - interactive.html: Vertical layout variant
+  - modular_mind_map.html: Earlier modular implementation
 
-- CRUD operations on nodes (add/edit/delete)
-- Status and priority management with visual indicators
-- Date tracking and effort logging
-- Collapsible/expandable nodes
-- Animations for in-progress items
-- Global visibility toggles for comments/dates/controls
-- Auto-save to localStorage
+### Data Flow
+
+1. XML files contain `<node>` elements with attributes and optional `<comment>` children
+2. Server resolves imports recursively, tracking source files via metadata
+3. Client renders tree with source indicators (🔗 for imported nodes)
+4. Edits are sent to server which splits changes to appropriate source files
+5. LocalStorage provides client-side persistence between sessions
+
+### Key Technical Decisions
+
+- **No build process**: Direct browser execution, external CDN dependencies
+- **Vanilla JavaScript**: No framework, direct DOM manipulation
+- **Data attributes**: State stored in DOM via data-* attributes
+- **Recursive rendering**: Tree structure built with `renderNode()` recursion
+- **Debounced saves**: 500ms delay prevents excessive server calls
 
 ## Development Commands
 
-Currently no build system or dependencies. To use the mind maps:
-1. Open HTML files directly in browser
-2. Upload XML files via the file input
-
-For UUID assignment:
 ```bash
-python assign_uuid.py <path_to_xml_file>
+# Install dependencies
+npm install
+
+# Start server (default port 3000)
+npm start
+
+# Development mode with auto-reload
+npm run dev
+
+# Run tests (when configured)
+npm test
+
+# Assign UUIDs to XML nodes
+python assign_uuid.py <file.xml>
 ```
 
-## Code Conventions
+## Environment Configuration
 
-- DOM-first state management using data-* attributes
-- Recursive rendering with `renderNode()` function
-- Recursive XML building with `buildNodeXML()` function  
-- CSS variables in `:root` for theming
-- Event listeners attached during render
-- Debounced auto-save to localStorage
+Create `.env` file for custom settings:
+```
+PORT=3333                          # Server port
+WORKING_ROOT_DIR=/path/to/xml     # XML files directory
+DEBUG=true                         # Enable debug logging
+HOST=localhost                     # Bind to specific interface
+```
+
+## XML Structure
+
+```xml
+<project_plan>
+  <node title="Task Name" 
+        priority="high|medium|low"
+        status="pending|in-progress|completed"
+        id="unique-id"
+        startDate="2024-01-01"
+        endDate="2024-01-31"
+        daysSpent="5">
+    <comment>Detailed notes with code support</comment>
+    <node title="Subtask"/>
+    <import src="module.xml"/>
+  </node>
+</project_plan>
+```
+
+## Code Patterns
+
+### Node State Management
+```javascript
+// State stored in DOM attributes
+node.dataset.status = 'in-progress';
+node.dataset.collapsed = 'false';
+node.dataset.sourceFile = 'main.xml';
+```
+
+### Recursive Tree Operations
+```javascript
+// Pattern used for rendering, saving, searching
+function processNode(element) {
+  // Process current
+  // Recurse children
+  element.querySelectorAll('.node').forEach(child => {
+    processNode(child);
+  });
+}
+```
+
+### Server API Endpoints
+- `GET /api/files` - List XML files
+- `GET /api/folders` - Browse directories
+- `POST /api/load-xml` - Load and resolve imports
+- `POST /api/save-xml` - Save with intelligent splitting
+- `POST /api/create-file` - Create new XML file
+
+## Security Considerations
+
+- Server blocks access to system directories (/etc, /usr, /bin, etc.)
+- XML sanitizer preserves code blocks in CDATA sections
+- No direct file system access from client
+- Environment-based working directory restriction
+
+## Testing Approach
+
+Currently no automated tests. When adding tests:
+1. Use Jest framework (already in package.json)
+2. Test server endpoints with supertest
+3. Test XML operations with xml2js
+4. Mock file system operations
+
+## Common Tasks
+
+### Add Visual Effects
+Animations defined via CSS @keyframes in style blocks. Current animations:
+- `bounce-in-place`: In-progress node pulsing
+- `color-flash`: Status change feedback
+- `connector-color-cycle`: Line animations
+- `gradientShift`: Background gradient movement
+
+### Modify Priority Colors
+Edit CSS variables in `:root`:
+```css
+--priority-high-border: #fc8181;
+--priority-medium-border: #fcd34d;
+--priority-low-border: #38bdf8;
+```
+
+### Add Node Attributes
+1. Update XML parser/builder in server.js
+2. Add UI controls in renderNode() function
+3. Include in buildNodeXML() for saving
+4. Add visual indicators in CSS

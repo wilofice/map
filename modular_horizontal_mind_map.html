@@ -1295,6 +1295,130 @@
         }
 
         /* Responsive design for board */
+        /* Progress Bar Styles */
+        .progress-container {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .progress-title {
+            color: var(--color-text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .progress-percentage {
+            color: var(--color-primary);
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4299e1, #63b3ed);
+            border-radius: 12px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -200px;
+            width: 200px;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.3), 
+                transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            to {
+                left: calc(100% + 200px);
+            }
+        }
+
+        .progress-bar.completed {
+            background: linear-gradient(90deg, #48bb78, #68d391);
+            animation: pulseGreen 1s ease;
+        }
+
+        @keyframes pulseGreen {
+            0%, 100% { 
+                box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+            }
+            50% { 
+                box-shadow: 0 4px 20px rgba(72, 187, 120, 0.6);
+            }
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .progress-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .progress-stat-icon {
+            font-size: 1rem;
+        }
+
+        .progress-stat-value {
+            color: var(--color-text);
+            font-weight: 500;
+        }
+
         @media (max-width: 1200px) {
             .board-columns {
                 grid-template-columns: 1fr;
@@ -1370,6 +1494,37 @@
                 <button class="btn" id="toggleAnimateLinesBtn">〰️ <span class="btn-text">Animate Lines</span></button>
                 <button class="btn btn-info" id="toggleViewBtn">📋 <span class="btn-text">Board View</span></button>
                 <button class="btn" id="cleanupBtn" style="background: #f59e0b; color: white;">🔧 <span class="btn-text">Clean up IDs</span></button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-header">
+                    <div class="progress-title">
+                        📊 Overall Progress
+                    </div>
+                    <div class="progress-percentage" id="progressPercentage">0%</div>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                </div>
+                <div class="progress-stats">
+                    <div class="progress-stat">
+                        <span class="progress-stat-icon">✅</span>
+                        <span>Completed: <span class="progress-stat-value" id="completedCount">0</span></span>
+                    </div>
+                    <div class="progress-stat">
+                        <span class="progress-stat-icon">🟡</span>
+                        <span>In Progress: <span class="progress-stat-value" id="inProgressCount">0</span></span>
+                    </div>
+                    <div class="progress-stat">
+                        <span class="progress-stat-icon">🔲</span>
+                        <span>Pending: <span class="progress-stat-value" id="pendingCount">0</span></span>
+                    </div>
+                    <div class="progress-stat">
+                        <span class="progress-stat-icon">📝</span>
+                        <span>Total: <span class="progress-stat-value" id="totalCount">0</span></span>
+                    </div>
+                </div>
             </div>
 
             <div class="mind-map-container" id="mindMapContainer">
@@ -1852,6 +2007,7 @@
             
             if (!xmlData || !xmlData.project_plan || !xmlData.project_plan.node) {
                 container.innerHTML = '<div class="empty-state">No data to display</div>';
+                updateProgressBar(); // Update progress bar even when empty
                 return;
             }
             
@@ -1863,6 +2019,9 @@
             nodes.forEach(nodeData => {
                 renderNode(nodeData, container);
             });
+            
+            // Update progress bar after rendering all nodes
+            updateProgressBar();
         }
 
         // Render a single node with exact original structure
@@ -2453,7 +2612,96 @@
             node.dataset.status = newStatus;
             node.querySelector('.status-icon').textContent = getStatusIcon(newStatus);
             
+            // Update progress bar when status changes
+            updateProgressBar();
+            
             autoSave();
+        }
+
+        // Progress Bar Functions
+        function calculateProgress() {
+            const allNodes = document.querySelectorAll('.node');
+            let completed = 0;
+            let inProgress = 0;
+            let pending = 0;
+            
+            allNodes.forEach(node => {
+                const status = node.dataset.status || 'pending';
+                if (status === 'completed') {
+                    completed++;
+                } else if (status === 'in-progress') {
+                    inProgress++;
+                } else {
+                    pending++;
+                }
+            });
+            
+            const total = allNodes.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            return {
+                completed,
+                inProgress,
+                pending,
+                total,
+                percentage
+            };
+        }
+
+        function updateProgressBar() {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const completedCount = document.getElementById('completedCount');
+            const inProgressCount = document.getElementById('inProgressCount');
+            const pendingCount = document.getElementById('pendingCount');
+            const totalCount = document.getElementById('totalCount');
+            
+            // Calculate progress
+            const stats = calculateProgress();
+            
+            // Show progress container if there are nodes
+            if (stats.total > 0) {
+                progressContainer.style.display = 'block';
+            } else {
+                progressContainer.style.display = 'none';
+                return;
+            }
+            
+            // Update stats
+            completedCount.textContent = stats.completed;
+            inProgressCount.textContent = stats.inProgress;
+            pendingCount.textContent = stats.pending;
+            totalCount.textContent = stats.total;
+            
+            // Update percentage with animation
+            const currentWidth = parseFloat(progressBar.style.width) || 0;
+            const newWidth = stats.percentage;
+            
+            // Add animation class if progress increased
+            if (newWidth > currentWidth) {
+                progressBar.classList.remove('completed');
+                setTimeout(() => {
+                    if (stats.percentage === 100) {
+                        progressBar.classList.add('completed');
+                    }
+                }, 500);
+            }
+            
+            // Update visual elements
+            progressBar.style.width = stats.percentage + '%';
+            progressPercentage.textContent = stats.percentage + '%';
+            
+            // Change color based on percentage
+            if (stats.percentage === 100) {
+                progressPercentage.style.color = '#48bb78';
+            } else if (stats.percentage >= 75) {
+                progressPercentage.style.color = '#38bdf8';
+            } else if (stats.percentage >= 50) {
+                progressPercentage.style.color = '#fcd34d';
+            } else {
+                progressPercentage.style.color = 'var(--color-primary)';
+            }
         }
 
         function toggleNode(node, toggle) {
@@ -2549,12 +2797,16 @@
                 title.select();
             }
             
+            // Update progress bar after adding node
+            updateProgressBar();
             autoSave();
         }
 
         function deleteNode(node) {
             if (confirm('Delete this node and all its children?')) {
                 node.remove();
+                // Update progress bar after deleting node
+                updateProgressBar();
                 autoSave();
             }
         }
