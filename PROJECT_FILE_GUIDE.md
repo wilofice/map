@@ -1,10 +1,40 @@
-# Guide to Writing Mind Map Project Files
+# Project File Guide - JSON Format
 
-This document provides a technical reference for creating and editing the `.xml` files used by the Interactive Mind Map application. Understanding this structure is useful for manual editing, scripting, or troubleshooting.
+## Overview
 
-## 1. The Basic Structure
+The mind map application now supports modern JSON format for storing project data, providing better structure, type safety, and advanced features compared to the legacy XML format. This guide covers the complete JSON schema and best practices.
 
-Every project file must be a well-formed XML document. The root element of the document must be `<project_plan>`. All other elements are nested inside this root tag.
+**Note:** This replaces the previous XML format. For legacy XML documentation, see `PROJECT_FILE_GUIDE_XML.md`.
+
+## JSON File Structure
+
+### Basic Schema
+
+```json
+{
+  "nodes": [
+    {
+      "id": "unique-identifier",
+      "title": "Node Title",
+      "priority": "low|medium|high",
+      "status": "pending|in-progress|completed", 
+      "comment": "Optional detailed comment",
+      "startDate": "YYYY-MM-DD",
+      "endDate": "YYYY-MM-DD",
+      "daysSpent": 0,
+      "code": {
+        "language": "javascript",
+        "content": "// Your code here"
+      },
+      "taskPromptForLlm": "AI prompt text",
+      "cliCommand": "command to execute",
+      "children": [
+        // Nested nodes with same structure
+      ]
+    }
+  ]
+}
+```
 
 It is standard practice to include the XML declaration at the very top of the file.
 

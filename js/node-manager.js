@@ -23,7 +23,11 @@ export class NodeManager {
         const currentIndex = statuses.indexOf(currentStatus);
         const newStatus = statuses[(currentIndex + 1) % 3];
         
+        // Remove old status class and add new one
+        node.classList.remove(`status-${currentStatus}`);
         node.dataset.status = newStatus;
+        node.classList.add(`status-${newStatus}`);
+        
         node.querySelector('.status-icon').textContent = NodeManager.getStatusIcon(newStatus);
         
         // Update progress bar when status changes

@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {
+      "id": "test-root-001",
+      "title": "Advanced Features Test Project",
+      "priority": "high",
+      "status": "in-progress",
+      "comment": "This is a comprehensive test file showcasing all advanced features including code blocks, LLM prompts, and CLI commands.",
+      "startDate": "2025-01-01",
+      "endDate": "2025-03-01",
+      "daysSpent": 15,
+      "code": {
+        "language": "javascript",
+        "content": "// Sample JavaScript code block\nfunction calculateProgress(nodes) {\n    const completed = nodes.filter(n => n.status === 'completed').length;\n    const total = nodes.length;\n    return Math.round((completed / total) * 100);\n}\n\nconsole.log('Progress calculated!');"
+      },
+      "taskPromptForLlm": "Analyze the project structure and suggest improvements to the mind map architecture. Focus on modularity, performance, and maintainability.",
+      "cliCommand": "npm run build && npm test && npm run deploy",
+      "children": [
+        {
+          "id": "test-frontend-002",
+          "title": "Frontend Development",
+          "priority": "high",
+          "status": "completed",
+          "comment": "All frontend components have been implemented and tested.",
+          "startDate": "2025-01-05",
+          "endDate": "2025-01-20",
+          "daysSpent": 12,
+          "code": {
+            "language": "typescript",
+            "content": "// TypeScript React component example\ninterface NodeProps {\n  id: string;\n  title: string;\n  status: 'pending' | 'in-progress' | 'completed';\n}\n\nconst NodeComponent: React.FC<NodeProps> = ({ id, title, status }) => {\n  return (\n    <div className={`node status-${status}`} data-id={id}>\n      <h3>{title}</h3>\n      <StatusIndicator status={status} />\n    </div>\n  );\n};"
+          },
+          "taskPromptForLlm": "Review the React component structure and suggest optimizations for performance and accessibility.",
+          "cliCommand": "npm run dev && open http://localhost:3000",
+          "children": [
+            {
+              "id": "test-ui-003",
+              "title": "UI Components",
+              "priority": "medium",
+              "status": "completed",
+              "comment": "Custom UI components with proper styling and interactions.",
+              "code": {
+                "language": "css",
+                "content": "/* CSS styling for mind map nodes */\n.node {\n  background: var(--node-bg);\n  border: 2px solid var(--node-border);\n  border-radius: 8px;\n  padding: 1rem;\n  margin: 0.5rem 0;\n  transition: all 0.3s ease;\n}\n\n.node.status-completed {\n  background: var(--success-bg);\n  border-color: var(--success-border);\n}\n\n.node.status-in-progress {\n  background: var(--warning-bg);\n  border-color: var(--warning-border);\n  animation: pulse 2s infinite;\n}"
+              },
+              "taskPromptForLlm": "Analyze the CSS architecture and suggest improvements for better theming and responsiveness."
+            },
+            {
+              "id": "test-interactions-004",
+              "title": "User Interactions",
+              "priority": "medium",
+              "status": "in-progress",
+              "comment": "Implementing drag & drop, keyboard shortcuts, and context menus.",
+              "daysSpent": 3,
+              "code": {
+                "language": "javascript",
+                "content": "// Event handling for node interactions\nclass NodeInteractions {\n  constructor() {\n    this.setupEventListeners();\n  }\n\n  setupEventListeners() {\n    document.addEventListener('keydown', this.handleKeyboardShortcuts.bind(this));\n    document.addEventListener('contextmenu', this.handleContextMenu.bind(this));\n  }\n\n  handleKeyboardShortcuts(e) {\n    if (e.ctrlKey && e.key === 's') {\n      e.preventDefault();\n      this.saveData();\n    }\n  }\n\n  handleContextMenu(e) {\n    if (e.target.closest('.node')) {\n      e.preventDefault();\n      this.showContextMenu(e);\n    }\n  }\n}"
+              },
+              "cliCommand": "npm run test:interactions"
+            }
+          ]
+        },
+        {
+          "id": "test-backend-005",
+          "title": "Backend Development",
+          "priority": "medium",
+          "status": "pending",
+          "comment": "Server-side components for data persistence and API endpoints.",
+          "startDate": "2025-01-25",
+          "endDate": "2025-02-15",
+          "code": {
+            "language": "python",
+            "content": "# Python Flask API example\nfrom flask import Flask, request, jsonify\nfrom dataclasses import dataclass\nfrom typing import List, Optional\n\napp = Flask(__name__)\n\n@dataclass\nclass MindMapNode:\n    id: str\n    title: str\n    status: str\n    priority: str\n    children: Optional[List['MindMapNode']] = None\n\n@app.route('/api/nodes', methods=['GET', 'POST'])\ndef handle_nodes():\n    if request.method == 'GET':\n        return jsonify(get_all_nodes())\n    elif request.method == 'POST':\n        node_data = request.get_json()\n        return jsonify(create_node(node_data))\n\nif __name__ == '__main__':\n    app.run(debug=True)"
+          },
+          "taskPromptForLlm": "Design a robust API structure for mind map data management with proper validation, authentication, and error handling.",
+          "cliCommand": "python app.py",
+          "children": [
+            {
+              "id": "test-database-006",
+              "title": "Database Design",
+              "priority": "high",
+              "status": "pending",
+              "comment": "Schema design for hierarchical node storage with version history.",
+              "code": {
+                "language": "sql",
+                "content": "-- SQL schema for mind map nodes\nCREATE TABLE nodes (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    title VARCHAR(255) NOT NULL,\n    status VARCHAR(20) DEFAULT 'pending',\n    priority VARCHAR(20) DEFAULT 'medium',\n    parent_id UUID REFERENCES nodes(id),\n    comment TEXT,\n    start_date DATE,\n    end_date DATE,\n    days_spent INTEGER DEFAULT 0,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE TABLE node_code (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    node_id UUID NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,\n    language VARCHAR(50),\n    content TEXT,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX idx_nodes_parent_id ON nodes(parent_id);\nCREATE INDEX idx_nodes_status ON nodes(status);"
+              },
+              "taskPromptForLlm": "Review the database schema and suggest optimizations for querying hierarchical data efficiently.",
+              "cliCommand": "psql -d mindmap -f schema.sql"
+            }
+          ]
+        },
+        {
+          "id": "test-devops-007",
+          "title": "DevOps & Deployment",
+          "priority": "low",
+          "status": "pending",
+          "comment": "CI/CD pipeline, containerization, and cloud deployment setup.",
+          "code": {
+            "language": "yaml",
+            "content": "# Docker Compose configuration\nversion: '3.8'\nservices:\n  frontend:\n    build: ./frontend\n    ports:\n      - \"3000:3000\"\n    environment:\n      - REACT_APP_API_URL=http://localhost:5000\n    depends_on:\n      - backend\n\n  backend:\n    build: ./backend\n    ports:\n      - \"5000:5000\"\n    environment:\n      - DATABASE_URL=postgresql://user:pass@db:5432/mindmap\n    depends_on:\n      - db\n\n  db:\n    image: postgres:15\n    environment:\n      - POSTGRES_DB=mindmap\n      - POSTGRES_USER=user\n      - POSTGRES_PASSWORD=pass\n    volumes:\n      - postgres_data:/var/lib/postgresql/data\n\nvolumes:\n  postgres_data:"
+          },
+          "taskPromptForLlm": "Design a comprehensive CI/CD pipeline with automated testing, security scanning, and multi-environment deployments.",
+          "cliCommand": "docker-compose up -d && docker-compose logs -f",
+          "children": [
+            {
+              "id": "test-monitoring-008",
+              "title": "Monitoring & Analytics",
+              "priority": "low",
+              "status": "pending",
+              "comment": "Application monitoring, error tracking, and usage analytics.",
+              "code": {
+                "language": "javascript",
+                "content": "// Monitoring and analytics setup\nconst analytics = {\n  trackEvent: (event, properties) => {\n    console.log('Analytics Event:', event, properties);\n    // Send to analytics service\n    fetch('/api/analytics', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ event, properties, timestamp: Date.now() })\n    });\n  },\n\n  trackNodeInteraction: (action, nodeId) => {\n    analytics.trackEvent('node_interaction', {\n      action,\n      nodeId,\n      sessionId: getSessionId()\n    });\n  },\n\n  trackPerformance: (metric, value) => {\n    analytics.trackEvent('performance', {\n      metric,\n      value,\n      userAgent: navigator.userAgent\n    });\n  }\n};"
+              },
+              "taskPromptForLlm": "Implement comprehensive monitoring solution with real-time alerts, performance metrics, and user behavior tracking.",
+              "cliCommand": "npm run monitor:start"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "test-docs-009",
+      "title": "Documentation & Testing",
+      "priority": "medium",
+      "status": "in-progress",
+      "comment": "Comprehensive documentation and automated testing suite.",
+      "startDate": "2025-01-15",
+      "daysSpent": 5,
+      "code": {
+        "language": "markdown",
+        "content": "# Mind Map Documentation\n\n## Features\n\n- **Hierarchical Nodes**: Create nested mind maps with unlimited depth\n- **Status Tracking**: Track progress with pending/in-progress/completed states\n- **Code Blocks**: Embed syntax-highlighted code in any programming language\n- **LLM Integration**: Add AI prompts for automated analysis and suggestions\n- **CLI Commands**: Execute terminal commands directly from nodes\n\n## Usage\n\n```javascript\n// Create a new mind map\nconst mindMap = new MindMapRenderer();\nmindMap.loadData(jsonData);\nmindMap.render('#container');\n```\n\n## API Reference\n\n### Node Structure\n\n```json\n{\n  \"id\": \"unique-identifier\",\n  \"title\": \"Node Title\",\n  \"status\": \"pending|in-progress|completed\",\n  \"priority\": \"low|medium|high\",\n  \"children\": []\n}\n```"
+      },
+      "taskPromptForLlm": "Generate comprehensive API documentation with interactive examples and best practices.",
+      "cliCommand": "npm run docs:generate && npm run docs:serve",
+      "children": [
+        {
+          "id": "test-unit-tests-010",
+          "title": "Unit Tests",
+          "priority": "high",
+          "status": "completed",
+          "comment": "Complete test coverage for all core functionality.",
+          "code": {
+            "language": "javascript",
+            "content": "// Jest unit tests for mind map functionality\ndescribe('MindMapRenderer', () => {\n  let renderer;\n  \n  beforeEach(() => {\n    renderer = new MindMapRenderer();\n  });\n\n  test('should render nodes correctly', () => {\n    const testData = {\n      nodes: [{ id: '1', title: 'Test Node', status: 'pending' }]\n    };\n    \n    renderer.loadData(testData);\n    const container = document.createElement('div');\n    renderer.render(container);\n    \n    expect(container.querySelectorAll('.node')).toHaveLength(1);\n    expect(container.querySelector('.node-title').textContent).toBe('Test Node');\n  });\n\n  test('should update progress correctly', () => {\n    const nodes = [\n      { id: '1', status: 'completed' },\n      { id: '2', status: 'pending' }\n    ];\n    \n    const progress = renderer.calculateProgress(nodes);\n    expect(progress.percentage).toBe(50);\n  });\n});"
+          },
+          "cliCommand": "npm test -- --coverage"
+        },
+        {
+          "id": "test-e2e-tests-011",
+          "title": "End-to-End Tests",
+          "priority": "medium",
+          "status": "in-progress",
+          "comment": "Browser automation tests for complete user workflows.",
+          "daysSpent": 2,
+          "code": {
+            "language": "javascript",
+            "content": "// Playwright E2E tests\nconst { test, expect } = require('@playwright/test');\n\ntest.describe('Mind Map Application', () => {\n  test('should create and manage nodes', async ({ page }) => {\n    await page.goto('http://localhost:3000');\n    \n    // Create a new node\n    await page.click('[data-testid=\"add-node\"]');\n    await page.fill('[data-testid=\"node-title-input\"]', 'New Test Node');\n    await page.press('[data-testid=\"node-title-input\"]', 'Enter');\n    \n    // Verify node was created\n    await expect(page.locator('.node')).toContainText('New Test Node');\n    \n    // Change status\n    await page.click('.status-icon');\n    await expect(page.locator('.node')).toHaveClass(/status-in-progress/);\n    \n    // Add child node\n    await page.click('.icon-add');\n    await expect(page.locator('.node-parent .node')).toHaveCount(1);\n  });\n\n  test('should save and load data correctly', async ({ page }) => {\n    await page.goto('http://localhost:3000');\n    await page.click('#saveBtn');\n    await expect(page.locator('#saveIndicator')).toContainText('Saved');\n  });\n});"
+          },
+          "cliCommand": "npx playwright test --ui"
+        }
+      ]
+    }
+  ]
+}

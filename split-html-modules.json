@@ -46,34 +46,34 @@
               "id": "core-modules",
               "title": "Core Modules",
               "priority": "high",
-              "status": "in-progress",
+              "status": "completed",
               "children": [
                 {
                   "type": "node",
                   "id": "progress-tracker-js",
                   "title": "progress-tracker.js - Progress bar functionality",
-                  "status": "in-progress"
+                  "status": "completed"
                 },
                 {
                   "type": "node",
                   "id": "node-manager-js",
                   "title": "node-manager.js - CRUD operations on nodes",
                   "priority": "high",
-                  "status": "in-progress"
+                  "status": "completed"
                 },
                 {
                   "type": "node",
                   "id": "file-handler-js",
                   "title": "file-handler.js - File loading/saving operations",
                   "priority": "high",
-                  "status": "in-progress"
+                  "status": "completed"
                 },
                 {
                   "type": "node",
                   "id": "ui-components-js",
                   "title": "ui-components.js - UI rendering and interactions",
                   "priority": "high",
-                  "status": "in-progress"
+                  "status": "completed"
                 }
               ]
             },

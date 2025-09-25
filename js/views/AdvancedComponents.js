@@ -80,7 +80,7 @@ export class AdvancedComponents {
         copyBtn.textContent = 'Copy';
         copyBtn.onclick = (e) => {
             e.stopPropagation();
-            this.copyToClipboard(codeData.text, copyBtn);
+            this.copyToClipboard(codeData.content || codeData.text, copyBtn);
         };
         
         header.appendChild(langLabel);
@@ -89,7 +89,7 @@ export class AdvancedComponents {
         const pre = document.createElement('pre');
         const code = document.createElement('code');
         code.className = `language-${codeData.language}`;
-        code.textContent = codeData.text;
+        code.textContent = codeData.content || codeData.text;
         pre.appendChild(code);
         
         codeDiv.appendChild(header);
@@ -326,7 +326,6 @@ export class AdvancedComponents {
      * @param {HTMLElement} container - Container to search for code blocks
      */
     initializePrismHighlighting(container = document) {
-        if (!this.prismLoaded) return;
         if (!window.Prism || typeof window.Prism.highlightElement !== 'function') {
             console.warn('Prism.js not properly loaded');
             return;
@@ -336,7 +335,9 @@ export class AdvancedComponents {
         codeBlocks.forEach(block => {
             try {
                 // Ensure the code block has a parent and proper structure
-                if (block && block.parentElement) {
+                if (block && block.parentElement && block.parentElement.tagName === 'PRE') {
+                    // Clear any existing highlighting classes to prevent conflicts
+                    block.className = block.className.replace(/\btoken\b\S*/g, '');
                     window.Prism.highlightElement(block);
                 }
             } catch (error) {
