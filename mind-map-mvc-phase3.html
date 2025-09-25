@@ -55,28 +55,21 @@
 
         <!-- Main Content -->
         <div class="main-content" id="mainContent">
-            <!-- Control Panel -->
-            <div class="control-panel">
-                <div class="control-group">
-                    <button class="control-btn" id="saveBtn" title="Save File">💾 Save</button>
-                    <button class="control-btn" id="newFileBtn" title="New File">📄 New</button>
-                    <div id="saveIndicator" class="save-indicator">Saved</div>
-                </div>
+            <div class="container">
+                <h1>🧠 Mind Map MVC (Phase 3)</h1>
                 
-                <div class="control-group">
-                    <button class="toggle-btn" id="toggleComments" title="Toggle Comments">💬</button>
-                    <button class="toggle-btn" id="toggleDates" title="Toggle Dates">📅</button>
-                    <button class="toggle-btn" id="toggleAddButtons" title="Toggle Add Buttons">➕</button>
-                    <button class="toggle-btn" id="toggleAll" title="Toggle All Nodes">📁</button>
-                    <button class="toggle-btn" id="toggleFlash" title="Toggle Flash">✨</button>
-                    <button class="toggle-btn" id="toggleAnimateLines" title="Toggle Animations">🎬</button>
+                <div class="controls" id="controls">
+                    <button class="btn btn-success" id="saveBtn">💾 <span class="btn-text">Save All Changes</span></button>
+                    <button class="btn btn-secondary" id="toggleComments">💬 <span class="btn-text">Show Comments</span></button>
+                    <button class="btn btn-secondary" id="toggleDates">📅 <span class="btn-text">Show Dates</span></button>
+                    <button class="btn btn-secondary" id="toggleAddButtons">➕ <span class="btn-text">Hide Add Buttons</span></button>
+                    <button class="btn btn-secondary" id="toggleAll">📂 <span class="btn-text">Toggle All</span></button>
+                    <button class="btn" id="toggleFlash">✨ <span class="btn-text">Start Flash</span></button>
+                    <button class="btn" id="toggleAnimateLines">〰️ <span class="btn-text">Animate Lines</span></button>
+                    <button class="btn btn-info" id="toggleBoardView">📋 <span class="btn-text">Board View</span></button>
+                    <button class="btn" id="cleanupBtn" style="background: #f59e0b; color: white;">🔧 <span class="btn-text">Clean up IDs</span></button>
+                    <button class="btn btn-primary" id="newFileBtn">📄 <span class="btn-text">New File</span></button>
                 </div>
-                
-                <div class="control-group">
-                    <button class="toggle-btn" id="toggleBoardView" title="Board View">📋</button>
-                    <button class="control-btn" id="cleanupBtn" title="Cleanup IDs">🧹</button>
-                </div>
-            </div>
 
             <!-- Progress Bar -->
             <div id="progressContainer" class="progress-container" style="display: none;">
@@ -95,12 +88,13 @@
                 </div>
             </div>
 
-            <!-- Mind Map Container -->
-            <div id="mindMapContainer" class="mind-map-container">
-                <div class="empty-state">
-                    <h2>🧠 Mind Map MVC (Phase 3)</h2>
-                    <p>Complete modular architecture with advanced components</p>
-                    <p>Select a file from the sidebar to get started</p>
+                <!-- Mind Map Container -->
+                <div id="mindMapContainer" class="mind-map-container">
+                    <div class="empty-state">
+                        <h2>🧠 Mind Map MVC (Phase 3)</h2>
+                        <p>Complete modular architecture with advanced components</p>
+                        <p>Select a file from the sidebar to get started</p>
+                    </div>
                 </div>
             </div>
 

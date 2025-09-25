@@ -178,6 +178,28 @@ export class UIRenderer {
         nodeContentDiv.className = 'node-content';
         
         // Create status icon
+        // Toggle button for expanding/collapsing children
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'node-toggle';
+        toggleIcon.textContent = '–';
+        
+        // Add toggle functionality
+        toggleIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const childrenContainer = nodeDiv.querySelector('.node-parent');
+            if (childrenContainer) {
+                if (!childrenContainer.classList.contains('collapsed')) {
+                    const descendantParents = childrenContainer.querySelectorAll('.node-parent');
+                    descendantParents.forEach(parent => parent.classList.add('collapsed'));
+                    
+                    const descendantToggles = childrenContainer.querySelectorAll('.node-toggle');
+                    descendantToggles.forEach(toggle => toggle.textContent = '➕');
+                }
+                childrenContainer.classList.toggle('collapsed');
+                toggleIcon.textContent = childrenContainer.classList.contains('collapsed') ? '➕' : '–';
+            }
+        });
+        
         const statusIcon = document.createElement('span');
         statusIcon.className = 'node-icon icon-status status-icon';
         statusIcon.textContent = NodeManager.getStatusIcon(status);
@@ -228,6 +250,7 @@ export class UIRenderer {
         deleteIcon.onclick = () => NodeManager.deleteNode(nodeDiv);
         
         // Assemble node content
+        nodeContentDiv.appendChild(toggleIcon);
         nodeContentDiv.appendChild(statusIcon);
         nodeContentDiv.appendChild(titleSpan);
         nodeContentDiv.appendChild(dateIcon);
