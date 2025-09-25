@@ -190,3 +190,67 @@ async function exportProject() {
         showSaveIndicator('L Export Error', '#e53e3e');
     }
 }
+// Import JSON file to create new project
+async function importJsonFile(file) {
+    try {
+        showSaveIndicator('Importing...', '#4299e1');
+
+        const text = await file.text();
+        const jsonData = JSON.parse(text);
+
+        const response = await fetch(`${API_BASE}/import-json`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to import JSON');
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            currentProject = result.project;
+            displayProject(result.project);
+            updateProjectDisplay(result.project.name);
+            showSaveIndicator(`✓ Imported ${result.message.split(' ')[2]} nodes`);
+
+            // Store as last opened project
+            localStorage.setItem('lastProjectId', result.project.id);
+        } else {
+            throw new Error('Import failed');
+        }
+
+    } catch (error) {
+        console.error('Error importing JSON:', error);
+        if (error.name === 'SyntaxError') {
+            showSaveIndicator('❌ Invalid JSON file', '#e53e3e');
+        } else {
+            showSaveIndicator('❌ Import Error', '#e53e3e');
+        }
+    }
+}
+
+// Show JSON file picker
+function showJsonImportDialog() {
+    const fileInput = document.getElementById('jsonFileInput');
+    if (!fileInput) return;
+
+    fileInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file && file.type === 'application/json') {
+            importJsonFile(file);
+        } else if (file) {
+            // Try anyway, might have wrong mime type
+            importJsonFile(file);
+        }
+        // Clear the input
+        fileInput.value = '';
+    };
+
+    fileInput.click();
+}

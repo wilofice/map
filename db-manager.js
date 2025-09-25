@@ -16,6 +16,9 @@ class DatabaseManager {
             
             // Enable foreign key constraints
             this.db.pragma('foreign_keys = ON');
+
+            // Set UTF-8 encoding
+            this.db.pragma('encoding = "UTF-8"');
             
             // Create tables if they don't exist
             this.createTables();

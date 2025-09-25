@@ -123,6 +123,12 @@ function setupDatabaseUIHandlers() {
         newProjectBtn.addEventListener('click', createNewProject);
     }
 
+    // Import JSON button
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    if (importJsonBtn) {
+        importJsonBtn.addEventListener('click', showJsonImportDialog);
+    }
+
     // Export button
     const exportBtn = document.getElementById('exportBtn');
     if (exportBtn) {
@@ -155,25 +161,29 @@ async function showProjectSelector() {
 
     const projects = await loadProjects();
     let html = `
-        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-            <div style="background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%;">
-                <h3>Select Project</h3>
-                <div style="max-height: 400px; overflow-y: auto;">
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(10px); color: #f3f4f6; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%; border: 1px solid rgba(75, 85, 99, 0.3); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+                <h3 style="margin: 0 0 16px 0; color: #f9fafb; font-size: 1.25rem; font-weight: 600;">Select Project</h3>
+                <div style="max-height: 400px; overflow-y: auto; margin-bottom: 16px;">
     `;
 
     projects.forEach(project => {
         html += `
-            <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 4px; cursor: pointer;"
-                 onclick="selectProject('${project.id}')">
-                <strong>${project.name}</strong><br>
-                <small>${project.description || 'No description'}</small>
+            <div style="padding: 12px; border: 1px solid rgba(75, 85, 99, 0.5); margin: 8px 0; border-radius: 8px; cursor: pointer; background: rgba(31, 41, 55, 0.5); transition: all 0.2s ease; color: #f3f4f6;"
+                 onclick="selectProject('${project.id}')"
+                 onmouseover="this.style.background='rgba(55, 65, 81, 0.7)'; this.style.borderColor='rgba(96, 165, 250, 0.5)'"
+                 onmouseout="this.style.background='rgba(31, 41, 55, 0.5)'; this.style.borderColor='rgba(75, 85, 99, 0.5)'">
+                <strong style="color: #f9fafb; font-weight: 600;">${project.name}</strong><br>
+                <small style="color: #d1d5db; font-size: 0.875rem;">${project.description || 'No description'}</small>
             </div>
         `;
     });
 
     html += `
                 </div>
-                <button onclick="closeProjectSelector()" style="margin-top: 10px; padding: 8px 16px;">Cancel</button>
+                <div style="text-align: right;">
+                    <button onclick="closeProjectSelector()" style="background: rgba(55, 65, 81, 0.8); color: #f3f4f6; border: 1px solid rgba(75, 85, 99, 0.5); padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(75, 85, 99, 0.8)'" onmouseout="this.style.background='rgba(55, 65, 81, 0.8)'">Cancel</button>
+                </div>
             </div>
         </div>
     `;

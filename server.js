@@ -1280,22 +1280,122 @@ app.post('/api/db/projects', (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
-    
+
     try {
-        const { name, description = '' } = req.body;
+        const { name, description = '', nodes = [] } = req.body;
         if (!name) {
             return res.status(400).json({ error: 'Project name is required' });
         }
-        
+
         const projectId = uuidv4();
         const project = db.createProject(projectId, name, description);
-        
-        res.json(project);
+
+        // If nodes are provided, import them
+        if (nodes && nodes.length > 0) {
+            importNodesToProject(projectId, nodes);
+        }
+
+        // Return the complete project with nodes
+        const completeProject = db.getProjectWithNodes(projectId);
+        res.json(completeProject);
     } catch (error) {
         console.error('Error creating project:', error);
         res.status(500).json({ error: 'Failed to create project' });
     }
 });
+
+// JSON Import endpoint
+app.post('/api/db/import-json', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const jsonData = req.body;
+        let projectName = 'Imported Project';
+        let projectDescription = 'Imported from JSON file';
+        let nodes = [];
+
+        // Handle different JSON formats
+        if (jsonData.nodes) {
+            nodes = jsonData.nodes;
+            projectName = jsonData.title || jsonData.name || 'Imported Project';
+            projectDescription = jsonData.description || 'Imported from JSON file';
+        } else if (Array.isArray(jsonData)) {
+            nodes = jsonData;
+        } else if (jsonData.type === 'project_plan' && jsonData.nodes) {
+            nodes = jsonData.nodes;
+            projectName = 'Advanced Features Test Project';
+            projectDescription = 'Imported project with advanced features';
+        }
+
+        const projectId = uuidv4();
+        const project = db.createProject(projectId, projectName, projectDescription);
+
+        // Import nodes
+        if (nodes && nodes.length > 0) {
+            importNodesToProject(projectId, nodes);
+        }
+
+        // Return complete project
+        const completeProject = db.getProjectWithNodes(projectId);
+        res.json({
+            success: true,
+            project: completeProject,
+            message: `Successfully imported ${nodes.length} nodes`
+        });
+    } catch (error) {
+        console.error('Error importing JSON:', error);
+        res.status(500).json({ error: 'Failed to import JSON: ' + error.message });
+    }
+});
+
+// Helper function to import nodes recursively
+function importNodesToProject(projectId, nodes, parentId = null) {
+    for (const nodeData of nodes) {
+        const nodeId = uuidv4();
+
+        // Extract node properties with proper defaults
+        const title = nodeData.title || nodeData.text || 'Imported Node';
+        const status = nodeData.status || 'pending';
+        const priority = nodeData.priority || 'medium';
+        const comment = nodeData.comment || '';
+        const startDate = nodeData.startDate || null;
+        const endDate = nodeData.endDate || null;
+        const daysSpent = nodeData.daysSpent || 0;
+
+        // Handle advanced features
+        const codeContent = nodeData.code ? JSON.stringify(nodeData.code) : null;
+        const taskPrompt = nodeData.taskPromptForLlm || null;
+        const cliCommand = nodeData.cliCommand || null;
+
+        // Create the node in database
+        const nodeDataForDB = {
+            id: nodeId,
+            project_id: projectId,
+            parent_id: parentId,
+            title: title,
+            content: comment,
+            status: status,
+            priority: priority,
+            start_date: startDate,
+            end_date: endDate,
+            days_spent: daysSpent,
+            code_content: codeContent,
+            task_prompt: taskPrompt,
+            cli_command: cliCommand,
+            sort_order: 0,
+            depth_level: parentId ? 1 : 0
+        };
+
+        db.createNode(nodeDataForDB);
+
+        // Import child nodes recursively
+        if (nodeData.children && nodeData.children.length > 0) {
+            importNodesToProject(projectId, nodeData.children, nodeId);
+        }
+    }
+}
 
 // Delete project
 app.delete('/api/db/projects/:id', (req, res) => {
