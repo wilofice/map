@@ -1,0 +1,232 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "nodes": [
+    {
+      "type": "node",
+      "id": "html-split-root",
+      "title": "Split modular_horizontal_mind_map.html into modules",
+      "priority": "high",
+      "comment": "Break down the 3000+ line HTML file into manageable, reusable modules for better maintainability and code organization.",
+      "children": [
+        {
+          "type": "node",
+          "id": "analyze-current-structure",
+          "title": "1. Analyze Current File Structure",
+          "priority": "high",
+          "comment": "Examine the existing HTML file to identify logical boundaries and dependencies.",
+          "children": [
+            {
+              "type": "node",
+              "id": "identify-sections",
+              "title": "Identify major sections (CSS, JS, HTML)"
+            },
+            {
+              "type": "node",
+              "id": "map-dependencies",
+              "title": "Map function dependencies and interactions"
+            },
+            {
+              "type": "node",
+              "id": "find-global-variables",
+              "title": "Catalog global variables and state",
+              "priority": "low"
+            }
+          ]
+        },
+        {
+          "type": "node",
+          "id": "create-module-structure",
+          "title": "2. Design Module Architecture",
+          "priority": "high",
+          "comment": "Plan the modular structure with clear separation of concerns.",
+          "children": [
+            {
+              "type": "node",
+              "id": "core-modules",
+              "title": "Core Modules",
+              "priority": "high",
+              "children": [
+                {
+                  "type": "node",
+                  "id": "progress-tracker-js",
+                  "title": "progress-tracker.js - Progress bar functionality"
+                },
+                {
+                  "type": "node",
+                  "id": "node-manager-js",
+                  "title": "node-manager.js - CRUD operations on nodes",
+                  "priority": "high"
+                },
+                {
+                  "type": "node",
+                  "id": "file-handler-js",
+                  "title": "file-handler.js - File loading/saving operations",
+                  "priority": "high"
+                },
+                {
+                  "type": "node",
+                  "id": "ui-components-js",
+                  "title": "ui-components.js - UI rendering and interactions",
+                  "priority": "high"
+                }
+              ]
+            },
+            {
+              "type": "node",
+              "id": "styling-modules",
+              "title": "Styling Modules",
+              "children": [
+                {
+                  "type": "node",
+                  "id": "main-styles-css",
+                  "title": "main-styles.css - Core layout and theme"
+                },
+                {
+                  "type": "node",
+                  "id": "progress-styles-css",
+                  "title": "progress-styles.css - Progress bar styling",
+                  "priority": "low"
+                },
+                {
+                  "type": "node",
+                  "id": "animations-css",
+                  "title": "animations.css - Keyframe animations",
+                  "priority": "low"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "node",
+          "id": "extract-modules",
+          "title": "3. Extract Individual Modules",
+          "priority": "high",
+          "comment": "Systematically extract code into separate files while maintaining functionality.",
+          "children": [
+            {
+              "type": "node",
+              "id": "extract-progress-tracker",
+              "title": "Extract progress bar functionality",
+              "code": {
+                "type": "code",
+                "language": "javascript",
+                "content": "// progress-tracker.js\nclass ProgressTracker {\n    constructor(containerId) {\n        this.container = document.getElementById(containerId);\n        this.progressBar = null;\n        this.stats = { completed: 0, inProgress: 0, pending: 0, total: 0 };\n    }\n\n    updateProgress() {\n        // Calculate and update progress display\n    }\n\n    calculateStats() {\n        // Calculate project statistics\n    }\n}"
+              }
+            },
+            {
+              "type": "node",
+              "id": "extract-node-operations",
+              "title": "Extract node CRUD operations",
+              "priority": "high",
+              "code": {
+                "type": "code",
+                "language": "javascript",
+                "content": "// node-manager.js\nclass NodeManager {\n    static addChildNode(parentNode) {\n        // Add child node logic\n    }\n\n    static deleteNode(node) {\n        // Delete node logic\n    }\n\n    static cycleStatus(node) {\n        // Status cycling logic\n    }\n}"
+              }
+            },
+            {
+              "type": "node",
+              "id": "extract-file-operations",
+              "title": "Extract file handling",
+              "priority": "high"
+            },
+            {
+              "type": "node",
+              "id": "extract-ui-components",
+              "title": "Extract UI rendering components",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "type": "node",
+          "id": "update-main-file",
+          "title": "4. Update Main HTML File",
+          "comment": "Modify the main HTML to import and use the new modules.",
+          "children": [
+            {
+              "type": "node",
+              "id": "add-module-imports",
+              "title": "Add ES6 module imports",
+              "code": {
+                "type": "code",
+                "language": "html",
+                "content": "<!-- Module imports -->\n<script type=\"module\" src=\"js/progress-tracker.js\"></script>\n<script type=\"module\" src=\"js/node-manager.js\"></script>\n<script type=\"module\" src=\"js/file-handler.js\"></script>\n<script type=\"module\" src=\"js/ui-components.js\"></script>\n\n<!-- CSS modules -->\n<link rel=\"stylesheet\" href=\"css/main-styles.css\">\n<link rel=\"stylesheet\" href=\"css/progress-styles.css\">\n<link rel=\"stylesheet\" href=\"css/animations.css\">"
+              }
+            },
+            {
+              "type": "node",
+              "id": "update-initialization",
+              "title": "Update initialization code"
+            },
+            {
+              "type": "node",
+              "id": "remove-extracted-code",
+              "title": "Remove extracted inline code",
+              "priority": "low"
+            }
+          ]
+        },
+        {
+          "type": "node",
+          "id": "testing-validation",
+          "title": "5. Testing & Validation",
+          "priority": "high",
+          "comment": "Ensure all functionality works correctly after modularization.",
+          "children": [
+            {
+              "type": "node",
+              "id": "test-progress-bar",
+              "title": "Test progress bar functionality",
+              "cliCommand": "# Test progress bar\n# 1. Load a JSON file with various task statuses\n# 2. Verify progress calculation is correct\n# 3. Test progress updates when status changes\ncurl -s http://localhost:3333/api/pure-json/test-project.json"
+            },
+            {
+              "type": "node",
+              "id": "test-node-operations",
+              "title": "Test node CRUD operations",
+              "priority": "high"
+            },
+            {
+              "type": "node",
+              "id": "test-file-operations",
+              "title": "Test file loading/saving",
+              "priority": "high"
+            },
+            {
+              "type": "node",
+              "id": "regression-testing",
+              "title": "Full regression testing"
+            }
+          ]
+        },
+        {
+          "type": "node",
+          "id": "documentation-cleanup",
+          "title": "6. Documentation & Cleanup",
+          "priority": "low",
+          "children": [
+            {
+              "type": "node",
+              "id": "update-claude-md",
+              "title": "Update CLAUDE.md with new architecture"
+            },
+            {
+              "type": "node",
+              "id": "add-jsdoc-comments",
+              "title": "Add JSDoc comments to modules",
+              "priority": "low"
+            },
+            {
+              "type": "node",
+              "id": "clean-unused-code",
+              "title": "Remove any unused code",
+              "priority": "low"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
