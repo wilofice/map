@@ -1429,6 +1429,28 @@ function importNodesToProject(projectId, nodes, parentId = null) {
     }
 }
 
+// Update project
+app.put('/api/db/projects/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+        const updates = req.body;
+
+        const updatedProject = db.updateProject(projectId, updates);
+        if (!updatedProject) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        res.json(updatedProject);
+    } catch (error) {
+        console.error('Error updating project:', error);
+        res.status(500).json({ error: 'Failed to update project' });
+    }
+});
+
 // Delete project
 app.delete('/api/db/projects/:id', (req, res) => {
     if (!db) {

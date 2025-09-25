@@ -105,6 +105,9 @@ class DatabaseManager {
             updateProjectLastOpened: this.db.prepare(`
                 UPDATE projects SET last_opened = CURRENT_TIMESTAMP WHERE id = ?
             `),
+            updateProject: this.db.prepare(`
+                UPDATE projects SET name = COALESCE(?, name), description = COALESCE(?, description), updated_at = CURRENT_TIMESTAMP WHERE id = ?
+            `),
             deleteProject: this.db.prepare(`
                 DELETE FROM projects WHERE id = ?
             `),
@@ -190,6 +193,19 @@ class DatabaseManager {
             this.stmts.updateProjectLastOpened.run(id);
         } catch (error) {
             console.error('Error updating project last opened:', error);
+        }
+    }
+
+    updateProject(id, updates) {
+        try {
+            const { name, description } = updates;
+            this.stmts.updateProject.run(name, description, id);
+
+            // Return the updated project
+            return this.getProject(id);
+        } catch (error) {
+            console.error('Error updating project:', error);
+            throw error;
         }
     }
 

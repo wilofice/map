@@ -170,12 +170,2184 @@
         <div class="context-menu-item" data-priority="low">🟢 Low Priority</div>
     </div>
 
-    <!-- Shared JavaScript Modules -->
-    <script src="js/mind-map-core.js"></script>
-    <script src="js/mind-map-renderer.js"></script>
-    <script src="js/mind-map-files.js"></script>
-    <script src="js/mind-map-ui.js"></script>
-    <script src="js/mind-map-init.js"></script>
+    <script>
+        // Dynamic API base URL detection with fallback mechanism
+        let API_BASE = null;
+        let currentApiBaseIndex = 0;
+        
+        const getApiBaseCandidates = () => {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const currentPort = window.location.port;
+            
+            const candidates = [
+                `${protocol}//${hostname}:3000/api`, // Default development port
+                `${protocol}//${hostname}:8000/api`, // Alternative port
+                `${protocol}//${hostname}:8080/api`, // Alternative port
+            ];
+            
+            // If we have a current port, also try port+1 and the same port
+            if (currentPort) {
+                candidates.unshift(`${protocol}//${hostname}:${parseInt(currentPort) + 1}/api`);
+                candidates.unshift(`${protocol}//${hostname}:${currentPort}/api`);
+            }
+            
+            return [...new Set(candidates)]; // Remove duplicates
+        };
+        
+        const API_CANDIDATES = getApiBaseCandidates();
+        
+        // Function to test API connectivity
+        async function testApiConnection(apiBase) {
+            try {
+                const response = await fetch(`${apiBase}/files`, { 
+                    method: 'GET',
+                    timeout: 2000 // 2 second timeout
+                });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Function to find working API base
+        async function findWorkingApiBase() {
+            for (let i = 0; i < API_CANDIDATES.length; i++) {
+                const candidate = API_CANDIDATES[i];
+                console.log(`Testing API connection to: ${candidate}`);
+                
+                if (await testApiConnection(candidate)) {
+                    console.log(`✅ API server found at: ${candidate}`);
+                    API_BASE = candidate;
+                    currentApiBaseIndex = i;
+                    return candidate;
+                }
+            }
+            
+            // If no API found, use the first candidate as fallback
+            console.warn('⚠️ No working API server found, using default:', API_CANDIDATES[0]);
+            API_BASE = API_CANDIDATES[0];
+            currentApiBaseIndex = 0;
+            return API_BASE;
+        }
+        
+        // Function to retry with next API candidate on error
+        async function retryWithNextApi() {
+            if (currentApiBaseIndex < API_CANDIDATES.length - 1) {
+                currentApiBaseIndex++;
+                API_BASE = API_CANDIDATES[currentApiBaseIndex];
+                console.log(`🔄 Retrying with API: ${API_BASE}`);
+                return true;
+            }
+            return false;
+        }
+        
+        // Enhanced fetch with automatic API fallback
+        async function fetchWithFallback(endpoint, options = {}) {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt < API_CANDIDATES.length; attempt++) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint}`, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+                } catch (error) {
+                    lastError = error;
+                    console.warn(`❌ API call failed to ${API_BASE}${endpoint}:`, error.message);
+                    
+                    // Try next API candidate
+                    if (await retryWithNextApi()) {
+                        continue;
+                    }
+                }
+                break;
+            }
+            
+            throw lastError || new Error('All API endpoints failed');
+        }
+        
+        let currentFile = null;
+        let currentFolder = '.';
+        let xmlData = null;
+        let autoSaveTimeout = null;
+        let lastCheckTime = Date.now();
+        let syncCheckInterval;
+        
+        // UI state
+        let areCommentsVisible = false;
+        let areDatesVisible = false;
+        let areAddButtonsVisible = true;
+        let areFlashesVisible = true;  // Default to true
+        let areLinesAnimated = true;    // Default to true
 
+        // Initialize application
+        async function init() {
+            // First, find a working API server
+            await findWorkingApiBase();
+            
+            await loadWorkingRoot();
+            await loadFolderList();
+            await loadFileList();
+            setupEventListeners();
+        }
+
+        // Load current working root directory
+        async function loadWorkingRoot() {
+            try {
+                const response = await fetch(`${API_BASE}/working-root`);
+                const data = await response.json();
+                document.getElementById('workingRootPath').textContent = data.workingRoot;
+                console.log('Working root:', data.workingRoot);
+            } catch (error) {
+                console.error('Failed to load working root:', error);
+                document.getElementById('workingRootPath').textContent = 'Error loading';
+            }
+        }
+
+        // Show filesystem browser modal
+        async function showFilesystemBrowser() {
+            try {
+                const response = await fetch(`${API_BASE}/filesystem-browse`);
+                const data = await response.json();
+                
+                let modalHTML = `
+                    <div class="modal-overlay" id="filesystemModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>📂 Select Working Directory</h3>
+                                <button class="modal-close" onclick="closeFilesystemBrowser()">✕</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="filesystem-nav">
+                                    <div class="current-path" id="fsCurrentPath">Select a location</div>
+                                    <div class="fs-controls">
+                                        <button class="folder-btn" id="fsParentBtn" style="display:none;">↑ Parent</button>
+                                        <button class="folder-btn success" id="fsSelectBtn" style="display:none;">✓ Select This Folder</button>
+                                    </div>
+                                </div>
+                                <div class="filesystem-folders" id="fsFolders">
+                `;
+                
+                if (data.commonLocations) {
+                    modalHTML += '<h4>Common Locations:</h4>';
+                    data.commonLocations.forEach(location => {
+                        modalHTML += `<div class="fs-folder-item" data-path="${location.path}">${location.name}</div>`;
+                    });
+                }
+                
+                modalHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                setupFilesystemBrowserEvents();
+            } catch (error) {
+                console.error('Failed to load filesystem browser:', error);
+                alert('Failed to load filesystem browser');
+            }
+        }
+
+        // Load folder contents in filesystem browser
+        async function loadFilesystemFolder(folderPath) {
+            try {
+                const response = await fetch(`${API_BASE}/filesystem-browse?path=${encodeURIComponent(folderPath)}`);
+                const data = await response.json();
+                
+                document.getElementById('fsCurrentPath').textContent = data.currentPath;
+                
+                const parentBtn = document.getElementById('fsParentBtn');
+                const selectBtn = document.getElementById('fsSelectBtn');
+                
+                if (data.parentPath) {
+                    parentBtn.style.display = 'inline-block';
+                    parentBtn.onclick = () => loadFilesystemFolder(data.parentPath);
+                } else {
+                    parentBtn.style.display = 'none';
+                }
+                
+                selectBtn.style.display = 'inline-block';
+                selectBtn.onclick = () => selectWorkingRoot(data.currentPath);
+                
+                const foldersDiv = document.getElementById('fsFolders');
+                foldersDiv.innerHTML = '';
+                
+                if (data.folders.length === 0) {
+                    foldersDiv.innerHTML = '<div class="empty-state">No subfolders found</div>';
+                } else {
+                    data.folders.forEach(folder => {
+                        const folderElement = document.createElement('div');
+                        folderElement.className = 'fs-folder-item';
+                        folderElement.dataset.path = folder.path;
+                        folderElement.innerHTML = `📂 ${folder.name}`;
+                        foldersDiv.appendChild(folderElement);
+                    });
+                }
+                
+                setupFilesystemBrowserEvents();
+            } catch (error) {
+                console.error('Failed to load filesystem folder:', error);
+                document.getElementById('fsFolders').innerHTML = '<div class="error">Failed to load folder contents</div>';
+            }
+        }
+
+        // Setup events for filesystem browser
+        function setupFilesystemBrowserEvents() {
+            document.querySelectorAll('.fs-folder-item').forEach(item => {
+                item.onclick = () => loadFilesystemFolder(item.dataset.path);
+            });
+        }
+
+        // Select working root directory
+        async function selectWorkingRoot(rootPath) {
+            try {
+                const response = await fetch(`${API_BASE}/working-root`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: rootPath })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeFilesystemBrowser();
+                    await loadWorkingRoot();
+                    
+                    // Reset to root folder and refresh
+                    currentFolder = '.';
+                    await loadFolderList();
+                    await loadFileList();
+                    
+                    // Clear current file
+                    currentFile = null;
+                    document.getElementById('controls').style.display = 'none';
+                    document.getElementById('mindMapContainer').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Working directory changed!</h3>
+                            <p>Now browsing: ${rootPath}</p>
+                            <p>Select a file from the sidebar to begin.</p>
+                        </div>
+                    `;
+                    
+                    alert(`Working directory changed to: ${rootPath}`);
+                } else {
+                    alert('Failed to change working directory: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Failed to select working root:', error);
+                alert('Failed to change working directory');
+            }
+        }
+
+        // Close filesystem browser
+        function closeFilesystemBrowser() {
+            const modal = document.getElementById('filesystemModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Load list of folders in current directory
+        async function loadFolderList() {
+            console.log('Loading folder list from:', `${API_BASE}/folders?path=${encodeURIComponent(currentFolder)}`);
+            try {
+                const response = await fetch(`${API_BASE}/folders?path=${encodeURIComponent(currentFolder)}`);
+                const data = await response.json();
+                console.log('Folders received:', data);
+                
+                // Update current folder display
+                document.querySelector('.folder-path').textContent = data.currentPath;
+                
+                // Update parent button
+                const parentBtn = document.getElementById('parentFolderBtn');
+                if (data.parentPath !== null) {
+                    parentBtn.disabled = false;
+                    parentBtn.onclick = () => changeFolder(data.parentPath);
+                } else {
+                    parentBtn.disabled = true;
+                }
+                
+                // Update folder list
+                const folderList = document.getElementById('folderList');
+                if (data.folders.length === 0) {
+                    folderList.innerHTML = '<li class="empty-state">No subfolders found</li>';
+                } else {
+                    folderList.innerHTML = data.folders.map(folder => `
+                        <li class="folder-item" data-folder="${folder.path}">
+                            <span class="folder-icon">📂</span>
+                            <span>${folder.name}</span>
+                        </li>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load folders:', error);
+                document.getElementById('folderList').innerHTML = 
+                    '<li class="error">Failed to load folders</li>';
+            }
+        }
+
+        // Load list of project files (XML and JSON) in current folder
+        async function loadFileList() {
+            console.log('Loading file list from:', `${API_BASE}/files/${currentFolder}`);
+            try {
+                const url = currentFolder === '.' ? 
+                    `${API_BASE}/files` : 
+                    `${API_BASE}/files/${encodeURIComponent(currentFolder)}`;
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Files received:', data);
+                
+                // Handle both old format (array) and new format (object with xml/json/all properties)
+                let files;
+                if (Array.isArray(data)) {
+                    files = data; // Legacy format
+                } else if (data.all) {
+                    // New format - filter to show only project files (XML and JSON mind maps)
+                    files = data.all.filter(file => 
+                        file.endsWith('.xml') || 
+                        (file.endsWith('.json') && !file.includes('package'))
+                    );
+                } else {
+                    files = data.files || [];
+                }
+                
+                const fileList = document.getElementById('fileList');
+                if (files.length === 0) {
+                    fileList.innerHTML = '<li class="empty-state">No project files found</li>';
+                } else {
+                    fileList.innerHTML = files.map(file => {
+                        const isJson = file.endsWith('.json');
+                        const icon = isJson ? '🔗' : '📄'; // Different icon for JSON files
+                        const fileClass = isJson ? 'file-item json-file' : 'file-item xml-file';
+                        
+                        return `
+                            <li class="${fileClass}" data-file="${file}">
+                                <span class="file-icon">${icon}</span>
+                                <span class="file-name" data-full-name="${file}">${file}</span>
+                                <span class="file-format">${isJson ? 'JSON' : 'XML'}</span>
+                            </li>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load files:', error);
+                document.getElementById('fileList').innerHTML = 
+                    '<li class="error">Failed to connect to server. Make sure the server is running.</li>';
+            }
+        }
+
+        // Change current folder and refresh views
+        async function changeFolder(newFolder) {
+            currentFolder = newFolder;
+            console.log('Changing to folder:', currentFolder);
+            
+            // Clear current file selection since we're switching folders
+            currentFile = null;
+            document.getElementById('controls').style.display = 'none';
+            document.getElementById('mindMapContainer').innerHTML = `
+                <div class="empty-state">
+                    <h3>Welcome to Modular Horizontal Mind Map</h3>
+                    <p>Select a file from the sidebar to begin, or create a new mind map.</p>
+                </div>
+            `;
+            
+            // Refresh both folder and file lists
+            await loadFolderList();
+            await loadFileList();
+        }
+
+        // Load and display a mind map file (XML or JSON)
+        async function loadFile(filename) {
+            try {
+                const isJsonFile = filename.endsWith('.json');
+                let url, response, data;
+                
+                if (isJsonFile) {
+                    // Load JSON file using pure JSON endpoint without XML conversion
+                    url = currentFolder === '.' ? 
+                        `${API_BASE}/load-json/${filename}` : 
+                        `${API_BASE}/load-json/${filename}?folder=${encodeURIComponent(currentFolder)}`;
+                } else {
+                    // Load XML file using existing endpoint
+                    url = currentFolder === '.' ? 
+                        `${API_BASE}/load/${filename}` : 
+                        `${API_BASE}/load/${filename}?folder=${encodeURIComponent(currentFolder)}`;
+                }
+                
+                response = await fetch(url);
+                data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                
+                currentFile = filename;
+                xmlData = data.data;
+                window.currentFileFormat = data.originalFormat || (isJsonFile ? 'json' : 'xml');
+                
+                // Update UI
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.file === filename);
+                });
+                
+                // Update title (remove both .xml and .json extensions)
+                const title = filename.replace(/\.(xml|json)$/i, '');
+                const formatIndicator = isJsonFile ? ' (JSON)' : '';
+                document.querySelector('h1').textContent = title + formatIndicator;
+                
+                document.getElementById('controls').style.display = 'flex';
+                renderMindMap();
+                
+                // Apply default animations state
+                if (areFlashesVisible) {
+                    document.body.classList.add('flash-active');
+                }
+                if (areLinesAnimated) {
+                    document.body.classList.add('lines-animated');
+                }
+                updateToggleFlashButton();
+                updateToggleAnimateLinesButton();
+                
+                // Start sync checking for this file
+                lastCheckTime = Date.now();
+                startSyncCheck();
+                
+                console.log(`Loaded ${isJsonFile ? 'JSON' : 'XML'} file: ${filename}`);
+                
+            } catch (error) {
+                console.error('Failed to load file:', error);
+                document.getElementById('mindMapContainer').innerHTML = 
+                    '<div class="error">Failed to load file: ' + error.message + '</div>';
+                stopSyncCheck(); // Stop sync checking on error
+            }
+        }
+
+        // Render the mind map with horizontal layout
+        function renderMindMap() {
+            const container = document.getElementById('mindMapContainer');
+            container.innerHTML = '';
+            
+            // Support both XML format (xmlData.project_plan.node) and JSON format (xmlData.nodes)
+            let nodes = null;
+            if (xmlData && xmlData.project_plan && xmlData.project_plan.node) {
+                // XML format
+                nodes = Array.isArray(xmlData.project_plan.node) 
+                    ? xmlData.project_plan.node 
+                    : [xmlData.project_plan.node];
+            } else if (xmlData && xmlData.nodes) {
+                // JSON format
+                nodes = Array.isArray(xmlData.nodes) ? xmlData.nodes : [xmlData.nodes];
+            }
+            
+            if (!nodes || nodes.length === 0) {
+                container.innerHTML = '<div class="empty-state">No data to display</div>';
+                updateProgressBar(); // Update progress bar even when empty
+                return;
+            }
+            
+            nodes.forEach(nodeData => {
+                renderNode(nodeData, container);
+            });
+            
+            // Update progress bar after rendering all nodes
+            updateProgressBar();
+        }
+
+        // Render a single node with support for both XML and JSON formats
+        function renderNode(nodeData, parentElement) {
+            // Support both XML format (nodeData.$) and JSON format (direct properties)
+            const priority = (nodeData.$ && nodeData.$.priority) || nodeData.priority || 'medium';
+            const status = (nodeData.$ && nodeData.$.status) || nodeData.status || 'pending';
+            let nodeId = (nodeData.$ && nodeData.$.id) || nodeData.id;
+            
+            // Fix undefined or missing IDs
+            if (!nodeId || nodeId === 'undefined') {
+                nodeId = generateId();
+                if (nodeData.$) {
+                    nodeData.$.id = nodeId;
+                } else {
+                    nodeData.id = nodeId;
+                }
+                console.warn('Fixed undefined node ID in renderNode, generated:', nodeId);
+            }
+            
+            const title = (nodeData.$ && nodeData.$.title) || nodeData.title || 'New Node';
+            const startDate = (nodeData.$ && nodeData.$.startDate) || nodeData.startDate || '';
+            const endDate = (nodeData.$ && nodeData.$.endDate) || nodeData.endDate || '';
+            const daysSpent = (nodeData.$ && nodeData.$.daysSpent) || nodeData.daysSpent || '0';
+            
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node';
+            nodeDiv.dataset.priority = priority;
+            nodeDiv.dataset.status = status;
+            nodeDiv.dataset.id = nodeId;
+            
+            // Set data attributes for save-split functionality
+            if (nodeData.$ && nodeData.$.dataSource) {
+                nodeDiv.dataset.dataSource = nodeData.$.dataSource;
+            }
+            if (nodeData.$ && nodeData.$.dataImported) {
+                nodeDiv.dataset.dataImported = nodeData.$.dataImported;
+            }
+            if (nodeData.$ && nodeData.$.dataImportFrom) {
+                nodeDiv.dataset.dataImportFrom = nodeData.$.dataImportFrom;
+            }
+            
+            nodeDiv.classList.add(`priority-${priority}`);
+            nodeDiv.classList.add(`status-${status}`);
+            
+            const nodeWrapper = document.createElement('div');
+            nodeWrapper.className = 'node-wrapper';
+            nodeWrapper.dataset.id = nodeId;
+            
+            const nodeContentDiv = document.createElement('div');
+            nodeContentDiv.className = 'node-content';
+            
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'node-toggle';
+            toggleSpan.textContent = '–';
+            
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'node-icon icon-status';
+            if (status === 'pending') statusIcon.innerHTML = '🔲';
+            else if (status === 'in-progress') statusIcon.innerHTML = '🟡';
+            else if (status === 'completed') statusIcon.innerHTML = '✅';
+            statusIcon.title = "Cycle Status";
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'node-title';
+            titleSpan.textContent = title;
+            
+            // Import indicator
+            if (nodeData.$ && nodeData.$.dataImported === 'true') {
+                const indicator = document.createElement('span');
+                indicator.className = 'import-indicator';
+                indicator.textContent = '🔗 ' + nodeData.$.dataImportFrom;
+                indicator.title = 'Imported from: ' + nodeData.$.dataImportFrom;
+                titleSpan.appendChild(indicator);
+            }
+            
+            const dateIcon = document.createElement('span');
+            dateIcon.className = 'node-icon icon-date';
+            dateIcon.innerHTML = '📅';
+            dateIcon.title = 'Toggle Dates';
+            
+            const commentIcon = document.createElement('span');
+            commentIcon.className = 'node-icon icon-comment';
+            commentIcon.innerHTML = '💬';
+            commentIcon.title = "Toggle Comment";
+            
+            const codeIcon = document.createElement('span');
+            codeIcon.className = 'node-icon icon-code';
+            codeIcon.innerHTML = '💻';
+            codeIcon.title = "Toggle Code";
+            
+            const taskIcon = document.createElement('span');
+            taskIcon.className = 'node-icon icon-task';
+            taskIcon.innerHTML = '🤖';
+            taskIcon.title = "Toggle Task Prompt";
+            
+            const cliIcon = document.createElement('span');
+            cliIcon.className = 'node-icon icon-cli';
+            cliIcon.innerHTML = '⚡';
+            cliIcon.title = "Toggle CLI Command";
+            
+            const addIcon = document.createElement('span');
+            addIcon.className = 'node-icon icon-add';
+            addIcon.innerHTML = '➕';
+            addIcon.title = "Add Child Node";
+            
+            const deleteIcon = document.createElement('span');
+            deleteIcon.className = 'node-icon icon-delete';
+            deleteIcon.innerHTML = '🗑️';
+            deleteIcon.title = "Delete Node";
+            
+            nodeContentDiv.append(toggleSpan, statusIcon, titleSpan, dateIcon, commentIcon, codeIcon, taskIcon, cliIcon, addIcon, deleteIcon);
+            nodeWrapper.appendChild(nodeContentDiv);
+            
+            // Dates Div
+            const datesDiv = document.createElement('div');
+            datesDiv.className = 'node-dates';
+            
+            const dateRangeSpan = document.createElement('span');
+            const dateSeparator = startDate && endDate ? ' : ' : '';
+            dateRangeSpan.innerHTML = `<span class="date-value" data-type="startDate">${startDate}</span>${dateSeparator}<span class="date-value" data-type="endDate">${endDate}</span>`;
+            
+            const daysSpentControl = document.createElement('div');
+            daysSpentControl.className = 'days-spent-control';
+            daysSpentControl.innerHTML = `
+                <button class="days-spent-btn minus">-</button>
+                <span class="days-spent-value">${daysSpent}</span>
+                <button class="days-spent-btn plus">+</button>
+                <span>days</span>
+            `;
+            
+            datesDiv.append(dateRangeSpan, daysSpentControl);
+            if (startDate || endDate || parseInt(daysSpent, 10) > 0) {
+                nodeWrapper.classList.add('has-dates');
+            }
+            // Apply global dates visibility state
+            if (!areDatesVisible) {
+                datesDiv.style.display = 'none';
+            }
+            nodeWrapper.appendChild(datesDiv);
+            
+            // Comment Div
+            let commentText = '';
+            if (nodeData.comment) {
+                if (typeof nodeData.comment === 'string') {
+                    commentText = nodeData.comment;
+                } else if (typeof nodeData.comment === 'object') {
+                    if (nodeData.comment._) {
+                        commentText = nodeData.comment._;
+                    } else if (Array.isArray(nodeData.comment) && nodeData.comment[0]) {
+                        commentText = typeof nodeData.comment[0] === 'string' 
+                            ? nodeData.comment[0] 
+                            : (nodeData.comment[0]._ || '');
+                    }
+                }
+            }
+            
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'node-comment';
+            commentDiv.textContent = commentText;
+            if(commentText && commentText.trim()) {
+                nodeWrapper.classList.add('has-comment');
+            }
+            nodeWrapper.appendChild(commentDiv);
+            
+            nodeDiv.appendChild(nodeWrapper);
+            
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'node-parent';
+            nodeDiv.appendChild(childrenContainer);
+            
+            parentElement.appendChild(nodeDiv);
+            
+            // Set the --original-bg for the flash animation *after* it's in the DOM
+            const originalBg = getComputedStyle(nodeContentDiv).getPropertyValue('background-color');
+            nodeContentDiv.style.setProperty('--original-bg', originalBg);
+            
+            // Add event listeners exactly like the original
+            toggleSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!childrenContainer.classList.contains('collapsed')) {
+                    const descendantParents = childrenContainer.querySelectorAll('.node-parent');
+                    descendantParents.forEach(parent => parent.classList.add('collapsed'));
+                    
+                    const descendantToggles = childrenContainer.querySelectorAll('.node-toggle');
+                    descendantToggles.forEach(toggle => toggle.textContent = '➕');
+                }
+                childrenContainer.classList.toggle('collapsed');
+                toggleSpan.textContent = childrenContainer.classList.contains('collapsed') ? '➕' : '–';
+                updateToggleAllButton();
+            });
+            
+            statusIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const currentStatus = nodeDiv.dataset.status;
+                let newStatus;
+                if (currentStatus === 'pending') newStatus = 'in-progress';
+                else if (currentStatus === 'in-progress') newStatus = 'completed';
+                else newStatus = 'pending';
+                setNodeStatusRecursive(nodeDiv, newStatus);
+                autoSave();
+            });
+            
+            titleSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                titleSpan.contentEditable = true;
+                titleSpan.focus();
+            });
+            titleSpan.addEventListener('blur', () => {
+                titleSpan.contentEditable = false;
+                autoSave();
+            });
+            titleSpan.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    titleSpan.blur();
+                }
+            });
+            
+            dateIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                datesDiv.style.display = datesDiv.style.display === 'flex' ? 'none' : 'flex';
+                nodeWrapper.classList.toggle('has-dates', datesDiv.style.display === 'flex');
+            });
+            
+            dateRangeSpan.querySelectorAll('.date-value').forEach(dateEl => {
+                dateEl.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    dateEl.contentEditable = true;
+                    dateEl.focus();
+                });
+                dateEl.addEventListener('blur', () => {
+                    dateEl.contentEditable = false;
+                    autoSave();
+                });
+                dateEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        dateEl.blur();
+                    }
+                });
+            });
+            
+            const daysSpentValue = daysSpentControl.querySelector('.days-spent-value');
+            daysSpentControl.querySelector('.plus').addEventListener('click', e => {
+                e.stopPropagation();
+                let current = parseInt(daysSpentValue.textContent, 10);
+                daysSpentValue.textContent = current + 1;
+                autoSave();
+            });
+            daysSpentControl.querySelector('.minus').addEventListener('click', e => {
+                e.stopPropagation();
+                let current = parseInt(daysSpentValue.textContent, 10);
+                if (current > 0) {
+                    daysSpentValue.textContent = current - 1;
+                    autoSave();
+                }
+            });
+            
+            commentIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                commentDiv.style.display = commentDiv.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            commentDiv.addEventListener('dblclick', e => {
+                e.stopPropagation();
+                commentDiv.contentEditable = true;
+                commentDiv.focus();
+            });
+            commentDiv.addEventListener('blur', () => {
+                commentDiv.contentEditable = false;
+                if(commentDiv.textContent.trim() === "") nodeWrapper.classList.remove('has-comment');
+                else nodeWrapper.classList.add('has-comment');
+                autoSave();
+            });
+
+            // Extract and create advanced elements
+            const advancedElements = extractAdvancedElements(nodeData);
+
+            // Create and append code element if exists
+            let codeDiv = null;
+            if (advancedElements.code) {
+                codeDiv = createCodeElement(advancedElements.code, nodeWrapper);
+                nodeWrapper.appendChild(codeDiv);
+                
+                // Add click handler to code icon
+                codeIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    codeDiv.style.display = codeDiv.style.display === 'block' ? 'none' : 'block';
+                });
+            } else {
+                codeIcon.style.display = 'none';
+            }
+
+            // Create and append task prompt element if exists
+            let taskDiv = null;
+            if (advancedElements.taskPrompt) {
+                taskDiv = createTaskPromptElement(advancedElements.taskPrompt, nodeWrapper);
+                nodeWrapper.appendChild(taskDiv);
+                
+                // Add click handler to task icon
+                taskIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    taskDiv.style.display = taskDiv.style.display === 'block' ? 'none' : 'block';
+                });
+            } else {
+                taskIcon.style.display = 'none';
+            }
+
+            // Create and append CLI command element if exists
+            let cliDiv = null;
+            if (advancedElements.cliCommand) {
+                cliDiv = createCliCommandElement(advancedElements.cliCommand, nodeWrapper);
+                nodeWrapper.appendChild(cliDiv);
+                
+                // Add click handler to CLI icon
+                cliIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    cliDiv.style.display = cliDiv.style.display === 'block' ? 'none' : 'block';
+                });
+            } else {
+                cliIcon.style.display = 'none';
+            }
+            
+            addIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                const newNodeData = {
+                    $: {
+                        title: "New Idea",
+                        priority: "medium",
+                        status: "pending",
+                        id: generateId(),
+                        startDate: "",
+                        endDate: "",
+                        daysSpent: "0"
+                    }
+                };
+                renderNode(newNodeData, childrenContainer);
+                if (childrenContainer.classList.contains('collapsed')) {
+                    childrenContainer.classList.remove('collapsed');
+                    toggleSpan.textContent = '–';
+                }
+                autoSave();
+            });
+            
+            deleteIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                if (confirm('Delete this node and all its children?')) {
+                    nodeDiv.remove();
+                    autoSave();
+                }
+            });
+            
+            // Context menu
+            nodeDiv.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showContextMenu(e, nodeDiv);
+            });
+            
+            // Render children - support both XML (nodeData.node) and JSON (nodeData.children) formats
+            if (nodeData.node || nodeData.children) {
+                const childNodes = nodeData.children || nodeData.node;
+                const childNodesArray = Array.isArray(childNodes) ? childNodes : [childNodes];
+                childNodesArray.forEach(childData => {
+                    renderNode(childData, childrenContainer);
+                });
+            }
+            
+            return nodeDiv;
+        }
+
+        // Helper functions
+        function generateId() {
+            return crypto.randomUUID();
+        }
+
+        // Helper function to copy text to clipboard
+        async function copyToClipboard(text, button) {
+            try {
+                await navigator.clipboard.writeText(text);
+                button.classList.add('copied');
+                button.textContent = '✓ Copied';
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.textContent = 'Copy';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                button.textContent = 'Failed';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            }
+        }
+
+        // Parse and extract advanced elements - supports both XML and JSON formats
+        function extractAdvancedElements(nodeData) {
+            const elements = {
+                code: null,
+                taskPrompt: null,
+                cliCommand: null
+            };
+            
+            // Extract code element - support both XML and JSON formats
+            if (nodeData.code) {
+                const codeData = Array.isArray(nodeData.code) ? nodeData.code[0] : nodeData.code;
+                if (typeof codeData === 'string') {
+                    elements.code = { text: codeData, language: 'javascript' };
+                } else if (codeData && codeData._) {
+                    // XML format: code has _ property for content and $ for attributes
+                    elements.code = {
+                        text: codeData._,
+                        language: codeData.$ && codeData.$.language || 'javascript'
+                    };
+                } else if (codeData && codeData.content) {
+                    // JSON format: code has content and language properties
+                    elements.code = {
+                        text: codeData.content,
+                        language: codeData.language || 'javascript'
+                    };
+                }
+            }
+            
+            // Extract task_prompt_for_llm element - support both XML and JSON formats
+            if (nodeData.task_prompt_for_llm || nodeData.taskPromptForLlm) {
+                const taskData = nodeData.task_prompt_for_llm || nodeData.taskPromptForLlm;
+                const taskValue = Array.isArray(taskData) ? taskData[0] : taskData;
+                if (typeof taskValue === 'string') {
+                    elements.taskPrompt = taskValue;
+                } else if (taskValue && taskValue._) {
+                    elements.taskPrompt = taskValue._;
+                }
+            }
+            
+            // Extract cli_command element - support both XML and JSON formats
+            if (nodeData.cli_command || nodeData.cliCommand) {
+                const cliData = nodeData.cli_command || nodeData.cliCommand;
+                const cliValue = Array.isArray(cliData) ? cliData[0] : cliData;
+                if (typeof cliValue === 'string') {
+                    elements.cliCommand = cliValue;
+                } else if (cliValue && cliValue._) {
+                    elements.cliCommand = cliValue._;
+                }
+            }
+            
+            return elements;
+        }
+
+        // Create code block element
+        function createCodeElement(codeData, nodeWrapper) {
+            const codeDiv = document.createElement('div');
+            codeDiv.className = 'node-code';
+            
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            
+            const langLabel = document.createElement('span');
+            langLabel.className = 'code-language';
+            langLabel.textContent = codeData.language.toUpperCase();
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                copyToClipboard(codeData.text, copyBtn);
+            };
+            
+            header.appendChild(langLabel);
+            header.appendChild(copyBtn);
+            
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            code.className = `language-${codeData.language}`;
+            code.textContent = codeData.text;
+            pre.appendChild(code);
+            
+            codeDiv.appendChild(header);
+            codeDiv.appendChild(pre);
+            
+            // Apply syntax highlighting with error handling
+            try {
+                if (typeof Prism !== 'undefined' && Prism.highlightElement) {
+                    // Avoid re-highlighting already highlighted elements
+                    if (!code.classList.contains('prism-highlighted')) {
+                        Prism.highlightElement(code);
+                        code.classList.add('prism-highlighted');
+                    }
+                }
+            } catch (error) {
+                console.warn('Prism.js highlighting failed:', error);
+            }
+            
+            nodeWrapper.classList.add('has-code');
+            return codeDiv;
+        }
+
+        // Create task prompt element
+        function createTaskPromptElement(taskPromptText, nodeWrapper) {
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'node-task-prompt';
+            
+            const header = document.createElement('div');
+            header.className = 'task-prompt-header';
+            
+            const label = document.createElement('span');
+            label.className = 'task-prompt-label';
+            label.innerHTML = '🤖 LLM Task Prompt';
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                copyToClipboard(taskPromptText, copyBtn);
+            };
+            
+            header.appendChild(label);
+            header.appendChild(copyBtn);
+            
+            const content = document.createElement('div');
+            content.className = 'task-prompt-content';
+            content.textContent = taskPromptText;
+            
+            taskDiv.appendChild(header);
+            taskDiv.appendChild(content);
+            
+            nodeWrapper.classList.add('has-task-prompt');
+            return taskDiv;
+        }
+
+        // Create CLI command element
+        function createCliCommandElement(cliCommandText, nodeWrapper) {
+            const cliDiv = document.createElement('div');
+            cliDiv.className = 'node-cli-command';
+            
+            const header = document.createElement('div');
+            header.className = 'cli-command-header';
+            
+            const label = document.createElement('span');
+            label.className = 'cli-command-label';
+            label.innerHTML = '⚡ CLI Commands';
+            
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = (e) => {
+                e.stopPropagation();
+                copyToClipboard(cliCommandText, copyBtn);
+            };
+            
+            header.appendChild(label);
+            header.appendChild(copyBtn);
+            
+            const content = document.createElement('div');
+            content.className = 'cli-command-content';
+            content.textContent = cliCommandText;
+            
+            cliDiv.appendChild(header);
+            cliDiv.appendChild(content);
+            
+            nodeWrapper.classList.add('has-cli-command');
+            return cliDiv;
+        }
+        
+        function setNodeStatusRecursive(node, newStatus) {
+            // Remove old status class and add new one
+            node.classList.remove(`status-${node.dataset.status}`);
+            node.dataset.status = newStatus;
+            node.classList.add(`status-${newStatus}`);
+            
+            // Update status icon
+            const statusIcon = node.querySelector('.icon-status');
+            if (newStatus === 'pending') statusIcon.innerHTML = '🔲';
+            else if (newStatus === 'in-progress') statusIcon.innerHTML = '🟡';
+            else if (newStatus === 'completed') statusIcon.innerHTML = '✅';
+            
+            // Update children recursively
+            const childrenContainer = node.querySelector('.node-parent');
+            if (childrenContainer) {
+                const childNodes = childrenContainer.querySelectorAll(':scope > .node');
+                childNodes.forEach(childNode => {
+                    setNodeStatusRecursive(childNode, newStatus);
+                });
+            }
+            
+            // Refresh board view if currently active with animation
+            if (isBoardView) {
+                refreshBoardWithAnimation();
+            }
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'completed': return '✅';
+                case 'in-progress': return '🟡';
+                default: return '🔲';
+            }
+        }
+
+        function cycleStatus(node) {
+            const statuses = ['pending', 'in-progress', 'completed'];
+            const currentStatus = node.dataset.status;
+            const currentIndex = statuses.indexOf(currentStatus);
+            const newStatus = statuses[(currentIndex + 1) % 3];
+            
+            node.dataset.status = newStatus;
+            node.querySelector('.status-icon').textContent = getStatusIcon(newStatus);
+            
+            // Update progress bar when status changes
+            updateProgressBar();
+            
+            autoSave();
+        }
+
+        // Progress Bar Functions
+        function calculateProgress() {
+            const allNodes = document.querySelectorAll('.node');
+            let completed = 0;
+            let inProgress = 0;
+            let pending = 0;
+            
+            allNodes.forEach(node => {
+                const status = node.dataset.status || 'pending';
+                if (status === 'completed') {
+                    completed++;
+                } else if (status === 'in-progress') {
+                    inProgress++;
+                } else {
+                    pending++;
+                }
+            });
+            
+            const total = allNodes.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            return {
+                completed,
+                inProgress,
+                pending,
+                total,
+                percentage
+            };
+        }
+
+        function updateProgressBar() {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressPercentage = document.getElementById('progressPercentage');
+            const completedCount = document.getElementById('completedCount');
+            const inProgressCount = document.getElementById('inProgressCount');
+            const pendingCount = document.getElementById('pendingCount');
+            const totalCount = document.getElementById('totalCount');
+            
+            // Calculate progress
+            const stats = calculateProgress();
+            
+            // Show progress container if there are nodes
+            if (stats.total > 0) {
+                progressContainer.style.display = 'block';
+            } else {
+                progressContainer.style.display = 'none';
+                return;
+            }
+            
+            // Update stats
+            completedCount.textContent = stats.completed;
+            inProgressCount.textContent = stats.inProgress;
+            pendingCount.textContent = stats.pending;
+            totalCount.textContent = stats.total;
+            
+            // Update percentage with animation
+            const currentWidth = parseFloat(progressBar.style.width) || 0;
+            const newWidth = stats.percentage;
+            
+            // Add animation class if progress increased
+            if (newWidth > currentWidth) {
+                progressBar.classList.remove('completed');
+                setTimeout(() => {
+                    if (stats.percentage === 100) {
+                        progressBar.classList.add('completed');
+                    }
+                }, 500);
+            }
+            
+            // Update visual elements
+            progressBar.style.width = stats.percentage + '%';
+            progressPercentage.textContent = stats.percentage + '%';
+            
+            // Change color based on percentage
+            if (stats.percentage === 100) {
+                progressPercentage.style.color = '#48bb78';
+            } else if (stats.percentage >= 75) {
+                progressPercentage.style.color = '#38bdf8';
+            } else if (stats.percentage >= 50) {
+                progressPercentage.style.color = '#fcd34d';
+            } else {
+                progressPercentage.style.color = 'var(--color-primary)';
+            }
+        }
+
+        function toggleNode(node, toggle) {
+            const parent = node.querySelector('.node-parent');
+            if (parent) {
+                parent.classList.toggle('collapsed');
+                toggle.textContent = parent.classList.contains('collapsed') ? '➕' : '–';
+            }
+        }
+
+        function toggleComment(wrapper) {
+            const comment = wrapper.querySelector('.node-comment');
+            const hasComment = wrapper.classList.contains('has-comment');
+            
+            if (hasComment) {
+                wrapper.classList.remove('has-comment');
+                comment.style.display = 'none';
+                comment.textContent = '';
+            } else {
+                wrapper.classList.add('has-comment');
+                comment.style.display = areCommentsVisible ? 'block' : 'none';
+                comment.focus();
+            }
+            autoSave();
+        }
+
+        function toggleDates(wrapper) {
+            const dates = wrapper.querySelector('.node-dates');
+            const hasDates = wrapper.classList.contains('has-dates');
+            
+            if (hasDates) {
+                wrapper.classList.remove('has-dates');
+                dates.style.display = 'none';
+            } else {
+                wrapper.classList.add('has-dates');
+                dates.style.display = areDatesVisible ? 'flex' : 'none';
+            }
+            autoSave();
+        }
+
+        function changeDays(node, delta) {
+            const daysValue = node.querySelector('.days-value');
+            const current = parseInt(daysValue.textContent);
+            const newValue = Math.max(0, current + delta);
+            daysValue.textContent = newValue;
+            autoSave();
+        }
+
+        function addChildNode(parentNode) {
+            let parent = parentNode.querySelector('.node-parent');
+            
+            // If no parent container exists, create one
+            if (!parent) {
+                parent = document.createElement('div');
+                parent.className = 'node-parent';
+                parentNode.appendChild(parent);
+                
+                // Add toggle button to parent content
+                const content = parentNode.querySelector('.node-content');
+                if (!content.querySelector('.node-toggle')) {
+                    const toggle = document.createElement('span');
+                    toggle.className = 'node-toggle';
+                    toggle.textContent = '–';
+                    toggle.onclick = () => toggleNode(parentNode, toggle);
+                    content.insertBefore(toggle, content.firstChild);
+                }
+            }
+            
+            const newNode = {
+                $: {
+                    title: 'New Node',
+                    priority: 'medium',
+                    status: 'pending',
+                    id: generateId()
+                }
+            };
+            
+            // Inherit data attributes from parent for save-split functionality
+            if (parentNode.dataset.dataSource) {
+                newNode.$.dataSource = parentNode.dataset.dataSource;
+            } else {
+                // If parent has no dataSource, use current file as source
+                newNode.$.dataSource = currentFile;
+            }
+            
+            const newEl = renderNode(newNode, true);
+            parent.appendChild(newEl);
+            
+            // Focus on the new node's title
+            const title = newEl.querySelector('.node-title');
+            if (title) {
+                title.focus();
+                title.select();
+            }
+            
+            // Update progress bar after adding node
+            updateProgressBar();
+            autoSave();
+        }
+
+        function deleteNode(node) {
+            if (confirm('Delete this node and all its children?')) {
+                node.remove();
+                // Update progress bar after deleting node
+                updateProgressBar();
+                autoSave();
+            }
+        }
+
+        function showContextMenu(e, node) {
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.add('visible');
+            
+            menu.querySelectorAll('.context-menu-item').forEach(item => {
+                item.onclick = () => {
+                    node.dataset.priority = item.dataset.priority;
+                    menu.classList.remove('visible');
+                    renderMindMap(); // Re-render to apply new priority
+                    autoSave();
+                };
+            });
+        }
+
+        // Build XML from DOM
+        function generateXMLString() {
+            const nodes = document.querySelectorAll('#mindMapContainer > .node');
+            console.log('Generating XML for', nodes.length, 'nodes');
+            const xmlNodes = Array.from(nodes).map((node, i) => {
+                console.log(`Node ${i}: id="${node.dataset.id}", title="${node.querySelector('.node-title')?.textContent}"`);
+                return buildNodeXML(node);
+            });
+            
+            const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+${xmlNodes.join('\n')}
+</project_plan>`;
+            
+            console.log('Generated XML contains "undefined":', xml.includes('id="undefined"'));
+            console.log('First 300 chars of generated XML:', xml.substring(0, 300));
+            return xml;
+        }
+
+        function buildNodeXML(node, indent = '    ') {
+            const wrapper = node.querySelector('.node-wrapper');
+            const title = wrapper.querySelector('.node-title').textContent;
+            const comment = wrapper.querySelector('.node-comment')?.textContent || '';
+            const startDate = wrapper.querySelector('.date-value[data-type="startDate"]')?.textContent || '';
+            const endDate = wrapper.querySelector('.date-value[data-type="endDate"]')?.textContent || '';
+            const daysSpent = wrapper.querySelector('.days-spent-value')?.textContent || '0';
+            
+            // Extract advanced elements
+            const codeDiv = wrapper.querySelector('.node-code');
+            const taskDiv = wrapper.querySelector('.node-task-prompt');
+            const cliDiv = wrapper.querySelector('.node-cli-command');
+            
+            const codeData = codeDiv && codeDiv.style.display !== 'none' ? {
+                language: codeDiv.querySelector('.code-language')?.textContent.toLowerCase() || 'javascript',
+                text: codeDiv.querySelector('code')?.textContent || ''
+            } : null;
+            
+            const taskText = taskDiv && taskDiv.style.display !== 'none' ? 
+                taskDiv.querySelector('.task-prompt-content')?.textContent || '' : '';
+                
+            const cliText = cliDiv && cliDiv.style.display !== 'none' ? 
+                cliDiv.querySelector('.cli-command-content')?.textContent || '' : '';
+            
+            // Fix undefined IDs on the fly
+            let nodeId = node.dataset.id;
+            if (!nodeId || nodeId === 'undefined') {
+                nodeId = generateId();
+                node.dataset.id = nodeId;
+                console.warn('Fixed undefined ID, generated new ID:', nodeId);
+            }
+            
+            const attrs = [
+                `title="${escapeXML(title)}"`,
+                `priority="${node.dataset.priority}"`,
+                `status="${node.dataset.status}"`,
+                `id="${nodeId}"`
+            ];
+            
+            if (startDate) attrs.push(`startDate="${startDate}"`);
+            if (endDate) attrs.push(`endDate="${endDate}"`);
+            if (daysSpent !== '0') attrs.push(`daysSpent="${daysSpent}"`);
+            
+            // Note: Removed data attributes as they cause XML parsing errors
+            // The server's cleanup function will handle source attribution properly
+            
+            const childContainer = node.querySelector('.node-parent');
+            const childNodes = childContainer ? childContainer.querySelectorAll(':scope > .node') : [];
+            
+            const hasContent = childNodes.length > 0 || comment || codeData?.text || taskText || cliText;
+            
+            if (!hasContent) {
+                return `${indent}<node ${attrs.join(' ')}/>`;
+            }
+            
+            let xml = `${indent}<node ${attrs.join(' ')}>`;
+            
+            if (comment) {
+                xml += `\n${indent}    <comment>${escapeXML(comment)}</comment>`;
+            }
+            
+            if (codeData?.text) {
+                xml += `\n${indent}    <code language="${codeData.language}">${escapeXML(codeData.text)}</code>`;
+            }
+            
+            if (taskText) {
+                xml += `\n${indent}    <task_prompt_for_llm>${escapeXML(taskText)}</task_prompt_for_llm>`;
+            }
+            
+            if (cliText) {
+                xml += `\n${indent}    <cli_command>${escapeXML(cliText)}</cli_command>`;
+            }
+            
+            if (childNodes.length > 0) {
+                xml += '\n' + Array.from(childNodes).map(child => 
+                    buildNodeXML(child, indent + '    ')
+                ).join('\n');
+            }
+            
+            xml += `\n${indent}</node>`;
+            
+            return xml;
+        }
+
+        function escapeXML(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        // JSON Generation Functions
+        function generateJSONString() {
+            const nodes = document.querySelectorAll('#mindMapContainer > .node');
+            console.log('Generating JSON for', nodes.length, 'nodes');
+            
+            const jsonNodes = Array.from(nodes).map((node, i) => {
+                console.log(`Node ${i}: id="${node.dataset.id}", title="${node.querySelector('.node-title')?.textContent}"`);
+                return buildNodeJSON(node);
+            });
+            
+            const jsonData = {
+                type: "project_plan",
+                version: "1.0",
+                nodes: jsonNodes
+            };
+            
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            console.log('Generated JSON contains "undefined":', jsonString.includes('"id":"undefined"'));
+            console.log('First 300 chars of generated JSON:', jsonString.substring(0, 300));
+            return jsonString;
+        }
+
+        function buildNodeJSON(node) {
+            const wrapper = node.querySelector('.node-wrapper');
+            const title = wrapper.querySelector('.node-title').textContent;
+            const comment = wrapper.querySelector('.node-comment')?.textContent || '';
+            const startDate = wrapper.querySelector('.date-value[data-type="startDate"]')?.textContent || '';
+            const endDate = wrapper.querySelector('.date-value[data-type="endDate"]')?.textContent || '';
+            const daysSpent = wrapper.querySelector('.days-spent-value')?.textContent || '0';
+            
+            // Extract advanced elements
+            const codeDiv = wrapper.querySelector('.node-code');
+            const taskDiv = wrapper.querySelector('.node-task-prompt');
+            const cliDiv = wrapper.querySelector('.node-cli-command');
+            
+            const codeData = codeDiv && codeDiv.style.display !== 'none' ? {
+                language: codeDiv.querySelector('.code-language')?.textContent.toLowerCase() || 'javascript',
+                content: codeDiv.querySelector('code')?.textContent || ''
+            } : null;
+            
+            const taskText = taskDiv && taskDiv.style.display !== 'none' ? 
+                taskDiv.querySelector('.task-prompt-content')?.textContent || '' : '';
+                
+            const cliText = cliDiv && cliDiv.style.display !== 'none' ? 
+                cliDiv.querySelector('.cli-command-content')?.textContent || '' : '';
+            
+            // Build JSON node structure
+            const nodeData = {
+                type: "node",
+                id: node.dataset.id,
+                title: title,
+                priority: node.dataset.priority || 'medium',
+                status: node.dataset.status || 'pending'
+            };
+            
+            // Add optional properties
+            if (comment.trim()) {
+                nodeData.comment = comment;
+            }
+            
+            if (startDate.trim()) {
+                nodeData.startDate = startDate;
+            }
+            
+            if (endDate.trim()) {
+                nodeData.endDate = endDate;
+            }
+            
+            if (parseInt(daysSpent) > 0) {
+                nodeData.daysSpent = parseInt(daysSpent);
+            }
+            
+            if (codeData) {
+                nodeData.code = codeData;
+            }
+            
+            if (taskText.trim()) {
+                nodeData.taskPromptForLlm = taskText;
+            }
+            
+            if (cliText.trim()) {
+                nodeData.cliCommand = cliText;
+            }
+            
+            // Handle children
+            const childContainer = node.querySelector('.node-parent');
+            if (childContainer && !childContainer.classList.contains('collapsed')) {
+                const childNodes = childContainer.querySelectorAll(':scope > .node');
+                if (childNodes.length > 0) {
+                    nodeData.children = Array.from(childNodes).map(childNode => buildNodeJSON(childNode));
+                }
+            }
+            
+            return nodeData;
+        }
+
+        // Auto-save functionality
+        function autoSave() {
+            console.log('AutoSave triggered for file:', currentFile);
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                if (currentFile) {
+                    console.log('Executing saveFile() for:', currentFile);
+                    saveFile();
+                } else {
+                    console.log('No currentFile set, skipping save');
+                }
+            }, 1000);
+        }
+
+        async function saveFile() {
+            try {
+                const isJsonFile = window.currentFileFormat === 'json' || currentFile.endsWith('.json');
+                
+                let data, endpoint;
+                
+                if (isJsonFile) {
+                    // Generate JSON data for JSON files
+                    data = generateJSONString();
+                    endpoint = `${API_BASE}/save-pure-json`;
+                } else {
+                    // Generate XML data for XML files
+                    data = generateXMLString();
+                    endpoint = `${API_BASE}/save-split`;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFile,
+                        data: data,
+                        folder: currentFolder
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Save failed');
+                }
+                
+                // Show save indicator
+                const indicator = document.getElementById('saveIndicator');
+                indicator.style.opacity = '1';
+                setTimeout(() => indicator.style.opacity = '0', 1500);
+                
+                // Update check time after successful save
+                lastCheckTime = Date.now();
+                
+                console.log(`Saved ${isJsonFile ? 'JSON' : 'XML'} file: ${currentFile}`);
+            } catch (error) {
+                console.error('Failed to save:', error);
+            }
+        }
+
+        // Check for file changes and reload if necessary
+        async function checkForChanges() {
+            if (!currentFile) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/check-changes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFile,
+                        folder: currentFolder,
+                        lastCheck: lastCheckTime
+                    })
+                });
+
+                const result = await response.json();
+                if (result.needsReload) {
+                    console.log('Files have changed, reloading...');
+                    await loadFile(currentFile);
+                    lastCheckTime = Date.now();
+                    
+                    // Show notification
+                    const indicator = document.getElementById('saveIndicator');
+                    indicator.textContent = 'Synced!';
+                    indicator.style.opacity = '1';
+                    indicator.style.backgroundColor = '#10b981';
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                        indicator.textContent = 'Saved';
+                        indicator.style.backgroundColor = '#3b82f6';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error checking for changes:', error);
+            }
+        }
+
+        // Start sync checking when file is loaded
+        function startSyncCheck() {
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+            }
+            syncCheckInterval = setInterval(checkForChanges, 3000); // Check every 3 seconds
+        }
+
+        // Stop sync checking
+        function stopSyncCheck() {
+            if (syncCheckInterval) {
+                clearInterval(syncCheckInterval);
+                syncCheckInterval = null;
+            }
+        }
+
+        // Global toggles
+        function toggleAllComments() {
+            areCommentsVisible = !areCommentsVisible;
+            document.querySelectorAll('.node-comment').forEach(comment => {
+                const wrapper = comment.closest('.node-wrapper');
+                if (wrapper && wrapper.classList.contains('has-comment')) {
+                    comment.style.display = areCommentsVisible ? 'block' : 'none';
+                }
+            });
+            updateToggleCommentsButton();
+        }
+
+        function toggleAllDates() {
+            areDatesVisible = !areDatesVisible;
+            document.querySelectorAll('.node-dates').forEach(dates => {
+                dates.style.display = areDatesVisible ? 'flex' : 'none';
+            });
+            updateToggleDatesButton();
+        }
+
+        function toggleAllAddButtons() {
+            areAddButtonsVisible = !areAddButtonsVisible;
+            if (areAddButtonsVisible) {
+                document.body.classList.remove('add-hidden');
+            } else {
+                document.body.classList.add('add-hidden');
+            }
+            updateToggleAddButton();
+        }
+
+        function toggleAllNodes() {
+            const rootNode = document.querySelector('#mindMapContainer > .node');
+            if (!rootNode) return;
+            
+            const rootParent = rootNode.querySelector('.node-parent');
+            if (!rootParent) return;
+            
+            const isCollapsed = rootParent.classList.contains('collapsed');
+            
+            document.querySelectorAll('.node-parent').forEach(parent => {
+                if (isCollapsed) {
+                    parent.classList.remove('collapsed');
+                } else {
+                    parent.classList.add('collapsed');
+                }
+            });
+            
+            document.querySelectorAll('.node-toggle').forEach(toggle => {
+                toggle.textContent = isCollapsed ? '–' : '➕';
+            });
+            
+            updateToggleAllButton();
+        }
+
+        function toggleFlash() {
+            areFlashesVisible = !areFlashesVisible;
+            if (areFlashesVisible) {
+                document.body.classList.add('flash-active');
+            } else {
+                document.body.classList.remove('flash-active');
+            }
+            updateToggleFlashButton();
+        }
+
+        function toggleAnimateLines() {
+            areLinesAnimated = !areLinesAnimated;
+            if (areLinesAnimated) {
+                document.body.classList.add('lines-animated');
+            } else {
+                document.body.classList.remove('lines-animated');
+            }
+            updateToggleAnimateLinesButton();
+        }
+
+        // Board view state
+        let isBoardView = false;
+
+        // Board view toggle functionality
+        function toggleBoardView() {
+            isBoardView = !isBoardView;
+            const mindMapContainer = document.getElementById('mindMapContainer');
+            const boardContainer = document.getElementById('boardContainer');
+            const toggleBtn = document.getElementById('toggleViewBtn');
+            
+            if (isBoardView) {
+                // Show board, hide mind map
+                mindMapContainer.style.display = 'none';
+                boardContainer.style.display = 'block';
+                toggleBtn.innerHTML = '🧠 <span class="btn-text">Mind Map</span>';
+                toggleBtn.classList.remove('btn-info');
+                toggleBtn.classList.add('btn-success');
+                
+                // Populate the board with current data
+                populateBoard();
+            } else {
+                // Show mind map, hide board
+                mindMapContainer.style.display = 'flex';
+                boardContainer.style.display = 'none';
+                toggleBtn.innerHTML = '📋 <span class="btn-text">Board View</span>';
+                toggleBtn.classList.remove('btn-success');
+                toggleBtn.classList.add('btn-info');
+            }
+        }
+
+        // Populate board with nodes based on their status
+        function refreshBoard() {
+            if (!isBoardView) return;
+            
+            // For now, do a full refresh - could be optimized later
+            populateBoard();
+        }
+        
+        // Enhanced refresh that moves individual cards between columns
+        function refreshBoardWithAnimation() {
+            if (!isBoardView) return;
+            
+            if (!xmlData) {
+                console.log('No XML data for board refresh');
+                return;
+            }
+            
+            // Get all current nodes
+            const allNodes = [];
+            // Handle different XML root structures (project_plan, mindmap, etc.)
+            const rootData = xmlData.project_plan || xmlData.mindmap || xmlData.root || xmlData;
+            collectNodesRecursively(rootData, allNodes);
+            
+            // Get column containers
+            const todoCards = document.getElementById('todoCards');
+            const inProgressCards = document.getElementById('inProgressCards');
+            const doneCards = document.getElementById('doneCards');
+            
+            if (!todoCards || !inProgressCards || !doneCards) {
+                console.error('Board container elements not found for animation refresh');
+                return;
+            }
+            
+            // Check each existing card to see if it needs to be moved
+            const allCards = [...todoCards.children, ...inProgressCards.children, ...doneCards.children];
+            
+            // If no existing cards, do a full populate instead
+            if (allCards.length === 0) {
+                console.log('No existing cards, doing full populate');
+                populateBoard();
+                return;
+            }
+            
+            allCards.forEach(card => {
+                const nodeId = card.dataset.nodeId;
+                const node = allNodes.find(n => n.id === nodeId);
+                
+                if (!node) {
+                    // Node was deleted, remove card with animation
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                    setTimeout(() => card.remove(), 300);
+                    return;
+                }
+                
+                const nodeStatus = node.status || 'pending';
+                const currentColumn = card.parentElement;
+                let targetColumn;
+                
+                // Determine target column based on status
+                if (nodeStatus === 'pending') targetColumn = todoCards;
+                else if (nodeStatus === 'in-progress') targetColumn = inProgressCards;
+                else if (nodeStatus === 'completed') targetColumn = doneCards;
+                
+                // Move card if it's in the wrong column
+                if (currentColumn !== targetColumn) {
+                    card.style.transform = 'translateX(20px)';
+                    card.style.opacity = '0.7';
+                    
+                    setTimeout(() => {
+                        targetColumn.appendChild(card);
+                        card.style.transform = 'translateX(0)';
+                        card.style.opacity = '1';
+                    }, 200);
+                }
+            });
+            
+            // Add any new cards that don't exist yet
+            allNodes.forEach(node => {
+                const existingCard = document.querySelector(`[data-node-id="${node.id}"]`);
+                if (!existingCard) {
+                    const nodeStatus = node.status || 'pending';
+                    let targetColumn;
+                    let columnType;
+                    
+                    if (nodeStatus === 'pending') {
+                        targetColumn = todoCards;
+                        columnType = 'todo';
+                    } else if (nodeStatus === 'in-progress') {
+                        targetColumn = inProgressCards;
+                        columnType = 'in-progress';
+                    } else if (nodeStatus === 'completed') {
+                        targetColumn = doneCards;
+                        columnType = 'done';
+                    }
+                    
+                    const newCard = createTaskCard(node, columnType);
+                    newCard.style.opacity = '0';
+                    newCard.style.transform = 'scale(0.8)';
+                    targetColumn.appendChild(newCard);
+                    
+                    // Animate in
+                    setTimeout(() => {
+                        newCard.style.opacity = '1';
+                        newCard.style.transform = 'scale(1)';
+                    }, 100);
+                }
+            });
+        }
+        
+        function populateBoard() {
+            console.log('Populating board...');
+            const todoCards = document.getElementById('todoCards');
+            const inProgressCards = document.getElementById('inProgressCards');
+            const doneCards = document.getElementById('doneCards');
+            const boardTitle = document.getElementById('boardTitle');
+            
+            if (!todoCards || !inProgressCards || !doneCards) {
+                console.error('Board container elements not found');
+                return;
+            }
+            
+            // Clear existing cards
+            todoCards.innerHTML = '';
+            inProgressCards.innerHTML = '';
+            doneCards.innerHTML = '';
+            
+            // Set board title from current file
+            if (boardTitle) {
+                boardTitle.textContent = currentFile || 'Project';
+            }
+            
+            console.log('xmlData:', xmlData);
+            console.log('currentFile:', currentFile);
+            
+            if (!xmlData) {
+                console.log('No XML data available');
+                // Show empty state
+                showEmptyBoard();
+                return;
+            }
+            
+            // Collect all nodes recursively
+            const allNodes = [];
+            // Handle different XML root structures (project_plan, mindmap, etc.)
+            const rootData = xmlData.project_plan || xmlData.mindmap || xmlData.root || xmlData;
+            collectNodesRecursively(rootData, allNodes);
+            console.log('Collected nodes:', allNodes.length);
+            
+            // Group nodes by status
+            const todoNodes = allNodes.filter(node => !node.status || node.status === 'pending');
+            const inProgressNodes = allNodes.filter(node => node.status === 'in-progress');
+            const doneNodes = allNodes.filter(node => node.status === 'completed');
+            
+            console.log('Todo nodes:', todoNodes.length, 'In Progress:', inProgressNodes.length, 'Done:', doneNodes.length);
+            
+            // Populate columns
+            populateColumn(todoCards, todoNodes, 'todo');
+            populateColumn(inProgressCards, inProgressNodes, 'in-progress');
+            populateColumn(doneCards, doneNodes, 'done');
+            
+            // Update counters
+            document.getElementById('todoCount').textContent = todoNodes.length;
+            document.getElementById('inProgressCount').textContent = inProgressNodes.length;
+            document.getElementById('doneCount').textContent = doneNodes.length;
+        }
+        
+        // Recursively collect all nodes from XML data
+        function collectNodesRecursively(nodeData, allNodes, parentPath = '') {
+            if (nodeData.node) {
+                const nodes = Array.isArray(nodeData.node) ? nodeData.node : [nodeData.node];
+                nodes.forEach((node, index) => {
+                    // Extract attributes from $ property if they exist
+                    const nodeAttrs = node.$ || {};
+                    const title = nodeAttrs.title || node.title || 'Untitled';
+                    const nodePath = parentPath ? `${parentPath} > ${title}` : title;
+                    
+                    allNodes.push({
+                        id: nodeAttrs.id || node.id,
+                        title: title,
+                        status: nodeAttrs.status || node.status || 'pending',
+                        priority: nodeAttrs.priority || node.priority,
+                        assignee: nodeAttrs.assignee || node.assignee,
+                        startDate: nodeAttrs.startDate || node.startDate,
+                        endDate: nodeAttrs.endDate || node.endDate,
+                        comment: node.comment,
+                        path: nodePath,
+                        parentPath: parentPath,
+                        originalNode: node // Keep original node data
+                    });
+                    
+                    // Recursively collect child nodes
+                    collectNodesRecursively(node, allNodes, nodePath);
+                });
+            }
+        }
+        
+        // Populate a specific column with nodes
+        function populateColumn(container, nodes, columnType) {
+            if (nodes.length === 0) {
+                container.innerHTML = '<div class="empty-column">No tasks</div>';
+                return;
+            }
+            
+            nodes.forEach(node => {
+                const card = createTaskCard(node, columnType);
+                container.appendChild(card);
+            });
+        }
+        
+        // Create a task card element (simplified - title only)
+        function createTaskCard(node, columnType) {
+            const card = document.createElement('div');
+            card.className = `task-card${node.priority ? ` priority-${node.priority}` : ''}`;
+            card.dataset.nodeId = node.id;
+            
+            // Task title only
+            const title = document.createElement('div');
+            title.className = 'task-title';
+            title.textContent = node.title || 'Untitled Task';
+            
+            // Add click handler to focus on node in mind map
+            card.addEventListener('click', () => {
+                // Switch back to mind map view and highlight the node
+                if (isBoardView) {
+                    toggleBoardView();
+                }
+                // Find and highlight the node
+                setTimeout(() => {
+                    const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
+                    if (nodeElement) {
+                        nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        nodeElement.style.animation = 'pulse 2s ease-in-out';
+                        setTimeout(() => {
+                            nodeElement.style.animation = '';
+                        }, 2000);
+                    }
+                }, 300);
+            });
+            
+            card.appendChild(title);
+            
+            return card;
+        }
+        
+        // Show empty board state
+        function showEmptyBoard() {
+            const columns = ['todoCards', 'inProgressCards', 'doneCards'];
+            columns.forEach(columnId => {
+                document.getElementById(columnId).innerHTML = '<div class="empty-column">No data loaded</div>';
+            });
+            
+            // Reset counters
+            document.getElementById('todoCount').textContent = '0';
+            document.getElementById('inProgressCount').textContent = '0';
+            document.getElementById('doneCount').textContent = '0';
+        }
+
+        // Button text updates
+        function updateToggleCommentsButton() {
+            const btnText = document.querySelector('#toggleCommentsBtn .btn-text');
+            btnText.textContent = areCommentsVisible ? 'Hide Comments' : 'Show Comments';
+        }
+
+        function updateToggleDatesButton() {
+            const btnText = document.querySelector('#toggleDatesBtn .btn-text');
+            btnText.textContent = areDatesVisible ? 'Hide Dates' : 'Show Dates';
+        }
+
+        function updateToggleAddButton() {
+            const btnText = document.querySelector('#toggleAddBtn .btn-text');
+            btnText.textContent = areAddButtonsVisible ? 'Hide Add Buttons' : 'Show Add Buttons';
+        }
+
+        function updateToggleAllButton() {
+            const rootNode = document.querySelector('#mindMapContainer > .node');
+            if (!rootNode) return;
+            
+            const rootParent = rootNode.querySelector('.node-parent');
+            if (!rootParent) return;
+            
+            const btnText = document.querySelector('#toggleAllBtn .btn-text');
+            btnText.textContent = rootParent.classList.contains('collapsed') ? 'Expand All' : 'Collapse All';
+        }
+
+        function updateToggleFlashButton() {
+            const btnText = document.querySelector('#toggleFlashBtn .btn-text');
+            btnText.textContent = areFlashesVisible ? 'Stop Flash' : 'Start Flash';
+        }
+
+        function updateToggleAnimateLinesButton() {
+            const btnText = document.querySelector('#toggleAnimateLinesBtn .btn-text');
+            btnText.textContent = areLinesAnimated ? 'Stop Lines' : 'Animate Lines';
+        }
+
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggle.textContent = '›';
+                toggle.title = 'Expand Sidebar';
+            } else {
+                toggle.textContent = '‹';
+                toggle.title = 'Collapse Sidebar';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Sidebar toggle button
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            
+            // Change Root button
+            document.getElementById('changeRootBtn').addEventListener('click', showFilesystemBrowser);
+            
+            // Folder list
+            document.getElementById('folderList').addEventListener('click', (e) => {
+                const folderItem = e.target.closest('.folder-item');
+                if (folderItem) {
+                    changeFolder(folderItem.dataset.folder);
+                }
+            });
+            
+            // File list
+            document.getElementById('fileList').addEventListener('click', (e) => {
+                const fileItem = e.target.closest('.file-item');
+                if (fileItem) {
+                    loadFile(fileItem.dataset.file);
+                }
+            });
+            
+            // New file button
+            document.getElementById('newFileBtn').onclick = async () => {
+                const filename = prompt('Enter filename (e.g., project.xml):');
+                if (filename && filename.endsWith('.xml')) {
+                    try {
+                        const response = await fetch(`${API_BASE}/create`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filename })
+                        });
+                        
+                        if (response.ok) {
+                            await loadFileList();
+                            loadFile(filename);
+                        } else {
+                            const error = await response.json();
+                            alert(error.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to create file');
+                    }
+                }
+            };
+            
+            // Control buttons
+            document.getElementById('saveBtn').onclick = () => {
+                if (currentFile) {
+                    saveFile();
+                }
+            };
+            
+            document.getElementById('toggleCommentsBtn').onclick = toggleAllComments;
+            document.getElementById('toggleDatesBtn').onclick = toggleAllDates;
+            document.getElementById('toggleAddBtn').onclick = toggleAllAddButtons;
+            document.getElementById('toggleAllBtn').onclick = toggleAllNodes;
+            document.getElementById('toggleFlashBtn').onclick = toggleFlash;
+            document.getElementById('toggleAnimateLinesBtn').onclick = toggleAnimateLines;
+            document.getElementById('cleanupBtn').onclick = cleanupIds;
+            document.getElementById('toggleViewBtn').onclick = toggleBoardView;
+            
+            // Hide context menu on click
+            document.addEventListener('click', () => {
+                document.getElementById('contextMenu').classList.remove('visible');
+            });
+        }
+
+        // Clean up IDs across all XML files
+        async function cleanupIds() {
+            const button = document.getElementById('cleanupBtn');
+            const originalText = button.innerHTML;
+            
+            try {
+                button.innerHTML = '🔧 <span class="btn-text">Cleaning...</span>';
+                button.disabled = true;
+                
+                const response = await fetch(`${API_BASE}/cleanup-ids`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    button.innerHTML = '✅ <span class="btn-text">Cleaned!</span>';
+                    button.style.background = '#10b981';
+                    
+                    // Show success message
+                    const indicator = document.getElementById('saveIndicator');
+                    indicator.textContent = `Cleaned ${result.files.length} files (${result.totalIds} unique IDs)`;
+                    indicator.style.opacity = '1';
+                    indicator.style.backgroundColor = '#10b981';
+                    
+                    setTimeout(async () => {
+                        indicator.style.opacity = '0';
+                        indicator.textContent = 'Saved';
+                        indicator.style.backgroundColor = '#3b82f6';
+                        
+                        // Reset button
+                        button.innerHTML = originalText;
+                        button.style.background = '#f59e0b';
+                        button.disabled = false;
+                        
+                        // Reload current file to reflect changes
+                        if (currentFile) {
+                            await loadFile(currentFile);
+                        }
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(result.error || 'Cleanup failed');
+                }
+                
+            } catch (error) {
+                console.error('Cleanup error:', error);
+                button.innerHTML = '❌ <span class="btn-text">Error</span>';
+                button.style.background = '#ef4444';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#f59e0b';
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // Stop sync checking when page unloads
+        window.addEventListener('beforeunload', stopSyncCheck);
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
