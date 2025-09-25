@@ -632,16 +632,23 @@
             const container = document.getElementById('mindMapContainer');
             container.innerHTML = '';
             
-            if (!xmlData || !xmlData.project_plan || !xmlData.project_plan.node) {
+            // Support both XML format (xmlData.project_plan.node) and JSON format (xmlData.nodes)
+            let nodes = null;
+            if (xmlData && xmlData.project_plan && xmlData.project_plan.node) {
+                // XML format
+                nodes = Array.isArray(xmlData.project_plan.node) 
+                    ? xmlData.project_plan.node 
+                    : [xmlData.project_plan.node];
+            } else if (xmlData && xmlData.nodes) {
+                // JSON format
+                nodes = Array.isArray(xmlData.nodes) ? xmlData.nodes : [xmlData.nodes];
+            }
+            
+            if (!nodes || nodes.length === 0) {
                 container.innerHTML = '<div class="empty-state">No data to display</div>';
                 updateProgressBar(); // Update progress bar even when empty
                 return;
             }
-            
-            // Ensure nodes is an array
-            const nodes = Array.isArray(xmlData.project_plan.node) 
-                ? xmlData.project_plan.node 
-                : [xmlData.project_plan.node];
             
             nodes.forEach(nodeData => {
                 renderNode(nodeData, container);
@@ -1129,9 +1136,17 @@
             codeDiv.appendChild(header);
             codeDiv.appendChild(pre);
             
-            // Apply syntax highlighting
-            if (typeof Prism !== 'undefined') {
-                Prism.highlightElement(code);
+            // Apply syntax highlighting with error handling
+            try {
+                if (typeof Prism !== 'undefined' && Prism.highlightElement) {
+                    // Avoid re-highlighting already highlighted elements
+                    if (!code.classList.contains('prism-highlighted')) {
+                        Prism.highlightElement(code);
+                        code.classList.add('prism-highlighted');
+                    }
+                }
+            } catch (error) {
+                console.warn('Prism.js highlighting failed:', error);
             }
             
             nodeWrapper.classList.add('has-code');
