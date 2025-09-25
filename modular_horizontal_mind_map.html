@@ -568,10 +568,10 @@
                 let url, response, data;
                 
                 if (isJsonFile) {
-                    // Load JSON file using pure JSON endpoint with XML conversion for UI compatibility
+                    // Load JSON file using pure JSON endpoint without XML conversion
                     url = currentFolder === '.' ? 
-                        `${API_BASE}/load-json/${filename}?format=xml` : 
-                        `${API_BASE}/load-json/${filename}?format=xml&folder=${encodeURIComponent(currentFolder)}`;
+                        `${API_BASE}/load-json/${filename}` : 
+                        `${API_BASE}/load-json/${filename}?folder=${encodeURIComponent(currentFolder)}`;
                 } else {
                     // Load XML file using existing endpoint
                     url = currentFolder === '.' ? 
@@ -651,25 +651,28 @@
             updateProgressBar();
         }
 
-        // Render a single node with exact original structure
+        // Render a single node with support for both XML and JSON formats
         function renderNode(nodeData, parentElement) {
-            const priority = nodeData.$ && nodeData.$.priority || 'medium';
-            const status = nodeData.$ && nodeData.$.status || 'pending';
-            let nodeId = nodeData.$ && nodeData.$.id;
+            // Support both XML format (nodeData.$) and JSON format (direct properties)
+            const priority = (nodeData.$ && nodeData.$.priority) || nodeData.priority || 'medium';
+            const status = (nodeData.$ && nodeData.$.status) || nodeData.status || 'pending';
+            let nodeId = (nodeData.$ && nodeData.$.id) || nodeData.id;
             
             // Fix undefined or missing IDs
             if (!nodeId || nodeId === 'undefined') {
                 nodeId = generateId();
                 if (nodeData.$) {
                     nodeData.$.id = nodeId;
+                } else {
+                    nodeData.id = nodeId;
                 }
                 console.warn('Fixed undefined node ID in renderNode, generated:', nodeId);
             }
             
-            const title = nodeData.$ && nodeData.$.title || 'New Node';
-            const startDate = nodeData.$ && nodeData.$.startDate || '';
-            const endDate = nodeData.$ && nodeData.$.endDate || '';
-            const daysSpent = nodeData.$ && nodeData.$.daysSpent || '0';
+            const title = (nodeData.$ && nodeData.$.title) || nodeData.title || 'New Node';
+            const startDate = (nodeData.$ && nodeData.$.startDate) || nodeData.startDate || '';
+            const endDate = (nodeData.$ && nodeData.$.endDate) || nodeData.endDate || '';
+            const daysSpent = (nodeData.$ && nodeData.$.daysSpent) || nodeData.daysSpent || '0';
             
             const nodeDiv = document.createElement('div');
             nodeDiv.className = 'node';
@@ -1005,10 +1008,11 @@
                 showContextMenu(e, nodeDiv);
             });
             
-            // Render children
-            if (nodeData.node) {
-                const childNodes = Array.isArray(nodeData.node) ? nodeData.node : [nodeData.node];
-                childNodes.forEach(childData => {
+            // Render children - support both XML (nodeData.node) and JSON (nodeData.children) formats
+            if (nodeData.node || nodeData.children) {
+                const childNodes = nodeData.children || nodeData.node;
+                const childNodesArray = Array.isArray(childNodes) ? childNodes : [childNodes];
+                childNodesArray.forEach(childData => {
                     renderNode(childData, childrenContainer);
                 });
             }
@@ -1040,7 +1044,7 @@
             }
         }
 
-        // Parse and extract new XML elements
+        // Parse and extract advanced elements - supports both XML and JSON formats
         function extractAdvancedElements(nodeData) {
             const elements = {
                 code: null,
@@ -1048,38 +1052,45 @@
                 cliCommand: null
             };
             
-            // Extract code element
+            // Extract code element - support both XML and JSON formats
             if (nodeData.code) {
                 const codeData = Array.isArray(nodeData.code) ? nodeData.code[0] : nodeData.code;
                 if (typeof codeData === 'string') {
                     elements.code = { text: codeData, language: 'javascript' };
                 } else if (codeData && codeData._) {
+                    // XML format: code has _ property for content and $ for attributes
                     elements.code = {
                         text: codeData._,
                         language: codeData.$ && codeData.$.language || 'javascript'
                     };
+                } else if (codeData && codeData.content) {
+                    // JSON format: code has content and language properties
+                    elements.code = {
+                        text: codeData.content,
+                        language: codeData.language || 'javascript'
+                    };
                 }
             }
             
-            // Extract task_prompt_for_llm element
-            if (nodeData.task_prompt_for_llm) {
-                const taskData = Array.isArray(nodeData.task_prompt_for_llm) ? 
-                    nodeData.task_prompt_for_llm[0] : nodeData.task_prompt_for_llm;
-                if (typeof taskData === 'string') {
-                    elements.taskPrompt = taskData;
-                } else if (taskData && taskData._) {
-                    elements.taskPrompt = taskData._;
+            // Extract task_prompt_for_llm element - support both XML and JSON formats
+            if (nodeData.task_prompt_for_llm || nodeData.taskPromptForLlm) {
+                const taskData = nodeData.task_prompt_for_llm || nodeData.taskPromptForLlm;
+                const taskValue = Array.isArray(taskData) ? taskData[0] : taskData;
+                if (typeof taskValue === 'string') {
+                    elements.taskPrompt = taskValue;
+                } else if (taskValue && taskValue._) {
+                    elements.taskPrompt = taskValue._;
                 }
             }
             
-            // Extract cli_command element
-            if (nodeData.cli_command) {
-                const cliData = Array.isArray(nodeData.cli_command) ? 
-                    nodeData.cli_command[0] : nodeData.cli_command;
-                if (typeof cliData === 'string') {
-                    elements.cliCommand = cliData;
-                } else if (cliData && cliData._) {
-                    elements.cliCommand = cliData._;
+            // Extract cli_command element - support both XML and JSON formats
+            if (nodeData.cli_command || nodeData.cliCommand) {
+                const cliData = nodeData.cli_command || nodeData.cliCommand;
+                const cliValue = Array.isArray(cliData) ? cliData[0] : cliData;
+                if (typeof cliValue === 'string') {
+                    elements.cliCommand = cliValue;
+                } else if (cliValue && cliValue._) {
+                    elements.cliCommand = cliValue._;
                 }
             }
             
