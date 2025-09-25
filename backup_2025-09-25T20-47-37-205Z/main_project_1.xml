@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node title="Main Project Overview" priority="high" status="pending" id="main-001">
+        <comment>This is the main project file that imports modules</comment>
+        <node title="Project Setup" priority="high" status="completed" id="main-002">
+            <comment>Initial project configuration and setup</comment>
+        </node>
+        <node title="Deployment Phase" priority="medium" status="pending" id="main-003">
+            <comment>Final deployment and release tasks</comment>
+        </node>
+        <import src="frontend_module.xml"/>
+        <import src="backend_module.xml"/>
+    </node>
+</project_plan>

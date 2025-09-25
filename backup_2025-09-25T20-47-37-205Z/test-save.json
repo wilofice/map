@@ -1,0 +1,12 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "nodes": [
+    {
+      "type": "node",
+      "id": "test-1",
+      "title": "Test Node",
+      "status": "completed"
+    }
+  ]
+}

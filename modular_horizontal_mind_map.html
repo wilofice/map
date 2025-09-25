@@ -635,12 +635,12 @@
             // Support both XML format (xmlData.project_plan.node) and JSON format (xmlData.nodes)
             let nodes = null;
             if (xmlData && xmlData.project_plan && xmlData.project_plan.node) {
-                // XML format
+                // XML format - multiple root nodes possible
                 nodes = Array.isArray(xmlData.project_plan.node) 
                     ? xmlData.project_plan.node 
                     : [xmlData.project_plan.node];
             } else if (xmlData && xmlData.nodes) {
-                // JSON format
+                // JSON format - nodes array contains root nodes
                 nodes = Array.isArray(xmlData.nodes) ? xmlData.nodes : [xmlData.nodes];
             }
             
@@ -650,6 +650,8 @@
                 return;
             }
             
+            // For JSON format, typically there's one root node with children
+            // For XML format, there can be multiple root nodes
             nodes.forEach(nodeData => {
                 renderNode(nodeData, container);
             });
@@ -664,6 +666,7 @@
             const priority = (nodeData.$ && nodeData.$.priority) || nodeData.priority || 'medium';
             const status = (nodeData.$ && nodeData.$.status) || nodeData.status || 'pending';
             let nodeId = (nodeData.$ && nodeData.$.id) || nodeData.id;
+            const title = (nodeData.$ && nodeData.$.title) || nodeData.title || 'New Node';
             
             // Fix undefined or missing IDs
             if (!nodeId || nodeId === 'undefined') {
@@ -676,7 +679,6 @@
                 console.warn('Fixed undefined node ID in renderNode, generated:', nodeId);
             }
             
-            const title = (nodeData.$ && nodeData.$.title) || nodeData.title || 'New Node';
             const startDate = (nodeData.$ && nodeData.$.startDate) || nodeData.startDate || '';
             const endDate = (nodeData.$ && nodeData.$.endDate) || nodeData.endDate || '';
             const daysSpent = (nodeData.$ && nodeData.$.daysSpent) || nodeData.daysSpent || '0';
@@ -1262,7 +1264,10 @@
             const currentIndex = statuses.indexOf(currentStatus);
             const newStatus = statuses[(currentIndex + 1) % 3];
             
+            // Update both dataset and CSS classes
+            node.classList.remove(`status-${currentStatus}`);
             node.dataset.status = newStatus;
+            node.classList.add(`status-${newStatus}`);
             node.querySelector('.status-icon').textContent = getStatusIcon(newStatus);
             
             // Update progress bar when status changes

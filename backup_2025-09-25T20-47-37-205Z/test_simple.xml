@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+    <node title="Test Node" priority="high" status="pending" id="test-001">
+        <comment>Test comment</comment>
+    </node>
+</project_plan>

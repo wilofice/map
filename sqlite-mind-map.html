@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map - SQLite Enhanced</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    
+    <!-- CSS Module Imports -->
+    <link rel="stylesheet" href="css/main-styles.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/progress-styles.css">
+
+    <style>
+        /* Project selector styles */
+        .project-selector {
+            padding: 20px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .project-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .project-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .project-card:hover {
+            border-color: #007bff;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+        }
+        
+        .project-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .project-info {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .project-description {
+            font-size: 13px;
+            color: #777;
+        }
+        
+        .search-box {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .new-project-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .session-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .current-project-indicator {
+            background: #4caf50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Project Selector (shown when no project is loaded) -->
+    <div id="projectSelector" class="project-selector" style="display: none;">
+        <h1>🧠 Mind Map - SQLite Enhanced</h1>
+        
+        <div class="session-info" id="sessionInfo" style="display: none;">
+            <strong>📌 Last Session:</strong> <span id="lastProjectName"></span>
+            <button onclick="loadLastProject()" style="margin-left: 10px; padding: 5px 15px;">Continue</button>
+        </div>
+        
+        <div>
+            <input type="text" class="search-box" id="projectSearch" placeholder="Search projects..." onkeyup="filterProjects()">
+            <button class="new-project-btn" onclick="createNewProject()">➕ New Project</button>
+        </div>
+        
+        <div class="project-list" id="projectList"></div>
+    </div>
+
+    <!-- Main Mind Map Interface -->
+    <div id="mainInterface" style="display: none;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 Projects</h2>
+                <button class="sidebar-toggle" onclick="toggleSidebar()">‹</button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="current-project-indicator" id="currentProjectInfo">
+                    Project Name
+                </div>
+                
+                <button onclick="switchProject()" style="width: 100%; padding: 8px; margin-bottom: 10px; background: #007bff; color: white; border: none; border-radius: 4px;">
+                    🔄 Switch Project
+                </button>
+                
+                <!-- Database Stats -->
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Database Stats:</div>
+                    <div id="dbStats" style="font-size: 11px; color: #777;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="container">
+                <div class="controls">
+                    <button class="btn btn-success" onclick="saveProject()">💾 <span class="btn-text">Save Project</span></button>
+                    <button class="btn btn-secondary" onclick="toggleComments()">💬 <span class="btn-text">Toggle Comments</span></button>
+                    <button class="btn btn-secondary" onclick="toggleDates()">📅 <span class="btn-text">Toggle Dates</span></button>
+                    <button class="btn btn-secondary" onclick="addRootNode()">➕ <span class="btn-text">Add Node</span></button>
+                    <button class="btn btn-info" onclick="searchNodes()">🔍 <span class="btn-text">Search All</span></button>
+                    <button class="btn" onclick="exportProject()">📤 <span class="btn-text">Export</span></button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div id="progressContainer" class="progress-container" style="display: none;">
+                    <div class="progress-header">
+                        <h3>Project Progress</h3>
+                        <div class="progress-stats" id="progressStats"></div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+                        <div id="progressPercentage" class="progress-percentage">0%</div>
+                    </div>
+                </div>
+
+                <!-- Mind Map Container -->
+                <div id="mindMapContainer" class="mind-map-container">
+                    <div class="empty-state" id="emptyState">
+                        <h3>No project loaded</h3>
+                        <p>Select a project to start editing</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" data-priority="high">🔴 High Priority</div>
+        <div class="context-menu-item" data-priority="medium">🟡 Medium Priority</div>
+        <div class="context-menu-item" data-priority="low">🟢 Low Priority</div>
+        <div class="context-menu-item" onclick="deleteNode(currentContextNode)">🗑️ Delete Node</div>
+    </div>
+
+    <script>
+        // Application state
+        let currentProject = null;
+        let currentProjectData = null;
+        let allProjects = [];
+        let lastProjectId = null;
+        let currentContextNode = null;
+
+        // API Base URL
+        const API_BASE = window.location.origin;
+
+        // Initialize application
+        async function init() {
+            try {
+                console.log('🚀 Initializing SQLite-enhanced Mind Map...');
+                
+                // Load app state
+                const appState = await fetchAPI('/api/db/app-state');
+                lastProjectId = appState.lastProject;
+                
+                // Load all projects
+                await loadAllProjects();
+                
+                // Show appropriate interface
+                if (lastProjectId && allProjects.find(p => p.id === lastProjectId)) {
+                    showSessionRestoration();
+                } else {
+                    showProjectSelector();
+                }
+                
+                // Update database stats
+                updateDatabaseStats();
+                
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                showProjectSelector();
+            }
+        }
+
+        // API helper function
+        async function fetchAPI(endpoint, options = {}) {
+            const response = await fetch(API_BASE + endpoint, options);
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+            return await response.json();
+        }
+
+        // Load all projects from database
+        async function loadAllProjects() {
+            allProjects = await fetchAPI('/api/db/projects');
+            console.log(`📋 Loaded ${allProjects.length} projects from database`);
+        }
+
+        // Show project selector
+        function showProjectSelector() {
+            document.getElementById('projectSelector').style.display = 'block';
+            document.getElementById('mainInterface').style.display = 'none';
+            displayProjects();
+        }
+
+        // Show session restoration option
+        function showSessionRestoration() {
+            const lastProject = allProjects.find(p => p.id === lastProjectId);
+            if (lastProject) {
+                document.getElementById('sessionInfo').style.display = 'block';
+                document.getElementById('lastProjectName').textContent = lastProject.name;
+            }
+            showProjectSelector();
+        }
+
+        // Display projects in selector
+        function displayProjects(filteredProjects = null) {
+            const projectsToShow = filteredProjects || allProjects;
+            const projectList = document.getElementById('projectList');
+            
+            projectList.innerHTML = projectsToShow.map(project => `
+                <div class="project-card" onclick="loadProject('${project.id}')">
+                    <div class="project-name">${project.name}</div>
+                    <div class="project-info">
+                        <span>Updated: ${new Date(project.updated_at).toLocaleDateString()}</span>
+                    </div>
+                    <div class="project-description">${project.description}</div>
+                </div>
+            `).join('');
+        }
+
+        // Filter projects based on search
+        function filterProjects() {
+            const searchTerm = document.getElementById('projectSearch').value.toLowerCase();
+            if (!searchTerm) {
+                displayProjects();
+                return;
+            }
+            
+            const filtered = allProjects.filter(project => 
+                project.name.toLowerCase().includes(searchTerm) ||
+                project.description.toLowerCase().includes(searchTerm)
+            );
+            
+            displayProjects(filtered);
+        }
+
+        // Load last project
+        async function loadLastProject() {
+            if (lastProjectId) {
+                await loadProject(lastProjectId);
+            }
+        }
+
+        // Load specific project
+        async function loadProject(projectId) {
+            try {
+                console.log(`📂 Loading project: ${projectId}`);
+                
+                // Fetch project data from database
+                currentProjectData = await fetchAPI(`/api/db/projects/${projectId}`);
+                currentProject = currentProjectData;
+                
+                // Save as last opened project
+                await fetchAPI('/api/db/app-state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: 'last_opened_project', value: projectId })
+                });
+                
+                // Switch to main interface
+                document.getElementById('projectSelector').style.display = 'none';
+                document.getElementById('mainInterface').style.display = 'block';
+                
+                // Update UI
+                document.getElementById('currentProjectInfo').textContent = currentProject.name;
+                
+                // Render mind map
+                renderMindMapFromDatabase();
+                
+                // Update progress
+                updateProgress();
+                
+                console.log(`✅ Project loaded: ${currentProject.name} (${currentProject.nodes.length} nodes)`);
+                
+            } catch (error) {
+                console.error('Failed to load project:', error);
+                alert('Failed to load project: ' + error.message);
+            }
+        }
+
+        // Render mind map from database data
+        function renderMindMapFromDatabase() {
+            const container = document.getElementById('mindMapContainer');
+            
+            if (!currentProjectData || !currentProjectData.nodes.length) {
+                container.innerHTML = '<div class="empty-state"><h3>Empty Project</h3><button onclick="addRootNode()">Add First Node</button></div>';
+                return;
+            }
+            
+            // Build node hierarchy
+            const nodeMap = new Map();
+            currentProjectData.nodes.forEach(node => nodeMap.set(node.id, node));
+            
+            const rootNodes = currentProjectData.nodes.filter(node => !node.parent_id);
+            
+            container.innerHTML = '';
+            rootNodes.forEach(rootNode => {
+                const nodeElement = createNodeElement(rootNode, nodeMap);
+                container.appendChild(nodeElement);
+            });
+        }
+
+        // Create node element from database data
+        function createNodeElement(nodeData, nodeMap) {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node';
+            nodeDiv.dataset.id = nodeData.id;
+            
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = 'node-wrapper';
+            
+            // Node title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'node-title';
+            titleDiv.contentEditable = true;
+            titleDiv.textContent = nodeData.title;
+            titleDiv.addEventListener('blur', () => updateNodeTitle(nodeData.id, titleDiv.textContent));
+            
+            wrapperDiv.appendChild(titleDiv);
+            
+            // Status and controls
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'node-controls';
+            controlsDiv.innerHTML = `
+                <span class="status-indicator" onclick="cycleStatus('${nodeData.id}')">${getStatusIcon(nodeData.status)}</span>
+                <span class="priority-indicator priority-${nodeData.priority}">${getPriorityIcon(nodeData.priority)}</span>
+                <button onclick="addChildNode('${nodeData.id}')">+</button>
+                <button onclick="deleteNode('${nodeData.id}')">×</button>
+            `;
+            wrapperDiv.appendChild(controlsDiv);
+            
+            // Content (comment)
+            if (nodeData.content) {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'node-comment';
+                commentDiv.textContent = nodeData.content;
+                wrapperDiv.appendChild(commentDiv);
+            }
+            
+            nodeDiv.appendChild(wrapperDiv);
+            
+            // Child nodes
+            const childNodes = currentProjectData.nodes.filter(n => n.parent_id === nodeData.id);
+            if (childNodes.length > 0) {
+                const childContainer = document.createElement('div');
+                childContainer.className = 'node-parent';
+                childNodes.forEach(child => {
+                    childContainer.appendChild(createNodeElement(child, nodeMap));
+                });
+                nodeDiv.appendChild(childContainer);
+            }
+            
+            return nodeDiv;
+        }
+
+        // Update node title in database
+        async function updateNodeTitle(nodeId, newTitle) {
+            try {
+                await fetchAPI(`/api/db/nodes/${nodeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle })
+                });
+                console.log(`✅ Updated node title: ${newTitle}`);
+            } catch (error) {
+                console.error('Failed to update node title:', error);
+            }
+        }
+
+        // Add new root node
+        async function addRootNode() {
+            const title = prompt('Enter node title:');
+            if (!title) return;
+            
+            try {
+                const nodeData = {
+                    project_id: currentProject.id,
+                    title: title,
+                    status: 'pending',
+                    priority: 'medium'
+                };
+                
+                await fetchAPI('/api/db/nodes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nodeData)
+                });
+                
+                // Reload project to show new node
+                await loadProject(currentProject.id);
+                
+            } catch (error) {
+                console.error('Failed to add node:', error);
+                alert('Failed to add node: ' + error.message);
+            }
+        }
+
+        // Add child node
+        async function addChildNode(parentId) {
+            const title = prompt('Enter child node title:');
+            if (!title) return;
+            
+            try {
+                const nodeData = {
+                    project_id: currentProject.id,
+                    parent_id: parentId,
+                    title: title,
+                    status: 'pending',
+                    priority: 'medium'
+                };
+                
+                await fetchAPI('/api/db/nodes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nodeData)
+                });
+                
+                // Reload project to show new node
+                await loadProject(currentProject.id);
+                
+            } catch (error) {
+                console.error('Failed to add child node:', error);
+                alert('Failed to add child node: ' + error.message);
+            }
+        }
+
+        // Delete node
+        async function deleteNode(nodeId) {
+            if (!confirm('Delete this node and all its children?')) return;
+            
+            try {
+                await fetchAPI(`/api/db/nodes/${nodeId}`, {
+                    method: 'DELETE'
+                });
+                
+                // Reload project to reflect changes
+                await loadProject(currentProject.id);
+                
+            } catch (error) {
+                console.error('Failed to delete node:', error);
+                alert('Failed to delete node: ' + error.message);
+            }
+        }
+
+        // Cycle node status
+        async function cycleStatus(nodeId) {
+            const statuses = ['pending', 'in-progress', 'completed'];
+            const currentNode = currentProjectData.nodes.find(n => n.id === nodeId);
+            const currentIndex = statuses.indexOf(currentNode.status);
+            const newStatus = statuses[(currentIndex + 1) % statuses.length];
+            
+            try {
+                await fetchAPI(`/api/db/nodes/${nodeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                // Update local data and UI
+                currentNode.status = newStatus;
+                document.querySelector(`[data-id="${nodeId}"] .status-indicator`).textContent = getStatusIcon(newStatus);
+                updateProgress();
+                
+            } catch (error) {
+                console.error('Failed to update status:', error);
+            }
+        }
+
+        // Helper functions
+        function getStatusIcon(status) {
+            switch (status) {
+                case 'pending': return '⏳';
+                case 'in-progress': return '🔄';
+                case 'completed': return '✅';
+                default: return '⏳';
+            }
+        }
+
+        function getPriorityIcon(priority) {
+            switch (priority) {
+                case 'high': return '🔴';
+                case 'medium': return '🟡';
+                case 'low': return '🟢';
+                default: return '🟡';
+            }
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            if (!currentProjectData) return;
+            
+            const total = currentProjectData.nodes.length;
+            const completed = currentProjectData.nodes.filter(n => n.status === 'completed').length;
+            const inProgress = currentProjectData.nodes.filter(n => n.status === 'in-progress').length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressStats').innerHTML = `
+                Total: ${total} | Completed: ${completed} | In Progress: ${inProgress} | Pending: ${total - completed - inProgress}
+            `;
+        }
+
+        // Search across all projects
+        async function searchNodes() {
+            const query = prompt('Search for:');
+            if (!query) return;
+            
+            try {
+                const results = await fetchAPI(`/api/db/search?q=${encodeURIComponent(query)}`);
+                
+                let message = `Found ${results.length} results:\n\n`;
+                results.slice(0, 10).forEach((result, i) => {
+                    message += `${i + 1}. "${result.title}" (in ${result.project_name})\n`;
+                });
+                
+                if (results.length > 10) {
+                    message += `\n... and ${results.length - 10} more`;
+                }
+                
+                alert(message);
+                
+            } catch (error) {
+                console.error('Search failed:', error);
+                alert('Search failed: ' + error.message);
+            }
+        }
+
+        // Export project
+        async function exportProject() {
+            if (!currentProject) return;
+            
+            const format = confirm('Export as XML? (Cancel for JSON)') ? 'xml' : 'json';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/db/export/${currentProject.id}?format=${format}`);
+                const blob = await response.blob();
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentProject.name}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+
+        // Create new project
+        async function createNewProject() {
+            const name = prompt('Project name:');
+            if (!name) return;
+            
+            const description = prompt('Project description (optional):') || '';
+            
+            try {
+                const newProject = await fetchAPI('/api/db/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description })
+                });
+                
+                await loadAllProjects();
+                await loadProject(newProject.id);
+                
+            } catch (error) {
+                console.error('Failed to create project:', error);
+                alert('Failed to create project: ' + error.message);
+            }
+        }
+
+        // Switch project
+        function switchProject() {
+            showProjectSelector();
+        }
+
+        // Save project (manual save - auto-saves are handled by individual operations)
+        async function saveProject() {
+            alert('✅ Project is automatically saved with each change!\n\nNo manual save needed.');
+        }
+
+        // Toggle functions
+        function toggleComments() {
+            const comments = document.querySelectorAll('.node-comment');
+            const isVisible = comments.length > 0 && comments[0].style.display !== 'none';
+            comments.forEach(comment => {
+                comment.style.display = isVisible ? 'none' : 'block';
+            });
+        }
+
+        function toggleDates() {
+            // Implementation for date toggling
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        // Update database statistics
+        async function updateDatabaseStats() {
+            try {
+                const stats = await fetchAPI('/api/db/stats');
+                document.getElementById('dbStats').innerHTML = `
+                    Projects: ${stats.projects}<br>
+                    Nodes: ${stats.nodes}<br>
+                    Size: ${(stats.databaseSize / 1024).toFixed(1)} KB
+                `;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

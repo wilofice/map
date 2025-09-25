@@ -12,8 +12,21 @@ const XMLSanitizer = require('./xml-sanitizer');
 const { MindMapConverter } = require('./mindmap-models');
 const { PureJSONHandler } = require('./pure-json-models');
 
+// SQLite Database Integration
+const DatabaseManager = require('./db-manager');
+
 // Track file modification times for sync
 const fileModTimes = new Map();
+
+// Initialize database
+let db = null;
+try {
+    db = new DatabaseManager();
+    console.log('✅ Database connected and ready');
+} catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    console.log('ℹ️  Falling back to file-only mode');
+}
 
 // Configuration from environment variables
 const PORT = process.env.PORT || 3000;
@@ -1223,11 +1236,382 @@ app.get('/api/pure-json-stats/:filename(*)', async (req, res) => {
     }
 });
 
+// ===== DATABASE API ENDPOINTS =====
+// New SQLite-powered endpoints for enhanced functionality
+
+// Get all projects from database
+app.get('/api/db/projects', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projects = db.getAllProjects();
+        res.json(projects);
+    } catch (error) {
+        console.error('Error getting projects:', error);
+        res.status(500).json({ error: 'Failed to get projects' });
+    }
+});
+
+// Get specific project with all nodes
+app.get('/api/db/projects/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projectId = req.params.id;
+        const project = db.getProjectWithNodes(projectId);
+        
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        res.json(project);
+    } catch (error) {
+        console.error('Error getting project:', error);
+        res.status(500).json({ error: 'Failed to get project' });
+    }
+});
+
+// Create new project
+app.post('/api/db/projects', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { name, description = '' } = req.body;
+        if (!name) {
+            return res.status(400).json({ error: 'Project name is required' });
+        }
+        
+        const projectId = uuidv4();
+        const project = db.createProject(projectId, name, description);
+        
+        res.json(project);
+    } catch (error) {
+        console.error('Error creating project:', error);
+        res.status(500).json({ error: 'Failed to create project' });
+    }
+});
+
+// Delete project
+app.delete('/api/db/projects/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projectId = req.params.id;
+        db.deleteProject(projectId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting project:', error);
+        res.status(500).json({ error: 'Failed to delete project' });
+    }
+});
+
+// Create new node
+app.post('/api/db/nodes', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const nodeData = req.body;
+        if (!nodeData.id) {
+            nodeData.id = uuidv4();
+        }
+        
+        const node = db.createNode(nodeData);
+        res.json(node);
+    } catch (error) {
+        console.error('Error creating node:', error);
+        res.status(500).json({ error: 'Failed to create node' });
+    }
+});
+
+// Update existing node
+app.put('/api/db/nodes/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const nodeId = req.params.id;
+        const updates = req.body;
+        
+        const updatedNode = db.updateNode(nodeId, updates);
+        res.json(updatedNode);
+    } catch (error) {
+        console.error('Error updating node:', error);
+        res.status(500).json({ error: 'Failed to update node' });
+    }
+});
+
+// Delete node
+app.delete('/api/db/nodes/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const nodeId = req.params.id;
+        db.deleteNode(nodeId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting node:', error);
+        res.status(500).json({ error: 'Failed to delete node' });
+    }
+});
+
+// Search nodes across all projects
+app.get('/api/db/search', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { q: query } = req.query;
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+        
+        const results = db.searchNodes(query);
+        res.json(results);
+    } catch (error) {
+        console.error('Error searching nodes:', error);
+        res.status(500).json({ error: 'Failed to search nodes' });
+    }
+});
+
+// Export project to XML
+app.get('/api/db/export/:id', async (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projectId = req.params.id;
+        const format = req.query.format || 'xml';
+        
+        const project = db.getProjectWithNodes(projectId);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        if (format === 'xml') {
+            const xml = await generateXMLFromDatabase(project);
+            res.setHeader('Content-Type', 'application/xml');
+            res.setHeader('Content-Disposition', `attachment; filename="${project.name}.xml"`);
+            res.send(xml);
+        } else if (format === 'json') {
+            const json = generateJSONFromDatabase(project);
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename="${project.name}.json"`);
+            res.send(json);
+        } else {
+            res.status(400).json({ error: 'Invalid format. Use xml or json' });
+        }
+    } catch (error) {
+        console.error('Error exporting project:', error);
+        res.status(500).json({ error: 'Failed to export project' });
+    }
+});
+
+// Get app state
+app.get('/api/db/app-state', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const lastProject = db.getAppState('last_opened_project');
+        const uiSettings = {
+            comments_visible: db.getAppState('ui_comments_visible', false),
+            dates_visible: db.getAppState('ui_dates_visible', false),
+            add_buttons_visible: db.getAppState('ui_add_buttons_visible', true)
+        };
+        
+        res.json({ lastProject, uiSettings });
+    } catch (error) {
+        console.error('Error getting app state:', error);
+        res.status(500).json({ error: 'Failed to get app state' });
+    }
+});
+
+// Save app state
+app.post('/api/db/app-state', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { key, value } = req.body;
+        if (!key) {
+            return res.status(400).json({ error: 'State key is required' });
+        }
+        
+        db.saveAppState(key, value);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error saving app state:', error);
+        res.status(500).json({ error: 'Failed to save app state' });
+    }
+});
+
+// Get database statistics
+app.get('/api/db/stats', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const stats = db.getStats();
+        res.json(stats);
+    } catch (error) {
+        console.error('Error getting database stats:', error);
+        res.status(500).json({ error: 'Failed to get database stats' });
+    }
+});
+
+// Create database backup
+app.post('/api/db/backup', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = `./mind_maps_backup_${timestamp}.db`;
+        
+        db.backup(backupPath);
+        res.json({ success: true, backupPath });
+    } catch (error) {
+        console.error('Error creating backup:', error);
+        res.status(500).json({ error: 'Failed to create backup' });
+    }
+});
+
+// Helper functions for export
+async function generateXMLFromDatabase(project) {
+    const rootNodes = project.nodes.filter(node => !node.parent_id);
+    const nodeMap = new Map();
+    project.nodes.forEach(node => nodeMap.set(node.id, node));
+    
+    function buildNodeXML(node, indent = '    ') {
+        const attrs = [`id="${node.id}"`, `title="${escapeXML(node.title)}"`];
+        
+        if (node.status !== 'pending') attrs.push(`status="${node.status}"`);
+        if (node.priority !== 'medium') attrs.push(`priority="${node.priority}"`);
+        if (node.start_date) attrs.push(`startDate="${node.start_date}"`);
+        if (node.end_date) attrs.push(`endDate="${node.end_date}"`);
+        if (node.days_spent > 0) attrs.push(`daysSpent="${node.days_spent}"`);
+        
+        const childNodes = project.nodes.filter(n => n.parent_id === node.id);
+        const hasContent = childNodes.length > 0 || node.content || node.code_content || node.task_prompt || node.cli_command;
+        
+        if (!hasContent) {
+            return `${indent}<node ${attrs.join(' ')}/>\n`;
+        }
+        
+        let xml = `${indent}<node ${attrs.join(' ')}>\n`;
+        
+        if (node.content) {
+            xml += `${indent}    <comment>${escapeXML(node.content)}</comment>\n`;
+        }
+        
+        if (node.code_content && node.code_language) {
+            xml += `${indent}    <code language="${node.code_language}">${escapeXML(node.code_content)}</code>\n`;
+        }
+        
+        if (node.task_prompt) {
+            xml += `${indent}    <taskPromptForLlm>${escapeXML(node.task_prompt)}</taskPromptForLlm>\n`;
+        }
+        
+        if (node.cli_command) {
+            xml += `${indent}    <cliCommand>${escapeXML(node.cli_command)}</cliCommand>\n`;
+        }
+        
+        childNodes.forEach(child => {
+            xml += buildNodeXML(child, indent + '    ');
+        });
+        
+        xml += `${indent}</node>\n`;
+        return xml;
+    }
+    
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<project_plan>\n';
+    rootNodes.forEach(node => {
+        xml += buildNodeXML(node);
+    });
+    xml += '</project_plan>';
+    
+    return xml;
+}
+
+function generateJSONFromDatabase(project) {
+    const rootNodes = project.nodes.filter(node => !node.parent_id);
+    
+    function buildNodeJSON(node) {
+        const nodeData = {
+            id: node.id,
+            title: node.title,
+            status: node.status,
+            priority: node.priority
+        };
+        
+        if (node.content) nodeData.comment = node.content;
+        if (node.start_date) nodeData.startDate = node.start_date;
+        if (node.end_date) nodeData.endDate = node.end_date;
+        if (node.days_spent > 0) nodeData.daysSpent = node.days_spent;
+        
+        if (node.code_content && node.code_language) {
+            nodeData.code = {
+                language: node.code_language,
+                content: node.code_content
+            };
+        }
+        
+        if (node.task_prompt) nodeData.taskPromptForLlm = node.task_prompt;
+        if (node.cli_command) nodeData.cliCommand = node.cli_command;
+        
+        const childNodes = project.nodes.filter(n => n.parent_id === node.id);
+        if (childNodes.length > 0) {
+            nodeData.children = childNodes.map(buildNodeJSON);
+        }
+        
+        return nodeData;
+    }
+    
+    const jsonData = {
+        nodes: rootNodes.map(buildNodeJSON)
+    };
+    
+    return JSON.stringify(jsonData, null, 2);
+}
+
+function escapeXML(text) {
+    return text.replace(/[<>&'"]/g, (char) => {
+        switch (char) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return char;
+        }
+    });
+}
+
 app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
     console.log(`🚀 Mind Map Server started successfully!`);
     console.log(`📍 Server URL: http://${host}:${PORT}`);
     console.log(`📂 Working Directory: ${workingRootDir}`);
+    console.log(`💾 Database: ${db ? '✅ Connected' : '❌ Not available (file-only mode)'}`);
     console.log(`🔧 Debug Mode: ${DEBUG ? 'ON' : 'OFF'}`);
     console.log('');
     console.log('💡 Open the server URL in your browser to use the application');
@@ -1239,5 +1623,12 @@ app.listen(PORT, HOST, () => {
         console.log(`   HOST: ${HOST || 'all interfaces'}`);
         console.log(`   WORKING_ROOT_DIR: ${process.env.WORKING_ROOT_DIR || 'default (current directory)'}`);
         console.log(`   Resolved working path: ${workingRootDir}`);
+        console.log(`   Database status: ${db ? 'Connected' : 'Not available'}`);
+        
+        if (db) {
+            const stats = db.getStats();
+            console.log(`   Database projects: ${stats?.projects || 0}`);
+            console.log(`   Database nodes: ${stats?.nodes || 0}`);
+        }
     }
 });
