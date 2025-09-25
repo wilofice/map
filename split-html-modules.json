@@ -19,7 +19,8 @@
             {
               "type": "node",
               "id": "identify-sections",
-              "title": "Identify major sections (CSS, JS, HTML)"
+              "title": "Identify major sections (CSS, JS, HTML)",
+              "status": "completed"
             },
             {
               "type": "node",

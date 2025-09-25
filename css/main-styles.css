@@ -706,7 +706,56 @@ h1 {
 /* Corrected Connector Lines - Exact copy from original */
 /* Node parent layout moved to horizontal-layout.css */
 
-/* Node connection lines and parent styles moved to horizontal-layout.css for proper horizontal layout */
+/* Node parent for containing children */
+.node-parent {
+    position: relative;
+    padding-left: 3rem;
+}
+
+.node-parent > .node {
+    padding: 1rem 0 1rem 3rem;
+}
+
+/* Draws the horizontal line */
+.node::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1.5rem;
+    height: 0;
+    border-top: 3px solid var(--color-line);
+}
+
+/* Draws the vertical line segment */
+.node::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 3px solid var(--color-line);
+}
+
+/* Start the vertical line halfway down for the first child */
+.node-parent > .node:first-child::before {
+    top: 50%;
+}
+
+/* End the vertical line halfway down for the last child */
+.node-parent > .node:last-child::before {
+    bottom: 50%;
+}
+
+/* A single child only needs a horizontal line, no vertical part */
+.node-parent > .node:only-child::before {
+    display: none;
+}
+
+.node-parent.collapsed {
+    display: none;
+}
 
 /* Line Animation Setup */
 .lines-animated .node::before, .lines-animated .node::after {
