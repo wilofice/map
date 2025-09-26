@@ -1676,12 +1676,15 @@
                 }
 
                 listElement.innerHTML = projects.map(project => `
-                    <div class="project-item" onclick="selectProject('${project.id}', '${project.name}')">
-                        <div class="project-name">${project.name}</div>
-                        <div class="project-info">
-                            <small>Updated: ${new Date(project.updated_at).toLocaleDateString()}</small>
-                            <small>Nodes: ${project.node_count || 0}</small>
+                    <div class="project-item">
+                        <div class="project-content" onclick="selectProject('${project.id}', '${project.name}')">
+                            <div class="project-name">${project.name}</div>
+                            <div class="project-info">
+                                <small>Updated: ${new Date(project.updated_at).toLocaleDateString()}</small>
+                                <small>Nodes: ${project.node_count || 0}</small>
+                            </div>
                         </div>
+                        <button class="project-delete-btn" onclick="deleteProject('${project.id}', '${project.name}')" title="Delete Project">🗑️</button>
                     </div>
                 `).join('');
             } catch (error) {
@@ -1984,6 +1987,55 @@
             }
 
             return mindMapNode;
+        }
+
+        async function deleteProject(projectId, projectName) {
+            const confirmMessage = `Are you sure you want to delete project "${projectName}"?\n\nThis will permanently delete:\n- The project\n- All its nodes\n- All associated data\n\nThis action cannot be undone.`;
+
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/db/projects/${projectId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to delete project: ${response.status}`);
+                }
+
+                // Refresh the project list in the modal
+                await loadProjectsForSelector();
+
+                // Update database stats
+                await updateDatabaseStats();
+
+                // If we deleted the currently loaded project, clear the view
+                if (currentProject && currentProject.id === projectId) {
+                    currentProject = null;
+                    document.getElementById('currentProjectName').textContent = 'No project loaded';
+                    document.getElementById('controls').style.display = 'none';
+                    document.getElementById('progressContainer').style.display = 'none';
+                    document.getElementById('mindMapContainer').innerHTML = `
+                        <div class="empty-state">
+                            <h3>Project Deleted</h3>
+                            <p>The project has been deleted. Select another project or create a new one.</p>
+                            <div style="margin-top: 20px;">
+                                <button class="btn btn-primary" onclick="showProjectSelector()">🔄 Choose Project</button>
+                                <button class="btn btn-success" onclick="createNewProject()">➕ New Project</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                console.log(`Project "${projectName}" deleted successfully`);
+                alert(`Project "${projectName}" has been deleted.`);
+
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                alert(`Error deleting project: ${error.message}`);
+            }
         }
 
         async function updateDatabaseStats() {

@@ -100,7 +100,12 @@ class DatabaseManager {
                 SELECT * FROM projects WHERE id = ?
             `),
             getAllProjects: this.db.prepare(`
-                SELECT * FROM projects ORDER BY last_opened DESC
+                SELECT p.*,
+                       COUNT(n.id) as node_count
+                FROM projects p
+                LEFT JOIN nodes n ON p.id = n.project_id
+                GROUP BY p.id, p.name, p.description, p.file_path, p.created_at, p.updated_at, p.last_opened
+                ORDER BY p.last_opened DESC
             `),
             updateProjectLastOpened: this.db.prepare(`
                 UPDATE projects SET last_opened = CURRENT_TIMESTAMP WHERE id = ?
