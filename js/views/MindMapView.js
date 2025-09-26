@@ -92,7 +92,7 @@ class MindMapView {
                         ${hasChildren ? '<span class="node-toggle">–</span>' : '<span class="node-toggle">•</span>'}
                         <span class="node-icon icon-status" title="Status: ${node.status}">${this.getStatusIcon(node.status)}</span>
                         <span class="node-title">${this.escapeHtml(node.title || 'Untitled')}</span>
-                        <span class="node-icon icon-date" title="Toggle Dates">📅</span>
+                        <span class="node-icon icon-copy-id" title="Copy Node ID">�</span>
                         <span class="node-icon icon-comment" title="Toggle Comment" style="display: ${hasComment ? 'inline' : 'none'};">💬</span>
                         <span class="node-icon icon-code" title="Toggle Code" style="display: ${hasCode ? 'inline' : 'none'};">💻</span>
                         <span class="node-icon icon-task" title="Toggle Task Prompt" style="display: ${hasTaskPrompt ? 'inline' : 'none'};">🤖</span>
@@ -210,13 +210,38 @@ class MindMapView {
                 this.cycleNodeStatus(e.target);
             }
 
-            // Toggle date display
-            if (e.target.classList.contains('icon-date')) {
-                const nodeWrapper = e.target.closest('.node-wrapper');
-                const dateContainer = nodeWrapper?.querySelector('.node-dates');
-                if (dateContainer) {
-                    const isVisible = dateContainer.style.display !== 'none';
-                    dateContainer.style.display = isVisible ? 'none' : 'block';
+            // Copy Node ID
+            if (e.target.classList.contains('icon-copy-id')) {
+                const node = e.target.closest('.node');
+                const id = node?.getAttribute('data-id');
+                if (id) {
+                    const onSuccess = () => {
+                        e.target.textContent = '✅';
+                        setTimeout(() => e.target.textContent = '📋', 1200);
+                        window.NotificationView?.success('Node ID copied');
+                    };
+                    const onFailure = () => {
+                        try {
+                            const ta = document.createElement('textarea');
+                            ta.value = id;
+                            ta.setAttribute('readonly', '');
+                            ta.style.position = 'absolute';
+                            ta.style.left = '-9999px';
+                            document.body.appendChild(ta);
+                            ta.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(ta);
+                            onSuccess();
+                        } catch (err) {
+                            console.warn('Copy failed:', err);
+                            window.NotificationView?.warning('Unable to copy node ID');
+                        }
+                    };
+                    if (navigator.clipboard?.writeText) {
+                        navigator.clipboard.writeText(id).then(onSuccess).catch(onFailure);
+                    } else {
+                        onFailure();
+                    }
                 }
             }
 
@@ -365,26 +390,26 @@ class MindMapView {
 
         // Toggle comments
         document.getElementById('toggleCommentsBtn')?.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const labelSpan = btn.querySelector('.btn-text');
             const comments = this.container.querySelectorAll('.node-comment');
-            const isShowing = e.target.textContent.includes('Hide');
-            
+            const isShowing = labelSpan?.textContent?.includes('Hide');
             comments.forEach(comment => {
                 comment.style.display = isShowing ? 'none' : 'block';
             });
-            
-            e.target.innerHTML = isShowing ? '💬 <span class="btn-text">Show Comments</span>' : '💬 <span class="btn-text">Hide Comments</span>';
+            if (labelSpan) labelSpan.textContent = isShowing ? 'Show Comments' : 'Hide Comments';
         });
 
         // Toggle dates
         document.getElementById('toggleDatesBtn')?.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const labelSpan = btn.querySelector('.btn-text');
             const dates = this.container.querySelectorAll('.node-dates');
-            const isShowing = e.target.textContent.includes('Hide');
-            
+            const isShowing = labelSpan?.textContent?.includes('Hide');
             dates.forEach(date => {
                 date.style.display = isShowing ? 'none' : 'block';
             });
-            
-            e.target.innerHTML = isShowing ? '📅 <span class="btn-text">Show Dates</span>' : '📅 <span class="btn-text">Hide Dates</span>';
+            if (labelSpan) labelSpan.textContent = isShowing ? 'Show Dates' : 'Hide Dates';
         });
 
         // Toggle all nodes

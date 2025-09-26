@@ -9,8 +9,8 @@ class UIController {
             areCommentsVisible: false,
             areDatesVisible: false,
             areAddButtonsVisible: true,
-            areFlashesVisible: true,
-            areLinesAnimated: true
+            areFlashesVisible: false,
+            areLinesAnimated: false
         };
         this.initialized = false;
     }
@@ -175,14 +175,14 @@ class UIController {
         this.updateToggleAllButton();
     }
 
-    // Flash animation management
+    // Flash animation management (uses CSS class 'flash-active')
     toggleFlash() {
         this.state.areFlashesVisible = !this.state.areFlashesVisible;
         
         if (this.state.areFlashesVisible) {
-            document.body.classList.remove('no-flash');
+            document.body.classList.add('flash-active');
         } else {
-            document.body.classList.add('no-flash');
+            document.body.classList.remove('flash-active');
         }
         
         this.updateToggleFlashButton();
@@ -191,26 +191,26 @@ class UIController {
 
     enableFlash() {
         this.state.areFlashesVisible = true;
-        document.body.classList.remove('no-flash');
+        document.body.classList.add('flash-active');
         this.updateToggleFlashButton();
         this.updateGlobalState();
     }
 
     disableFlash() {
         this.state.areFlashesVisible = false;
-        document.body.classList.add('no-flash');
+        document.body.classList.remove('flash-active');
         this.updateToggleFlashButton();
         this.updateGlobalState();
     }
 
-    // Line animation management
+    // Line animation management (uses CSS class 'lines-animated')
     toggleAnimateLines() {
         this.state.areLinesAnimated = !this.state.areLinesAnimated;
         
         if (this.state.areLinesAnimated) {
-            document.body.classList.remove('no-animate');
+            document.body.classList.add('lines-animated');
         } else {
-            document.body.classList.add('no-animate');
+            document.body.classList.remove('lines-animated');
         }
         
         this.updateToggleAnimateLinesButton();
@@ -219,14 +219,14 @@ class UIController {
 
     enableLineAnimations() {
         this.state.areLinesAnimated = true;
-        document.body.classList.remove('no-animate');
+        document.body.classList.add('lines-animated');
         this.updateToggleAnimateLinesButton();
         this.updateGlobalState();
     }
 
     disableLineAnimations() {
         this.state.areLinesAnimated = false;
-        document.body.classList.add('no-animate');
+        document.body.classList.remove('lines-animated');
         this.updateToggleAnimateLinesButton();
         this.updateGlobalState();
     }
@@ -265,16 +265,20 @@ class UIController {
     }
 
     updateToggleFlashButton() {
-        const btn = document.getElementById('toggleFlash');
+        const btn = document.getElementById('toggleFlashBtn');
         if (btn) {
+            const label = btn.querySelector('.btn-text');
+            if (label) label.textContent = this.state.areFlashesVisible ? 'Stop Flash' : 'Start Flash';
             btn.classList.toggle('active', this.state.areFlashesVisible);
             btn.title = this.state.areFlashesVisible ? 'Disable Flash' : 'Enable Flash';
         }
     }
 
     updateToggleAnimateLinesButton() {
-        const btn = document.getElementById('toggleAnimateLines');
+        const btn = document.getElementById('toggleAnimateLinesBtn');
         if (btn) {
+            const label = btn.querySelector('.btn-text');
+            if (label) label.textContent = this.state.areLinesAnimated ? 'Stop Animations' : 'Animate Lines';
             btn.classList.toggle('active', this.state.areLinesAnimated);
             btn.title = this.state.areLinesAnimated ? 'Disable Animations' : 'Enable Animations';
         }

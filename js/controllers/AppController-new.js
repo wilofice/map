@@ -117,6 +117,13 @@ class AppController {
             topBar.style.display = 'flex';
         }
 
+        // Apply initial UI state (animations, labels, etc.)
+        try {
+            window.uiController?.applyUIState?.();
+        } catch (e) {
+            console.warn('UI state apply failed (non-fatal):', e);
+        }
+
         // Setup control button event listeners
         this.setupControlEvents();
     }
@@ -163,8 +170,36 @@ class AppController {
      */
     updateProjectDisplay(project) {
         const projectNameEl = document.getElementById('currentProjectName');
+        const titleEl = document.getElementById('projectTitle');
         if (projectNameEl) {
             projectNameEl.textContent = project ? project.name : 'No project loaded';
+        }
+        if (titleEl) {
+            titleEl.textContent = project?.name || '🧠 Mind Map';
+            // Attach inline edit handler once
+            if (!titleEl._bound) {
+                titleEl._bound = true;
+                const commit = async () => {
+                    const p = window.ProjectModel?.getCurrentProject?.();
+                    if (!p) return;
+                    const newName = titleEl.textContent.trim();
+                    if (!newName || newName === p.name) return;
+                    try {
+                        await window.ProjectModel?.updateProject(p.id, { name: newName });
+                        window.NotificationView?.success('Project renamed');
+                    } catch (err) {
+                        window.NotificationView?.error('Rename failed: ' + err.message);
+                        titleEl.textContent = p.name; // revert
+                    }
+                };
+                titleEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        titleEl.blur();
+                    }
+                });
+                titleEl.addEventListener('blur', commit);
+            }
         }
     }
 
