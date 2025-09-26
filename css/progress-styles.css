@@ -42,6 +42,7 @@
     overflow: hidden;
     position: relative;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    display: flex;
 }
 
 .progress-bar {
@@ -52,6 +53,78 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+}
+
+/* Multi-segment progress bar */
+.progress-segments {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.progress-segment {
+    height: 100%;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    min-width: 0;
+}
+
+.progress-segment:hover {
+    filter: brightness(1.2);
+    transform: scaleY(1.1);
+}
+
+.progress-segment.completed {
+    background: linear-gradient(90deg, #48bb78, #68d391);
+}
+
+.progress-segment.in-progress {
+    background: linear-gradient(90deg, #ed8936, #f6ad55);
+}
+
+.progress-segment.pending {
+    background: linear-gradient(90deg, #718096, #a0aec0);
+}
+
+.progress-segment.empty {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Priority-weighted indicators */
+.progress-priority-bars {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    height: 6px;
+}
+
+.priority-bar {
+    flex: 1;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.priority-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.priority-bar.high .priority-bar-fill {
+    background: linear-gradient(90deg, #f56565, #fc8181);
+}
+
+.priority-bar.medium .priority-bar-fill {
+    background: linear-gradient(90deg, #ed8936, #f6ad55);
+}
+
+.priority-bar.low .priority-bar-fill {
+    background: linear-gradient(90deg, #48bb78, #68d391);
 }
 
 .progress-bar::before {

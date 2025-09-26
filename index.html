@@ -100,20 +100,49 @@
                 <button class="btn" id="exportBtn" style="background: #17a2b8; color: white;">📤 <span class="btn-text">Export JSON</span></button>
             </div>
 
-            <!-- Progress Bar -->
+            <!-- Enhanced Progress Bar -->
             <div class="progress-container" id="progressContainer" style="display: none;">
                 <div class="progress-header">
                     <div class="progress-title">📊 Overall Progress</div>
                     <div class="progress-percentage" id="progressPercentage">0%</div>
                 </div>
+
+                <!-- Multi-segment progress bar -->
                 <div class="progress-bar-wrapper">
-                    <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    <div class="progress-segments" id="progressSegments">
+                        <div class="progress-segment completed" id="completedSegment" style="width: 0%" title="Click to highlight completed tasks"></div>
+                        <div class="progress-segment in-progress" id="inProgressSegment" style="width: 0%" title="Click to highlight in-progress tasks"></div>
+                        <div class="progress-segment pending" id="pendingSegment" style="width: 0%" title="Click to highlight pending tasks"></div>
+                        <div class="progress-segment empty" id="emptySegment" style="width: 100%"></div>
+                    </div>
                 </div>
+
+                <!-- Priority-weighted progress -->
+                <div class="progress-priority-bars" id="priorityBars">
+                    <div class="priority-bar high" title="High Priority Progress">
+                        <div class="priority-bar-fill" id="highPriorityFill" style="width: 0%"></div>
+                    </div>
+                    <div class="priority-bar medium" title="Medium Priority Progress">
+                        <div class="priority-bar-fill" id="mediumPriorityFill" style="width: 0%"></div>
+                    </div>
+                    <div class="priority-bar low" title="Low Priority Progress">
+                        <div class="priority-bar-fill" id="lowPriorityFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Enhanced statistics -->
                 <div class="progress-stats">
                     <span class="stat completed">✅ <span id="completedCount">0</span> Completed</span>
                     <span class="stat in-progress">🔄 <span id="inProgressCount">0</span> In Progress</span>
                     <span class="stat pending">⏳ <span id="pendingCount">0</span> Pending</span>
                     <span class="stat total">📊 <span id="totalCount">0</span> Total</span>
+                </div>
+
+                <!-- Advanced metrics -->
+                <div class="progress-stats" id="advancedStats" style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.8;">
+                    <span class="stat weighted">⚖️ Weighted: <span id="weightedProgress">0%</span></span>
+                    <span class="stat velocity">🚀 Recent Velocity: <span id="velocityIndicator">--</span></span>
+                    <span class="stat forecast">🔮 ETA: <span id="completionForecast">--</span></span>
                 </div>
             </div>
 

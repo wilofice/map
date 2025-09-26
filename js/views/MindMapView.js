@@ -253,27 +253,71 @@ class MindMapView {
         const nodeElement = statusIcon.closest('.node');
         const nodeId = nodeElement.getAttribute('data-id');
         const currentStatus = nodeElement.getAttribute('data-status');
-        
+
         // Status cycle: pending -> in-progress -> completed -> pending
         const statusCycle = {
             'pending': 'in-progress',
-            'in-progress': 'completed', 
+            'in-progress': 'completed',
             'completed': 'pending'
         };
-        
+
         const newStatus = statusCycle[currentStatus] || 'pending';
-        
+
+        // Update the parent node
+        this.updateNodeStatus(nodeElement, newStatus);
+
+        // Recursively update all child nodes to the same status
+        this.updateChildrenStatus(nodeElement, newStatus);
+
+        // Update progress
+        this.updateProgress();
+
+        // TODO: Save to database via API
+        const totalUpdated = this.countUpdatedNodes(nodeElement);
+        console.log(`🔄 Status changed for node ${nodeId} and ${totalUpdated - 1} children: ${currentStatus} -> ${newStatus}`);
+    }
+
+    updateNodeStatus(nodeElement, newStatus) {
+        const statusIcon = nodeElement.querySelector('.icon-status');
+
         // Update visual elements
         nodeElement.setAttribute('data-status', newStatus);
         nodeElement.className = nodeElement.className.replace(/status-\w+/, `status-${newStatus}`);
-        statusIcon.textContent = this.getStatusIcon(newStatus);
-        statusIcon.title = `Status: ${newStatus}`;
-        
-        // Update progress
-        this.updateProgress();
-        
-        // TODO: Save to database via API
-        console.log(`🔄 Status changed for node ${nodeId}: ${currentStatus} -> ${newStatus}`);
+        if (statusIcon) {
+            statusIcon.textContent = this.getStatusIcon(newStatus);
+            statusIcon.title = `Status: ${newStatus}`;
+        }
+    }
+
+    updateChildrenStatus(parentNode, newStatus) {
+        // Find the direct children container
+        const childContainer = parentNode.querySelector('.node-parent');
+        if (!childContainer) return;
+
+        // Get all direct child nodes
+        const childNodes = childContainer.querySelectorAll(':scope > .node');
+
+        childNodes.forEach(childNode => {
+            // Update this child's status
+            this.updateNodeStatus(childNode, newStatus);
+
+            // Recursively update its children
+            this.updateChildrenStatus(childNode, newStatus);
+        });
+    }
+
+    countUpdatedNodes(parentNode) {
+        let count = 1; // Count the parent itself
+
+        const childContainer = parentNode.querySelector('.node-parent');
+        if (!childContainer) return count;
+
+        const childNodes = childContainer.querySelectorAll(':scope > .node');
+        childNodes.forEach(childNode => {
+            count += this.countUpdatedNodes(childNode);
+        });
+
+        return count;
     }
 
     attachControlListeners() {
@@ -385,33 +429,188 @@ class MindMapView {
             total: nodes.length
         };
 
+        const priorityStats = {
+            high: { completed: 0, 'in-progress': 0, pending: 0, total: 0 },
+            medium: { completed: 0, 'in-progress': 0, pending: 0, total: 0 },
+            low: { completed: 0, 'in-progress': 0, pending: 0, total: 0 }
+        };
+
+        // Collect detailed statistics
         nodes.forEach(node => {
             const status = node.getAttribute('data-status') || 'pending';
+            const priority = node.getAttribute('data-priority') || 'medium';
+
             if (stats.hasOwnProperty(status)) {
                 stats[status]++;
             }
+
+            if (priorityStats[priority]) {
+                priorityStats[priority][status]++;
+                priorityStats[priority].total++;
+            }
         });
 
-        // Update progress bar
+        // Calculate basic progress percentage
         const completedPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-        
-        const progressBar = document.getElementById('progressBar');
+
+        // Calculate priority-weighted progress (high=3, medium=2, low=1)
+        const weightedTotal = (priorityStats.high.total * 3) + (priorityStats.medium.total * 2) + (priorityStats.low.total * 1);
+        const weightedCompleted = (priorityStats.high.completed * 3) + (priorityStats.medium.completed * 2) + (priorityStats.low.completed * 1);
+        const weightedPercentage = weightedTotal > 0 ? Math.round((weightedCompleted / weightedTotal) * 100) : 0;
+
+        // Update main progress percentage
         const progressPercentage = document.getElementById('progressPercentage');
-        
-        if (progressBar) progressBar.style.width = `${completedPercentage}%`;
         if (progressPercentage) progressPercentage.textContent = `${completedPercentage}%`;
 
-    // Update counts (optional chaining cannot be used on assignment targets)
-    const completedEl = document.getElementById('completedCount');
-    const inProgressEl = document.getElementById('inProgressCount');
-    const pendingEl = document.getElementById('pendingCount');
-    const totalEl = document.getElementById('totalCount');
-    if (completedEl) completedEl.textContent = String(stats.completed);
-    if (inProgressEl) inProgressEl.textContent = String(stats['in-progress']);
-    if (pendingEl) pendingEl.textContent = String(stats.pending);
-    if (totalEl) totalEl.textContent = String(stats.total);
+        // Update multi-segment progress bar
+        this.updateProgressSegments(stats);
 
-        console.log('📊 Progress updated:', stats, `${completedPercentage}%`);
+        // Update priority progress bars
+        this.updatePriorityBars(priorityStats);
+
+        // Update basic counts
+        this.updateProgressCounts(stats);
+
+        // Update advanced metrics
+        this.updateAdvancedMetrics(stats, weightedPercentage);
+
+        // Setup interactive segments if not already done
+        this.setupProgressInteractions();
+
+        console.log('📊 Enhanced progress updated:', stats, `${completedPercentage}%`, `weighted: ${weightedPercentage}%`);
+    }
+
+    updateProgressSegments(stats) {
+        const total = stats.total;
+        if (total === 0) return;
+
+        const completedPct = (stats.completed / total) * 100;
+        const inProgressPct = (stats['in-progress'] / total) * 100;
+        const pendingPct = (stats.pending / total) * 100;
+
+        const completedSegment = document.getElementById('completedSegment');
+        const inProgressSegment = document.getElementById('inProgressSegment');
+        const pendingSegment = document.getElementById('pendingSegment');
+        const emptySegment = document.getElementById('emptySegment');
+
+        if (completedSegment) completedSegment.style.width = `${completedPct}%`;
+        if (inProgressSegment) inProgressSegment.style.width = `${inProgressPct}%`;
+        if (pendingSegment) pendingSegment.style.width = `${pendingPct}%`;
+        if (emptySegment) emptySegment.style.width = '0%';
+    }
+
+    updatePriorityBars(priorityStats) {
+        ['high', 'medium', 'low'].forEach(priority => {
+            const stats = priorityStats[priority];
+            const percentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
+            const fillElement = document.getElementById(`${priority}PriorityFill`);
+            if (fillElement) {
+                fillElement.style.width = `${percentage}%`;
+                fillElement.parentElement.title = `${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority: ${stats.completed}/${stats.total} (${Math.round(percentage)}%)`;
+            }
+        });
+    }
+
+    updateProgressCounts(stats) {
+        const completedEl = document.getElementById('completedCount');
+        const inProgressEl = document.getElementById('inProgressCount');
+        const pendingEl = document.getElementById('pendingCount');
+        const totalEl = document.getElementById('totalCount');
+
+        if (completedEl) completedEl.textContent = String(stats.completed);
+        if (inProgressEl) inProgressEl.textContent = String(stats['in-progress']);
+        if (pendingEl) pendingEl.textContent = String(stats.pending);
+        if (totalEl) totalEl.textContent = String(stats.total);
+    }
+
+    updateAdvancedMetrics(stats, weightedPercentage) {
+        // Update weighted progress
+        const weightedEl = document.getElementById('weightedProgress');
+        if (weightedEl) weightedEl.textContent = `${weightedPercentage}%`;
+
+        // Calculate and update velocity (simulate based on completion rate)
+        const velocityEl = document.getElementById('velocityIndicator');
+        if (velocityEl) {
+            const completionRate = stats.total > 0 ? stats.completed / stats.total : 0;
+            let velocityText = '--';
+
+            if (completionRate >= 0.8) velocityText = '🚀 High';
+            else if (completionRate >= 0.5) velocityText = '⚡ Good';
+            else if (completionRate >= 0.2) velocityText = '🐌 Slow';
+            else velocityText = '🔄 Starting';
+
+            velocityEl.textContent = velocityText;
+        }
+
+        // Calculate completion forecast
+        const forecastEl = document.getElementById('completionForecast');
+        if (forecastEl) {
+            const remaining = stats.pending + stats['in-progress'];
+            let forecastText = '--';
+
+            if (remaining === 0) forecastText = '🎉 Done!';
+            else if (stats['in-progress'] > 0) {
+                const ratio = stats.completed / (stats.completed + stats['in-progress']);
+                if (ratio >= 0.7) forecastText = '📅 Soon';
+                else if (ratio >= 0.3) forecastText = '⏰ On Track';
+                else forecastText = '⚠️ Behind';
+            } else {
+                forecastText = '🚀 Ready to Start';
+            }
+
+            forecastEl.textContent = forecastText;
+        }
+    }
+
+    setupProgressInteractions() {
+        if (this._progressInteractionsSetup) return;
+
+        const segments = ['completed', 'inProgress', 'pending'];
+        segments.forEach(segment => {
+            const segmentEl = document.getElementById(`${segment}Segment`);
+            if (segmentEl) {
+                segmentEl.addEventListener('click', () => {
+                    this.highlightNodesByStatus(segment === 'inProgress' ? 'in-progress' : segment);
+                });
+            }
+        });
+
+        this._progressInteractionsSetup = true;
+    }
+
+    highlightNodesByStatus(targetStatus) {
+        if (!this.container) return;
+
+        const nodes = this.container.querySelectorAll('.node');
+
+        // Clear previous highlights
+        nodes.forEach(node => {
+            node.style.outline = '';
+            node.style.boxShadow = '';
+        });
+
+        // Highlight matching nodes
+        let highlightedCount = 0;
+        nodes.forEach(node => {
+            const status = node.getAttribute('data-status') || 'pending';
+            if (status === targetStatus) {
+                node.style.outline = '3px solid #4299e1';
+                node.style.boxShadow = '0 0 0 6px rgba(66, 153, 225, 0.2)';
+                highlightedCount++;
+            }
+        });
+
+        // Show notification
+        const statusDisplay = targetStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        window.NotificationView?.info(`Highlighted ${highlightedCount} ${statusDisplay} tasks`, 3000);
+
+        // Clear highlights after 5 seconds
+        setTimeout(() => {
+            nodes.forEach(node => {
+                node.style.outline = '';
+                node.style.boxShadow = '';
+            });
+        }, 5000);
     }
 
     getStatusIcon(status) {

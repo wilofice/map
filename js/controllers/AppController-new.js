@@ -231,10 +231,14 @@ class AppController {
         const projectCountEl = document.getElementById('projectCount');
         const nodeCountEl = document.getElementById('nodeCount');
         const dbSizeEl = document.getElementById('dbSize');
-        
+
         if (projectCountEl) projectCountEl.textContent = stats.projects || 0;
         if (nodeCountEl) nodeCountEl.textContent = stats.nodes || 0;
-        if (dbSizeEl) dbSizeEl.textContent = stats.database_size || '0 KB';
+        if (dbSizeEl) {
+            // Convert bytes to KB and format
+            const sizeInKB = Math.round((stats.databaseSize || 0) / 1024);
+            dbSizeEl.textContent = `${sizeInKB} KB`;
+        }
     }
 
     /**
