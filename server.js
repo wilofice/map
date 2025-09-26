@@ -1286,6 +1286,26 @@ app.get('/api/db/projects', (req, res) => {
     }
 });
 
+// Search projects
+app.get('/api/db/projects/search', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const { q } = req.query;
+        if (!q || q.trim() === '') {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        const projects = db.searchProjects(q.trim());
+        res.json(projects);
+    } catch (error) {
+        console.error('Error searching projects:', error);
+        res.status(500).json({ error: 'Failed to search projects' });
+    }
+});
+
 // Get specific project with all nodes
 app.get('/api/db/projects/:id', (req, res) => {
     if (!db) {

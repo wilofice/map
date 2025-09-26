@@ -26,60 +26,54 @@
     <link rel="stylesheet" href="css/progress-styles.css">
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>📁 Database Projects</h2>
-            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">‹</button>
-        </div>
-        
-        <div class="sidebar-content">
-            <!-- Project Selection -->
-            <div class="working-root-section" id="projectSection">
-                <div class="working-root-display">
-                    <span class="folder-icon">💾</span>
-                    <span class="working-root-path" id="currentProjectName">No project loaded</span>
-                </div>
-                <button class="folder-btn" id="switchProjectBtn" title="Switch to another project">🔄 Switch Project</button>
-            </div>
-            
-            <!-- Quick Project Actions -->
-            <div class="folder-navigation">
-                <button class="folder-btn" id="newProjectBtn">➕ New Project</button>
-                <button class="folder-btn" id="importJsonBtn">📁 Import JSON</button>
-                <button class="folder-btn" id="searchProjectsBtn">🔍 Search Projects</button>
+    <div class="top-bar">
+        <div class="top-bar-section project-section">
+            <div class="project-info">
+                <span class="folder-icon">💾</span>
+                <span class="project-name" id="currentProjectName">No project loaded</span>
             </div>
 
-            <!-- Hidden file input for JSON import -->
-            <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
-            
-            <!-- Database Stats -->
-            <div class="folder-section">
-                <h3>📊 Database Stats</h3>
-                <div class="db-stats" id="dbStats">
-                    <div class="stat-item">
-                        <span class="stat-label">Projects:</span>
-                        <span class="stat-value" id="projectCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Nodes:</span>
-                        <span class="stat-value" id="nodeCount">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Size:</span>
-                        <span class="stat-value" id="dbSize">0 KB</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Project List -->
-            <div class="folder-section" id="projectListSection" style="display: none;">
-                <h3>📋 Recent Projects</h3>
-                <ul class="file-list" id="projectList">
-                    <li class="loading">Loading projects...</li>
-                </ul>
+            <!-- Collection Navigation (will be enhanced later) -->
+            <div class="collection-nav" id="collectionNav" style="display: none;">
+                <select class="collection-select" id="collectionSelect">
+                    <option value="">Select Collection</option>
+                </select>
+                <div class="project-tabs" id="projectTabs"></div>
             </div>
         </div>
+
+        <div class="top-bar-section actions-section">
+            <!-- Quick Project Actions -->
+            <div class="action-buttons">
+                <button class="top-btn" id="switchProjectBtn" title="Switch to another project">🔄</button>
+                <button class="top-btn" id="newProjectBtn" title="New Project">➕</button>
+                <button class="top-btn" id="importJsonBtn" title="Import JSON">📁</button>
+                <button class="top-btn" id="searchProjectsBtn" title="Search Projects">🔍</button>
+            </div>
+
+            <!-- Database Stats -->
+            <div class="stats-display" id="dbStats">
+                <div class="stat-item">
+                    <span class="stat-label">Projects:</span>
+                    <span class="stat-value" id="projectCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Nodes:</span>
+                    <span class="stat-value" id="nodeCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Size:</span>
+                    <span class="stat-value" id="dbSize">0 KB</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggle Button -->
+        <button class="top-bar-toggle" id="topBarToggle" title="Toggle Top Bar">^</button>
     </div>
+
+    <!-- Hidden file input for JSON import -->
+    <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
 
     <div class="main-content">
         <div class="container">
@@ -1531,20 +1525,48 @@
 
         // Export button
         document.getElementById('exportBtn')?.addEventListener('click', async function() {
-            if (!currentFile || !mindMapData) {
-                alert('No file loaded to export');
+            if (!currentProject) {
+                alert('No project loaded to export');
                 return;
             }
 
             try {
-                const xmlData = buildXMLFromDOM();
-                const jsonData = convertXMLToJSON(xmlData);
+                // Fetch current project nodes from database
+                const response = await fetch(`/api/db/projects/${currentProject.id}/nodes`);
+                if (!response.ok) throw new Error('Failed to fetch project data');
 
-                const blob = new Blob([jsonData], { type: 'application/json' });
+                const nodes = await response.json();
+
+                // Build hierarchical JSON structure
+                const rootNodes = nodes.filter(node => !node.parent_id);
+                const nodeMap = {};
+
+                // Create node map for quick lookup
+                nodes.forEach(node => {
+                    nodeMap[node.id] = {
+                        ...node,
+                        children: []
+                    };
+                });
+
+                // Build hierarchy
+                nodes.forEach(node => {
+                    if (node.parent_id && nodeMap[node.parent_id]) {
+                        nodeMap[node.parent_id].children.push(nodeMap[node.id]);
+                    }
+                });
+
+                // Convert to JSON format
+                const jsonData = {
+                    nodes: rootNodes.map(node => convertDbNodeToExportFormat(nodeMap[node.id]))
+                };
+
+                // Create and download file
+                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = currentFile.replace(/\.(xml|json)$/, '') + '_export.json';
+                a.download = `${currentProject.name}_export.json`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -1989,6 +2011,57 @@
             return mindMapNode;
         }
 
+        function convertDbNodeToExportFormat(dbNode) {
+            const exportNode = {
+                id: dbNode.id,
+                title: dbNode.title || 'Untitled',
+                priority: dbNode.priority || 'medium',
+                status: dbNode.status || 'pending'
+            };
+
+            // Add optional fields only if they have values
+            if (dbNode.content && dbNode.content.trim()) {
+                exportNode.comment = dbNode.content.trim();
+            }
+
+            if (dbNode.start_date) {
+                exportNode.startDate = dbNode.start_date;
+            }
+
+            if (dbNode.end_date) {
+                exportNode.endDate = dbNode.end_date;
+            }
+
+            if (dbNode.days_spent && dbNode.days_spent > 0) {
+                exportNode.daysSpent = dbNode.days_spent;
+            }
+
+            // Add code block if present
+            if (dbNode.code_language && dbNode.code_content) {
+                exportNode.code = {
+                    language: dbNode.code_language,
+                    content: dbNode.code_content
+                };
+            }
+
+            // Add LLM prompt if present
+            if (dbNode.task_prompt && dbNode.task_prompt.trim()) {
+                exportNode.taskPromptForLlm = dbNode.task_prompt.trim();
+            }
+
+            // Add CLI command if present
+            if (dbNode.cli_command && dbNode.cli_command.trim()) {
+                exportNode.cliCommand = dbNode.cli_command.trim();
+            }
+
+            // Add children if present
+            if (dbNode.children && dbNode.children.length > 0) {
+                exportNode.children = dbNode.children.map(child => convertDbNodeToExportFormat(child));
+            }
+
+            return exportNode;
+        }
+
         async function deleteProject(projectId, projectName) {
             const confirmMessage = `Are you sure you want to delete project "${projectName}"?\n\nThis will permanently delete:\n- The project\n- All its nodes\n- All associated data\n\nThis action cannot be undone.`;
 
@@ -2079,24 +2152,23 @@
             }
         }
 
-        // Sidebar toggle
-        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
-            const sidebar = document.querySelector('.sidebar');
-            const mainContent = document.querySelector('.main-content');
-            const isCollapsed = sidebar.classList.contains('collapsed');
+        // Top bar toggle
+        document.getElementById('topBarToggle')?.addEventListener('click', function() {
+            const topBar = document.querySelector('.top-bar');
+            const isCollapsed = topBar.classList.contains('collapsed');
 
             if (isCollapsed) {
-                sidebar.classList.remove('collapsed');
-                mainContent.classList.remove('expanded');
-                this.textContent = '‹';
+                topBar.classList.remove('collapsed');
+                this.textContent = '^';
+                this.title = 'Hide Top Bar';
             } else {
-                sidebar.classList.add('collapsed');
-                mainContent.classList.add('expanded');
-                this.textContent = '›';
+                topBar.classList.add('collapsed');
+                this.textContent = 'v';
+                this.title = 'Show Top Bar';
             }
         });
 
-        // Sidebar button event listeners
+        // Top bar button event listeners
         document.getElementById('switchProjectBtn')?.addEventListener('click', function() {
             showProjectSelector();
         });

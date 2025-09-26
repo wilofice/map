@@ -41,14 +41,24 @@ class DatabaseManager {
         } else {
             // Fallback schema if file doesn't exist
             this.db.exec(`
+                CREATE TABLE IF NOT EXISTS collections (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
                 CREATE TABLE IF NOT EXISTS projects (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     description TEXT,
                     file_path TEXT,
+                    collection_id TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    last_opened DATETIME
+                    last_opened DATETIME,
+                    FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE SET NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS nodes (
@@ -91,20 +101,54 @@ class DatabaseManager {
     prepareStatements() {
         // Project operations
         this.stmts = {
+            // Collections
+            insertCollection: this.db.prepare(`
+                INSERT INTO collections (id, name, description)
+                VALUES (?, ?, ?)
+            `),
+            getCollection: this.db.prepare(`
+                SELECT * FROM collections WHERE id = ?
+            `),
+            getAllCollections: this.db.prepare(`
+                SELECT c.*,
+                       COUNT(p.id) as project_count
+                FROM collections c
+                LEFT JOIN projects p ON c.id = p.collection_id
+                GROUP BY c.id, c.name, c.description, c.created_at, c.updated_at
+                ORDER BY c.updated_at DESC
+            `),
+            updateCollection: this.db.prepare(`
+                UPDATE collections SET name = COALESCE(?, name), description = COALESCE(?, description), updated_at = CURRENT_TIMESTAMP WHERE id = ?
+            `),
+            deleteCollection: this.db.prepare(`
+                DELETE FROM collections WHERE id = ?
+            `),
+            getCollectionProjects: this.db.prepare(`
+                SELECT p.*,
+                       COUNT(n.id) as node_count
+                FROM projects p
+                LEFT JOIN nodes n ON p.id = n.project_id
+                WHERE p.collection_id = ?
+                GROUP BY p.id, p.name, p.description, p.file_path, p.collection_id, p.created_at, p.updated_at, p.last_opened
+                ORDER BY p.last_opened DESC
+            `),
+
             // Projects
             insertProject: this.db.prepare(`
-                INSERT INTO projects (id, name, description, file_path, last_opened)
-                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                INSERT INTO projects (id, name, description, file_path, collection_id, last_opened)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             `),
             getProject: this.db.prepare(`
                 SELECT * FROM projects WHERE id = ?
             `),
             getAllProjects: this.db.prepare(`
                 SELECT p.*,
-                       COUNT(n.id) as node_count
+                       COUNT(n.id) as node_count,
+                       c.name as collection_name
                 FROM projects p
                 LEFT JOIN nodes n ON p.id = n.project_id
-                GROUP BY p.id, p.name, p.description, p.file_path, p.created_at, p.updated_at, p.last_opened
+                LEFT JOIN collections c ON p.collection_id = c.id
+                GROUP BY p.id, p.name, p.description, p.file_path, p.collection_id, p.created_at, p.updated_at, p.last_opened, c.name
                 ORDER BY p.last_opened DESC
             `),
             updateProjectLastOpened: this.db.prepare(`
@@ -220,6 +264,25 @@ class DatabaseManager {
             return { success: true };
         } catch (error) {
             console.error('Error deleting project:', error);
+            throw error;
+        }
+    }
+
+    searchProjects(query) {
+        try {
+            const searchQuery = `%${query}%`;
+            const searchStmt = this.db.prepare(`
+                SELECT p.*,
+                       COUNT(n.id) as node_count
+                FROM projects p
+                LEFT JOIN nodes n ON p.id = n.project_id
+                WHERE p.name LIKE ? OR p.description LIKE ?
+                GROUP BY p.id, p.name, p.description, p.file_path, p.created_at, p.updated_at, p.last_opened
+                ORDER BY p.last_opened DESC
+            `);
+            return searchStmt.all(searchQuery, searchQuery);
+        } catch (error) {
+            console.error('Error searching projects:', error);
             throw error;
         }
     }
