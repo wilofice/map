@@ -1,0 +1,40 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "security-warnings",
+  "description": "Converted from security-warnings.xml",
+  "source_file": "tests/fixtures/security-warnings.xml",
+  "converted_at": "2025-09-26T18:10:03.716Z",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Security Test File",
+      "status": "pending",
+      "priority": "medium",
+      "children": [
+        {
+          "id": "sensitive-code",
+          "title": "Code with sensitive info",
+          "status": "pending",
+          "priority": "medium",
+          "code": {
+            "language": "javascript",
+            "content": "\n                const config = {\n                    api_key: \"sk-1234567890abcdef\",\n                    password: \"mySecretPassword123\"\n                };\n            "
+          }
+        },
+        {
+          "id": "dangerous-command",
+          "title": "Dangerous CLI command",
+          "status": "pending",
+          "priority": "medium"
+        },
+        {
+          "id": "sensitive-prompt",
+          "title": "Prompt with secrets",
+          "status": "pending",
+          "priority": "medium"
+        }
+      ]
+    }
+  ]
+}

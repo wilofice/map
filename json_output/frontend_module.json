@@ -1,0 +1,60 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "frontend_module",
+  "description": "Converted from frontend_module.xml",
+  "source_file": "frontend_module.xml",
+  "converted_at": "2025-09-26T18:10:03.704Z",
+  "nodes": [
+    {
+      "id": "frontend-001",
+      "title": "Frontend Development",
+      "status": "completed",
+      "priority": "high",
+      "comment": "All frontend-related tasks",
+      "children": [
+        {
+          "id": "frontend-002",
+          "title": "Setup React Framework",
+          "status": "completed",
+          "priority": "high",
+          "comment": "Initialize React application with TypeScript"
+        },
+        {
+          "id": "frontend-003",
+          "title": "Design Component Library",
+          "status": "completed",
+          "priority": "medium",
+          "comment": "Create reusable UI components",
+          "children": [
+            {
+              "id": "frontend-004",
+              "title": "Button Component",
+              "status": "completed",
+              "priority": "low"
+            },
+            {
+              "id": "frontend-005",
+              "title": "Form Components",
+              "status": "completed",
+              "priority": "medium"
+            },
+            {
+              "id": "frontend-006",
+              "title": "Navigation Menu",
+              "status": "completed",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "id": "frontend-007",
+          "title": "Implement State Management",
+          "status": "completed",
+          "priority": "high",
+          "comment": "Setup Redux or Context API"
+        }
+      ]
+    }
+  ]
+}

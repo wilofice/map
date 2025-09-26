@@ -1,0 +1,93 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "mobile_app",
+  "description": "Converted from mobile_app.xml",
+  "source_file": "test_projects/project_b/mobile_app.xml",
+  "converted_at": "2025-09-26T18:10:03.712Z",
+  "nodes": [
+    {
+      "id": "mobile-001",
+      "title": "Mobile App Development",
+      "status": "pending",
+      "priority": "high",
+      "comment": "Native mobile app for iOS and Android",
+      "children": [
+        {
+          "id": "mobile-002",
+          "title": "iOS Development",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Swift/SwiftUI implementation",
+          "children": [
+            {
+              "id": "mobile-003",
+              "title": "UI Components",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "mobile-004",
+              "title": "Core Features",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "mobile-005",
+              "title": "App Store Submission",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "id": "mobile-006",
+          "title": "Android Development",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Kotlin implementation",
+          "children": [
+            {
+              "id": "mobile-007",
+              "title": "Material Design UI",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "id": "mobile-008",
+              "title": "Core Features",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "mobile-009",
+              "title": "Play Store Submission",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "id": "mobile-010",
+          "title": "Backend Services",
+          "status": "pending",
+          "priority": "high",
+          "children": [
+            {
+              "id": "mobile-011",
+              "title": "API Gateway",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "mobile-012",
+              "title": "Push Notifications",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

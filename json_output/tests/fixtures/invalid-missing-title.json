@@ -1,0 +1,24 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "invalid-missing-title",
+  "description": "Converted from invalid-missing-title.xml",
+  "source_file": "tests/fixtures/invalid-missing-title.xml",
+  "converted_at": "2025-09-26T18:10:03.714Z",
+  "nodes": [
+    {
+      "id": "root",
+      "title": "Project With Invalid Nodes",
+      "status": "pending",
+      "priority": "medium",
+      "children": [
+        {
+          "id": "task1",
+          "title": "Untitled",
+          "status": "pending",
+          "priority": "medium"
+        }
+      ]
+    }
+  ]
+}

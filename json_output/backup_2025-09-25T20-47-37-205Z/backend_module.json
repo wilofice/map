@@ -1,0 +1,74 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "backend_module",
+  "description": "Converted from backend_module.xml",
+  "source_file": "backup_2025-09-25T20-47-37-205Z/backend_module.xml",
+  "converted_at": "2025-09-26T18:10:03.699Z",
+  "nodes": [
+    {
+      "id": "backend-001",
+      "title": "Backend Development",
+      "status": "pending",
+      "priority": "high",
+      "comment": "Server-side implementation tasks",
+      "children": [
+        {
+          "id": "backend-002",
+          "title": "Setup Node.js Server",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Express server with middleware"
+        },
+        {
+          "id": "backend-003",
+          "title": "Database Design",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Design and implement database schema",
+          "children": [
+            {
+              "id": "backend-004",
+              "title": "User Schema",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "backend-005",
+              "title": "Project Schema",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "id": "backend-006",
+              "title": "Analytics Schema",
+              "status": "pending",
+              "priority": "low"
+            }
+          ]
+        },
+        {
+          "id": "backend-007",
+          "title": "API Endpoints",
+          "status": "in-progress",
+          "priority": "medium",
+          "comment": "RESTful API implementation",
+          "children": [
+            {
+              "id": "backend-008",
+              "title": "Authentication Routes",
+              "status": "in-progress",
+              "priority": "high"
+            },
+            {
+              "id": "backend-009",
+              "title": "CRUD Operations",
+              "status": "in-progress",
+              "priority": "medium"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

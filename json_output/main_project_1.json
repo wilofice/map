@@ -1,0 +1,33 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "main_project_1",
+  "description": "Converted from main_project_1.xml",
+  "source_file": "main_project_1.xml",
+  "converted_at": "2025-09-26T18:10:03.705Z",
+  "nodes": [
+    {
+      "id": "main-001",
+      "title": "Main Project Overview",
+      "status": "pending",
+      "priority": "high",
+      "comment": "This is the main project file that imports modules",
+      "children": [
+        {
+          "id": "main-002",
+          "title": "Project Setup",
+          "status": "completed",
+          "priority": "high",
+          "comment": "Initial project configuration and setup"
+        },
+        {
+          "id": "main-003",
+          "title": "Deployment Phase",
+          "status": "pending",
+          "priority": "medium",
+          "comment": "Final deployment and release tasks"
+        }
+      ]
+    }
+  ]
+}

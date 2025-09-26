@@ -1,0 +1,928 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "voiceflow_project",
+  "description": "Converted from voiceflow_project.xml",
+  "source_file": "voiceflow/map/voiceflow_project.xml",
+  "converted_at": "2025-09-26T18:10:03.733Z",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-e5f6-4a9b-8c7d-1e2f3a4b5c6d",
+      "title": "VoiceFlow Project Plan",
+      "status": "pending",
+      "priority": "high",
+      "startDate": "2025-09-02",
+      "endDate": "2025-12-19",
+      "daysSpent": 2,
+      "comment": "This master plan outlines the comprehensive strategy for developing, launching, and scaling the VoiceFlow Project. This fourth revision enhances clarity by providing detailed explanations for each task, ensuring the 'why' behind the 'what' is always clear.",
+      "children": [
+        {
+          "id": "f0a1b2c3-d4e5-4f6a-b7c8-d9e0f1a2b3c4",
+          "title": "Phase 0: Vision, KPIs & Motivation",
+          "status": "pending",
+          "priority": "medium",
+          "startDate": "2025-09-04",
+          "endDate": "2025-09-06",
+          "daysSpent": 0,
+          "comment": "This phase defines the 'Why' of the project. It's the North Star that guides all decisions, providing motivation and a clear definition of success. It visualizes the end goal: a profitable, impactful, and growing business.",
+          "children": [
+            {
+              "id": "g1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+              "title": "Project Vision & Mission",
+              "status": "pending",
+              "priority": "medium",
+              "startDate": "2025-09-04",
+              "endDate": "2025-09-05",
+              "daysSpent": 0,
+              "comment": "What is the ultimate dream for VoiceFlow Pro? This is the 'bling bling' - the big picture that motivates every single task in this plan.",
+              "children": [
+                {
+                  "id": "h2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+                  "title": "Vision Statement",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-04",
+                  "endDate": "2025-09-05",
+                  "daysSpent": 0,
+                  "comment": "To become the leading, most intuitive, and privacy-focused transcription service for creators and professionals on the web."
+                },
+                {
+                  "id": "i3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+                  "title": "Mission Statement",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-04",
+                  "endDate": "2025-09-05",
+                  "daysSpent": 0,
+                  "comment": "To empower individuals and teams to unlock the value in their audio content by providing a fast, accurate, and user-friendly transcription tool that respects their data and privacy."
+                }
+              ]
+            },
+            {
+              "id": "j4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8g",
+              "title": "Financial Goals (The Return on Investment)",
+              "status": "pending",
+              "priority": "medium",
+              "startDate": "2025-09-05",
+              "endDate": "2025-09-06",
+              "daysSpent": 0,
+              "comment": "The financial targets that will make this project sustainable and profitable. These are the numbers that translate effort into reward.",
+              "children": [
+                {
+                  "id": "k5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8g9h",
+                  "title": "Target Monthly Recurring Revenue (MRR)",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "GOAL: Achieve $5,000 MRR within 12 months of launch. This is the primary indicator of financial health and product-market fit."
+                },
+                {
+                  "id": "l6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8g9h0i",
+                  "title": "Target Average Revenue Per User (ARPU)",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "GOAL: Achieve an ARPU of $15. This will be driven by the Pro and Teams pricing tiers. A higher ARPU indicates we are delivering high value to our customers."
+                },
+                {
+                  "id": "m7b8c9d0-e1f2-4a3b-4c5d-6e7f8g9h0i1j",
+                  "title": "Projected Break-Even Point",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "ANALYSIS: Estimate the point at which monthly revenue covers all monthly costs (e.g., hosting, legal, marketing tools). This is the point where the business becomes self-sustaining."
+                }
+              ]
+            },
+            {
+              "id": "n8c9d0e1-f2a3-4b4c-5d6e-7f8g9h0i1j2k",
+              "title": "User & Growth KPIs",
+              "status": "pending",
+              "priority": "medium",
+              "startDate": "2025-09-05",
+              "endDate": "2025-09-06",
+              "daysSpent": 0,
+              "comment": "Metrics that measure our growth and impact on users. This is how we know we are building something people love and are willing to pay for.",
+              "children": [
+                {
+                  "id": "o9d0e1f2-a3b4-4c5d-6e7f-8g9h0i1j2k3l",
+                  "title": "Target Active User Base",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "GOAL: Acquire 1,000 paying customers within 6 months of launch. This is a direct measure of market adoption."
+                },
+                {
+                  "id": "p0e1f2a3-b4c5-4d6e-7f8g-9h0i1j2k3l4m",
+                  "title": "Target Conversion Rate",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "GOAL: Achieve a 5% conversion rate from free/trial users to paid subscribers. This measures the effectiveness of our onboarding and the perceived value of our premium features."
+                },
+                {
+                  "id": "q1f2a3b4-c5d6-4e7f-8g9h-0i1j2k3l4m5n",
+                  "title": "User Satisfaction (NPS)",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-05",
+                  "endDate": "2025-09-06",
+                  "daysSpent": 0,
+                  "comment": "GOAL: Maintain a Net Promoter Score (NPS) of 50 or higher. This will be measured via in-app surveys and is a key indicator of user happiness and word-of-mouth potential."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "e5f6g7h8-i9j0-4k1l-2m3n-4o5p6q7r8s9t",
+          "title": "Phase 1: Technical Development",
+          "status": "pending",
+          "priority": "high",
+          "startDate": "2025-09-02",
+          "endDate": "2025-11-14",
+          "daysSpent": 2,
+          "comment": "This phase focuses on building out the core application features beyond the MVP, ensuring a robust and scalable technical foundation. The core transcription engine is complete, so the focus now shifts to user-facing features and infrastructure.",
+          "children": [
+            {
+              "id": "b9c0d1e2-f3g4-4h5i-6j7k-8l9m0n1o2p3q",
+              "title": "Core Transcription Engine",
+              "status": "completed",
+              "priority": "high",
+              "startDate": "2025-09-02",
+              "endDate": "2025-09-03",
+              "daysSpent": 2,
+              "comment": "The initial MVP for browser-side transcription is complete and validated, using @xenova/transformers.js. This is a major milestone. The development server is running and the whisper-demo page is functional for audio file uploads and transcription."
+            },
+            {
+              "id": "c8d9e0f1-a2b3-4c5d-6e7f-8g9h0i1j2k3l",
+              "title": "Feature Parity with Competitors",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-04",
+              "endDate": "2025-09-24",
+              "daysSpent": 0,
+              "comment": "To be competitive, we need to implement features offered by MacWhisper and Audio Note. This is critical for market acceptance and moving beyond the MVP. This work can be parallelized with Phase 2 activities, meaning business and tech tracks can proceed simultaneously.",
+              "children": [
+                {
+                  "id": "l4m5n6o7-p8q9-4r0s-1t2u-3v4w5x6y7z8a",
+                  "title": "Advanced Export Functionality",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-04",
+                  "endDate": "2025-09-10",
+                  "daysSpent": 0,
+                  "comment": "Allow users to export transcripts in various formats. This is a key feature for professional users who need to integrate transcripts into other workflows. A reusable export module should be created to easily add new formats in the future, reducing future development time.",
+                  "children": [
+                    {
+                      "id": "r4s5t6u7-v8w9-4x0y-1z2a-3b4c5d6e7f8g",
+                      "title": "Implement Subtitle Export",
+                      "status": "pending",
+                      "priority": "high",
+                      "startDate": "2025-09-04",
+                      "endDate": "2025-09-08",
+                      "daysSpent": 0,
+                      "comment": "Support for .srt and .vtt formats is standard and required by content creators (podcasters, video editors) to add captions to their media."
+                    },
+                    {
+                      "id": "u1v2w3x4-y5z6-4a7b-8c9d-0e1f2g3h4i5j",
+                      "title": "Implement Document Export",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-09-09",
+                      "endDate": "2025-09-10",
+                      "daysSpent": 0,
+                      "comment": "Support for .txt, .pdf, and .docx formats for wider usability in business and academic contexts, allowing users to easily share and archive transcripts."
+                    }
+                  ]
+                },
+                {
+                  "id": "i9j0k1l2-m3n4-4o5p-6q7r-8s9t0u1v2w3x",
+                  "title": "Transcript Interaction",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-11",
+                  "endDate": "2025-09-24",
+                  "daysSpent": 0,
+                  "comment": "Enhance the user's ability to work with the generated transcript, turning it from static text into a dynamic document. Performance with large transcripts (1+ hour) must be a consideration to avoid a sluggish UI for power users.",
+                  "children": [
+                    {
+                      "id": "m3n4o5p6-q7r8-4s9t-0u1v-2w3x4y5z6a7b",
+                      "title": "Implement Transcript Search",
+                      "status": "pending",
+                      "priority": "high",
+                      "startDate": "2025-09-11",
+                      "endDate": "2025-09-15",
+                      "daysSpent": 0,
+                      "comment": "Allow users to search for specific words within the transcript. This is a fundamental feature for navigating and finding key information in long audio files."
+                    },
+                    {
+                      "id": "q7r8s9t0-u1v2-4w3x-4y5z-6a7b8c9d0e1f",
+                      "title": "Implement In-Place Editing",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-09-16",
+                      "endDate": "2025-09-19",
+                      "daysSpent": 0,
+                      "comment": "Allow users to correct transcription errors directly in the UI. This builds user trust, improves the final output quality, and makes the tool more valuable."
+                    },
+                    {
+                      "id": "a2b3c4d5-e6f7-4g8h-9i0j-k1l2m3n4o5p6",
+                      "title": "Link Audio Playback to Transcript",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-09-22",
+                      "endDate": "2025-09-24",
+                      "daysSpent": 0,
+                      "comment": "Clicking on a word in the transcript should jump to that point in the audio playback. This is a huge time-saver for users who need to verify the accuracy of the transcription."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "b3c4d5e6-f7g8-4h9i-0j1k-l2m3n4o5p6q7",
+              "title": "Advanced Features & Differentiators",
+              "status": "pending",
+              "priority": "medium",
+              "startDate": "2025-09-25",
+              "endDate": "2025-11-07",
+              "daysSpent": 0,
+              "comment": "Features that will set VoiceFlow Pro apart from the competition and create a strong, unique value proposition. These should be prioritized based on feedback from user interviews to ensure we are building what the market actually wants.",
+              "children": [
+                {
+                  "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+                  "title": "Cloud & Productivity Integrations",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-25",
+                  "endDate": "2025-10-08",
+                  "daysSpent": 0,
+                  "comment": "Allow users to connect their accounts to popular cloud services for seamless exporting. This moves VoiceFlow from a standalone tool to an integrated part of their workflow.",
+                  "children": [
+                    {
+                      "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+                      "title": "Export to Google Docs",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-09-25",
+                      "endDate": "2025-09-30",
+                      "daysSpent": 0,
+                      "comment": "Implement Google Account OAuth and use the Google Docs API to create a new document from the transcript."
+                    },
+                    {
+                      "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9g0h",
+                      "title": "Export to Notion",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-10-01",
+                      "endDate": "2025-10-06",
+                      "daysSpent": 0,
+                      "comment": "Integrate with Notion's API to send the transcript to a new page or database, potentially using Notion's AI features to summarize."
+                    },
+                    {
+                      "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9g0h1i2j",
+                      "title": "Export to OneDrive / Word",
+                      "status": "pending",
+                      "priority": "low",
+                      "startDate": "2025-10-07",
+                      "endDate": "2025-10-08",
+                      "daysSpent": 0,
+                      "comment": "Connect with Microsoft accounts to export the transcript as a Word document directly to a user's OneDrive."
+                    }
+                  ]
+                },
+                {
+                  "id": "9c0d1e2f-3a4b-5c6d-7e8f-9g0h1i2j3k4l",
+                  "title": "AI-Powered Text Transformations",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-09",
+                  "endDate": "2025-10-17",
+                  "daysSpent": 0,
+                  "comment": "Use a Large Language Model (LLM) to process the raw transcript into more useful formats. This is a major value-add that saves users significant time.",
+                  "children": [
+                    {
+                      "id": "1e2f3a4b-5c6d-7e8f-9g0h-1i2j3k4l5m6n",
+                      "title": "Automatic Summarization",
+                      "status": "pending",
+                      "priority": "high",
+                      "startDate": "2025-10-09",
+                      "endDate": "2025-10-13",
+                      "daysSpent": 0,
+                      "comment": "Generate a concise summary of the entire transcript, highlighting key points and decisions."
+                    },
+                    {
+                      "id": "3a4b5c6d-7e8f-9g0h-1i2j-3k4l5m6n7o8p",
+                      "title": "Action Item Detection",
+                      "status": "pending",
+                      "priority": "high",
+                      "startDate": "2025-10-14",
+                      "endDate": "2025-10-17",
+                      "daysSpent": 0,
+                      "comment": "Automatically identify and list out action items or tasks mentioned during a conversation (e.g., \"I will send the report by Friday\")."
+                    }
+                  ]
+                },
+                {
+                  "id": "c4d5e6f7-g8h9-4i0j-1k2l-m3n4o5p6q7r8",
+                  "title": "Real-time Transcription",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-10-13",
+                  "endDate": "2025-10-24",
+                  "daysSpent": 0,
+                  "comment": "Transcribe audio from the microphone in real-time. This provides instant feedback and allows the app to function as a live note-taker during meetings or lectures."
+                },
+                {
+                  "id": "e6f7g8h9-i0j1-4k2l-3m4n-o5p6q7r8s9t0",
+                  "title": "Speaker Diarization",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-10-20",
+                  "endDate": "2025-10-31",
+                  "daysSpent": 0,
+                  "comment": "Identify and label different speakers in the transcript (e.g., 'Speaker 1', 'Speaker 2'). This is a high-value feature for interviews, meetings, and podcasts, making the transcript much more readable."
+                },
+                {
+                  "id": "5c6d7e8f-9g0h-1i2j-3k4l-5m6n7o8p9q1r",
+                  "title": "Workflow Exports",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-10-20",
+                  "endDate": "2025-10-28",
+                  "daysSpent": 0,
+                  "comment": "Allow users to export content directly into other productivity tools.",
+                  "children": [
+                    {
+                      "id": "7e8f9g0h-1i2j-3k4l-5m6n-7o8p9q1r2s3t",
+                      "title": "Export to To-Do List App",
+                      "status": "pending",
+                      "priority": "medium",
+                      "startDate": "2025-10-20",
+                      "endDate": "2025-10-24",
+                      "daysSpent": 0,
+                      "comment": "Integrate with APIs from Todoist, Asana, or Trello to create new tasks from detected action items."
+                    },
+                    {
+                      "id": "9g0h1i2j-3k4l-5m6n-7o8p-9q1r2s3t4u5v",
+                      "title": "Export to Mind Map",
+                      "status": "pending",
+                      "priority": "low",
+                      "startDate": "2025-10-27",
+                      "endDate": "2025-10-28",
+                      "daysSpent": 0,
+                      "comment": "Generate a .XMind or .MM file from the transcript's summary or key topics, allowing for visual exploration of the content."
+                    }
+                  ]
+                },
+                {
+                  "id": "1i2j3k4l-5m6n-7o8p-9q1r-2s3t4u5v6w7x",
+                  "title": "Custom Vocabulary",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-10-29",
+                  "endDate": "2025-10-31",
+                  "daysSpent": 0,
+                  "comment": "Allow users to add a list of custom words, names, or acronyms to improve transcription accuracy for their specific domain (e.g., medical, legal, company-specific jargon)."
+                },
+                {
+                  "id": "d5e6f7g8-h9i0-4j1k-2l3m-n4o5p6q7r8s9",
+                  "title": "System Audio Transcription",
+                  "status": "pending",
+                  "priority": "low",
+                  "startDate": "2025-10-27",
+                  "endDate": "2025-11-07",
+                  "daysSpent": 0,
+                  "comment": "RISK: This is technically complex on the web and may require a separate desktop application. It is de-prioritized for the initial launch but remains a key feature for a future 'Pro' offering targeting remote workers."
+                }
+              ]
+            },
+            {
+              "id": "f7g8h9i0-j1k2-4l3m-4n5o-p6q7r8s9t0u1",
+              "title": "Infrastructure & Backend",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-08",
+              "endDate": "2025-09-26",
+              "daysSpent": 0,
+              "comment": "Ensure the backend services are ready for production, focusing on security, scalability, and user management. DEPENDENCY: This must be in place before paid launch to handle user accounts and data.",
+              "children": [
+                {
+                  "id": "g8h9i0j1-k2l3-4m4n-5o6p-q7r8s9t0u1v2",
+                  "title": "Setup User Authentication",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-08",
+                  "endDate": "2025-09-12",
+                  "daysSpent": 0,
+                  "comment": "Integrate Supabase for user login, registration, and management. This is a foundational step for any SaaS product, enabling user-specific data and subscriptions."
+                },
+                {
+                  "id": "h9i0j1k2-l3m4-4n5o-6p7q-r8s9t0u1v2w3",
+                  "title": "Develop File Storage Solution",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-15",
+                  "endDate": "2025-09-19",
+                  "daysSpent": 0,
+                  "comment": "Implement secure, scalable storage for user audio files and transcripts, likely using Supabase Storage. This ensures user data is safe and accessible only to them."
+                },
+                {
+                  "id": "i0j1k2l3-m4n5-4o6p-7q8r-s9t0u1v2w3x4",
+                  "title": "Setup CI/CD Pipeline",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-22",
+                  "endDate": "2025-09-26",
+                  "daysSpent": 0,
+                  "comment": "Set up a Continuous Integration/Continuous Deployment pipeline (e.g., using GitHub Actions) to automate testing and deployment to Vercel/AWS. This increases development speed and reduces the risk of manual deployment errors."
+                }
+              ]
+            },
+            {
+              "id": "a9b8c7d6-e5f4-3a2b-1c0d-9e8f7a6b5c4d",
+              "title": "User Onboarding & Experience",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-10-27",
+              "endDate": "2025-11-14",
+              "daysSpent": 0,
+              "comment": "Create a seamless and welcoming experience for new users to drive activation (the moment a user understands the value) and long-term retention. A good onboarding flow is a feature in itself and can significantly reduce churn.",
+              "children": [
+                {
+                  "id": "b8c7d6e5-f4a3-2b1c-0d9e-8f7a6b5c4d3e",
+                  "title": "Design Welcome Tour",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-10-27",
+                  "endDate": "2025-10-31",
+                  "daysSpent": 0,
+                  "comment": "Create a short, interactive tour that highlights key features and guides users to their first successful transcription. This is crucial for demonstrating value quickly (the 'Aha!' moment)."
+                },
+                {
+                  "id": "c7d6e5f4-a3b2-1c0d-9e8f-7a6b5c4d3e2f",
+                  "title": "Implement Onboarding Checklist",
+                  "status": "pending",
+                  "priority": "low",
+                  "startDate": "2025-11-03",
+                  "endDate": "2025-11-07",
+                  "daysSpent": 0,
+                  "comment": "A simple, dismissible checklist to guide new users through essential setup steps (e.g., 'Upload first file', 'Try an export', 'Invite a team member'). This encourages deeper product exploration."
+                },
+                {
+                  "id": "f4a3b2c1-d09e-8f7a-6b5c-4d3e2f1a0b9c",
+                  "title": "Create Email Onboarding Sequence",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-11-10",
+                  "endDate": "2025-11-14",
+                  "daysSpent": 0,
+                  "comment": "Write a 5-7 email sequence (using a service like Mailchimp or Resend) to educate new users on features, provide tips, and keep them engaged during their critical first week."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "j1k2l3m4-n5o6-4p7q-8r9s-t0u1v2w3x4y5",
+          "title": "Phase 2: Business Foundation",
+          "status": "pending",
+          "priority": "high",
+          "startDate": "2025-09-04",
+          "endDate": "2025-10-17",
+          "daysSpent": 0,
+          "comment": "Establish the legal and financial structure of the business. This is a critical path to launch and can be done in parallel with technical development. It ensures the business can operate legally and accept money.",
+          "children": [
+            {
+              "id": "k2l3m4n5-o6p7-4q8r-9s0t-u1v2w3x4y5z6",
+              "title": "Legal Foundation",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-04",
+              "endDate": "2025-09-17",
+              "daysSpent": 0,
+              "comment": "Draft and finalize all necessary legal documents to protect the business from liability and inform users of their rights. These must be easily accessible from the application footer and agreed to upon signup.",
+              "children": [
+                {
+                  "id": "l3m4n5o6-p7q8-4r9s-0t1u-v2w3x4y5z6a7",
+                  "title": "Draft Terms of Service & Privacy Policy",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-04",
+                  "endDate": "2025-09-10",
+                  "daysSpent": 0,
+                  "comment": "Create comprehensive ToS (rules of use) and Privacy Policy (data handling) documents, including GDPR/CCPA compliance clauses for data protection. Use templates as a starting point but get them reviewed."
+                },
+                {
+                  "id": "m4n5o6p7-q8r9-4s0t-1u2v-w3x4y5z6a7b8",
+                  "title": "Draft License Agreement",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-11",
+                  "endDate": "2025-09-12",
+                  "daysSpent": 0,
+                  "comment": "Define the terms of use for the software under different licensing tiers (e.g., Individual, Team, Lifetime). This governs what users can and cannot do with the software."
+                },
+                {
+                  "id": "n5o6p7q8-r9s0-4t1u-2v3w-x4y5z6a7b8c9",
+                  "title": "Attorney Review",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-15",
+                  "endDate": "2025-09-17",
+                  "daysSpent": 0,
+                  "comment": "Have all legal documents reviewed by a qualified attorney specializing in software and SaaS. This is a non-negotiable step to ensure legal compliance and minimize risk."
+                }
+              ]
+            },
+            {
+              "id": "o6p7q8r9-s0t1-4u2v-3w4x-y5z6a7b8c9d0",
+              "title": "Business Registration",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-18",
+              "endDate": "2025-09-24",
+              "daysSpent": 0,
+              "comment": "Officially register the business entity to operate legally, open a bank account, and file taxes.",
+              "children": [
+                {
+                  "id": "p7q8r9s0-t1u2-4v3w-4x5y-z6a7b8c9d0e1",
+                  "title": "Form LLC",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-18",
+                  "endDate": "2025-09-22",
+                  "daysSpent": 0,
+                  "comment": "Register 'VoiceFlow Pro LLC' in the chosen jurisdiction. An LLC provides liability protection, separating your personal assets from the business. Obtain an EIN (Employer Identification Number) from the IRS for tax purposes."
+                },
+                {
+                  "id": "q8r9s0t1-u2v3-4w4x-5y6z-a7b8c9d0e1f2",
+                  "title": "File for Trademark",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-23",
+                  "endDate": "2025-09-24",
+                  "daysSpent": 0,
+                  "comment": "Perform a trademark search and file an application for the 'VoiceFlow Pro' name and logo. This protects your brand identity from being used by others."
+                }
+              ]
+            },
+            {
+              "id": "r9s0t1u2-v3w4-4x5y-6z7a-b8c9d0e1f2g3",
+              "title": "Payment & Pricing",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-25",
+              "endDate": "2025-10-17",
+              "daysSpent": 0,
+              "comment": "Set up the system to process payments and define the pricing strategy. DEPENDENCY: User interviews should inform value-based pricing (pricing based on the value provided, not just cost or competitor prices).",
+              "children": [
+                {
+                  "id": "d6e5f4a3-b2c1-0d9e-8f7a-6b5c4d3e2f1a",
+                  "title": "Define Pricing Tiers",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-25",
+                  "endDate": "2025-09-26",
+                  "daysSpent": 0,
+                  "comment": "Finalize pricing for different tiers (e.g., Free, Pro, Teams). This should be based on features, usage limits (e.g., transcription hours/month), and the value each tier provides to different user segments, informed by competitor analysis and user interviews."
+                },
+                {
+                  "id": "s0t1u2v3-w4x5-4y6z-7a8b-c9d0e1f2g3h4",
+                  "title": "Configure Stripe Account",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-29",
+                  "endDate": "2025-10-01",
+                  "daysSpent": 0,
+                  "comment": "Set up Stripe, configure products and plans matching the pricing tiers, and integrate webhooks for subscription events (e.g., successful payment, failed payment) to automate account management."
+                },
+                {
+                  "id": "t1u2v3w4-x5y6-4z7a-8b9c-d0e1f2g3h4i5",
+                  "title": "Build Pricing & Checkout UI",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-02",
+                  "endDate": "2025-10-08",
+                  "daysSpent": 0,
+                  "comment": "Develop the public-facing pricing page that clearly outlines the features of each tier, and integrate the Stripe checkout flow into the application's subscription management area."
+                },
+                {
+                  "id": "e5f4a3b2-c1d0-9e8f-7a6b-5c4d3e2f1a0b",
+                  "title": "Implement Subscription Management UI",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-09",
+                  "endDate": "2025-10-14",
+                  "daysSpent": 0,
+                  "comment": "Create the in-app UI for users to view their current plan, upgrade, downgrade, cancel their subscription, and view their invoice history. This is crucial for user self-service and reducing support load."
+                },
+                {
+                  "id": "u2v3w4x5-y6z7-4a8b-9c0d-e1f2g3h4i5j6",
+                  "title": "Test Payment Flow End-to-End",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-15",
+                  "endDate": "2025-10-17",
+                  "daysSpent": 0,
+                  "comment": "Conduct thorough testing of the entire payment and subscription lifecycle (signup, upgrade, downgrade, cancellation, failed payments) using Stripe's test environment to prevent any issues with real money."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "v3w4x5y6-z7a8-4b9c-0d1e-f2g3h4i5j6k7",
+          "title": "Phase 3: Marketing & Go-to-Market",
+          "status": "pending",
+          "priority": "high",
+          "startDate": "2025-09-15",
+          "endDate": "2025-12-05",
+          "daysSpent": 0,
+          "comment": "Prepare for launch and build a pipeline of potential customers. Marketing is not a post-launch activity; it should start long before launch day to build momentum.",
+          "children": [
+            {
+              "id": "w4x5y6z7-a8b9-4c0d-1e2f-g3h4i5j6k7l8",
+              "title": "Branding & Assets",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-15",
+              "endDate": "2025-09-19",
+              "daysSpent": 0,
+              "comment": "Develop a strong, professional brand identity that resonates with the target audience. DEPENDENCY: This should be done before the landing page is built, as it will inform the design.",
+              "children": [
+                {
+                  "id": "x5y6z7a8-b9c0-4d1e-2f3g-h4i5j6k7l8m9",
+                  "title": "Design Logo and Visual Identity",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-15",
+                  "endDate": "2025-09-19",
+                  "daysSpent": 0,
+                  "comment": "Create the logo, define the color palette, and choose typography. This visual identity will be used across the app, website, and all marketing materials for a consistent look and feel."
+                }
+              ]
+            },
+            {
+              "id": "y6z7a8b9-c0d1-4e2f-3g4h-i5j6k7l8m9n0",
+              "title": "Pre-Launch Marketing",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-22",
+              "endDate": "2025-12-05",
+              "daysSpent": 0,
+              "comment": "Generate interest and leads before the product is live to ensure there is an audience on launch day.",
+              "children": [
+                {
+                  "id": "z7a8b9c0-d1e2-4f3g-4h5i-j6k7l8m9n0o1",
+                  "title": "Develop Landing Page",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-22",
+                  "endDate": "2025-09-26",
+                  "daysSpent": 0,
+                  "comment": "Create a compelling landing page that clearly explains the value proposition (what problem it solves) and has a prominent call-to-action for visitors to join a waitlist."
+                },
+                {
+                  "id": "a8b9c0d1-e2f3-4g4h-5i6j-k7l8m9n0o1p2",
+                  "title": "Content Marketing",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-09-29",
+                  "endDate": "2025-12-05",
+                  "daysSpent": 0,
+                  "comment": "Write blog posts and social media content about topics your target audience cares about (e.g., 'How to Transcribe a Podcast for Free', '5 Productivity Tips for Journalists') to attract them and build SEO authority."
+                },
+                {
+                  "id": "b2c1d09e-8f7a-6b5c-4d3e-2f1a0b9c8d7e",
+                  "title": "Build Waitlist",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-29",
+                  "endDate": "2025-12-05",
+                  "daysSpent": 0,
+                  "comment": "Actively promote the landing page across relevant channels (Reddit, Twitter, LinkedIn, etc.) to build an email list of potential first users. GOAL: Aim for at least 500 sign-ups before launch day. This list is your most valuable asset on launch day."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "b9c0d1e2-f3g4-4h5i-6j7k-l8m9n0o1p2q3",
+          "title": "Phase 4: User Feedback & Validation",
+          "status": "pending",
+          "priority": "high",
+          "startDate": "2025-09-08",
+          "endDate": "2025-11-28",
+          "daysSpent": 0,
+          "comment": "Validate the product with real users to ensure it solves their problems effectively. This phase runs in parallel with development and is the most critical for de-risking the project and avoiding building something nobody wants.",
+          "children": [
+            {
+              "id": "c0d1e2f3-g4h5-4i6j-7k8l-m9n0o1p2q3r4",
+              "title": "Customer Discovery",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-09-08",
+              "endDate": "2025-10-03",
+              "daysSpent": 0,
+              "comment": "Based on the 'Entrepreneurial Journey' coaching, this is a top priority. Get out of the building and talk to users to validate every assumption before writing code.",
+              "children": [
+                {
+                  "id": "d1e2f3g4-h5i6-4j7k-8l9m-n0o1p2q3r4s5",
+                  "title": "Identify Target User Profiles",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-08",
+                  "endDate": "2025-09-12",
+                  "daysSpent": 0,
+                  "comment": "Define and document ideal customer profiles (personas), including their goals, pain points, and daily workflows. This helps focus interview and marketing efforts on the right people."
+                },
+                {
+                  "id": "e2f3g4h5-i6j7-4k8l-9m0n-o1p2q3r4s5t6",
+                  "title": "Conduct User Interviews",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-09-15",
+                  "endDate": "2025-10-03",
+                  "daysSpent": 0,
+                  "comment": "Schedule and conduct at least 20-30 interviews to deeply understand user pain points, existing workflows, and willingness to pay. Create an interview script to ensure consistent data collection and avoid leading questions."
+                }
+              ]
+            },
+            {
+              "id": "f3g4h5i6-j7k8-4l9m-0n1o-p2q3r4s5t6u7",
+              "title": "Alpha & Beta Testing",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-10-06",
+              "endDate": "2025-11-28",
+              "daysSpent": 0,
+              "comment": "Roll out the product to a limited audience to gather feedback, find bugs, and refine the user experience before public launch.",
+              "children": [
+                {
+                  "id": "g4h5i6j7-k8l9-4m0n-1o2p-q3r4s5t6u7v8",
+                  "title": "Private Alpha Test",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-06",
+                  "endDate": "2025-10-17",
+                  "daysSpent": 0,
+                  "comment": "Invite a small group of 5-10 trusted users (identified during interviews) to test the initial product and provide detailed feedback. Offer them a significant discount or lifetime deal for their contribution to incentivize quality feedback."
+                },
+                {
+                  "id": "h5i6j7k8-l9m0-4n1o-2p3q-r4s5t6u7v8w9",
+                  "title": "Public Beta Program",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-20",
+                  "endDate": "2025-11-21",
+                  "daysSpent": 0,
+                  "comment": "Open the beta to the pre-launch waitlist to test scalability, gather broader feedback, and generate early buzz. Define clear success metrics (e.g., 50% of beta users transcribe >3 files) to gauge product-market fit."
+                },
+                {
+                  "id": "i6j7k8l9-m0n1-4o2p-3q4r-s5t6u7v8w9x0",
+                  "title": "Implement Feedback Loop",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-10-20",
+                  "endDate": "2025-11-28",
+                  "daysSpent": 0,
+                  "comment": "Set up a system (e.g., Discord, Canny.io) to collect, categorize, and prioritize user feedback systematically. Crucially, 'close the loop' by notifying users when their feedback is implemented to show you are listening and build a loyal community."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "j7k8l9m0-n1o2-4p3q-4r5s-t6u7v8w9x0y1",
+          "title": "Phase 5: Official Launch & Rollout",
+          "status": "pending",
+          "priority": "high",
+          "startDate": "2025-11-24",
+          "endDate": "2025-12-19",
+          "daysSpent": 0,
+          "comment": "The official public launch of VoiceFlow Pro. This is the culmination of all previous phases and the beginning of the growth phase.",
+          "children": [
+            {
+              "id": "k8l9m0n1-o2p3-4q4r-5s6t-u7v8w9x0y1z2",
+              "title": "Launch Preparation",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-11-24",
+              "endDate": "2025-12-03",
+              "daysSpent": 0,
+              "comment": "Final checks and preparations in the week leading up to the launch to ensure a smooth rollout.",
+              "children": [
+                {
+                  "id": "l9m0n1o2-p3q4-4r5s-6t7u-v8w9x0y1z2a3",
+                  "title": "Finalize Production Build",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-11-24",
+                  "endDate": "2025-11-28",
+                  "daysSpent": 0,
+                  "comment": "Incorporate critical feedback from beta testing, perform final QA, and 'freeze the code' (no new features, only critical bug fixes) for the launch version to ensure stability."
+                },
+                {
+                  "id": "m0n1o2p3-q4r5-4s6t-7u8v-w9x0y1z2a3b4",
+                  "title": "Prepare Launch Marketing Campaign",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-12-01",
+                  "endDate": "2025-12-03",
+                  "daysSpent": 0,
+                  "comment": "Prepare emails for the waitlist (with a special launch day offer), social media announcements, and create a launch kit for Product Hunt or other platforms. Have everything ready to go before launch day."
+                }
+              ]
+            },
+            {
+              "id": "n1o2p3q4-r5s6-4t7u-8v9w-x0y1z2a3b4c5",
+              "title": "Launch Day",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-12-04",
+              "endDate": "2025-12-05",
+              "daysSpent": 0,
+              "comment": "Execute the launch plan with precision. The goal is to maximize visibility and drive initial sign-ups.",
+              "children": [
+                {
+                  "id": "o2p3q4r5-s6t7-4u8v-9w0x-y1z2a3b4c5d6",
+                  "title": "Go Live",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-12-04",
+                  "endDate": "2025-12-04",
+                  "daysSpent": 0,
+                  "comment": "Deploy the final application build, enable public sign-ups, and switch payment processing from test to live mode."
+                },
+                {
+                  "id": "p3q4r5s6-t7u8-4v9w-0x1y-z2a3b4c5d6e7",
+                  "title": "Announce Launch on Key Channels",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-12-05",
+                  "endDate": "2025-12-05",
+                  "daysSpent": 0,
+                  "comment": "Send out all launch communications across all planned channels (Email to the waitlist, Twitter, LinkedIn, Product Hunt) in a coordinated manner to create a single, impactful launch event."
+                }
+              ]
+            },
+            {
+              "id": "q4r5s6t7-u8v9-4w0x-1y2z-a3b4c5d6e7f8",
+              "title": "Post-Launch",
+              "status": "pending",
+              "priority": "high",
+              "startDate": "2025-12-08",
+              "endDate": "2025-12-19",
+              "daysSpent": 0,
+              "comment": "The work doesn't stop at launch. This phase is about monitoring, supporting, and iterating based on real-world data.",
+              "children": [
+                {
+                  "id": "r5s6t7u8-v9w0-4x1y-2z3a-b4c5d6e7f8g9",
+                  "title": "Monitor System Performance & Analytics",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-12-08",
+                  "endDate": "2025-12-12",
+                  "daysSpent": 0,
+                  "comment": "Closely watch server load, error rates (with a tool like Sentry), user sign-up funnels, conversion rates, and feature usage (with a tool like Vercel Analytics or Plausible) to understand what is happening."
+                },
+                {
+                  "id": "s6t7u8v9-w0x1-4y2z-3a4b-c5d6e7f8g9h0",
+                  "title": "Proactive Customer Support",
+                  "status": "pending",
+                  "priority": "high",
+                  "startDate": "2025-12-08",
+                  "endDate": "2025-12-19",
+                  "daysSpent": 0,
+                  "comment": "Be ready to respond to user questions and issues promptly across all channels to build a reputation for excellent support. Create canned responses for common questions to improve response time."
+                },
+                {
+                  "id": "t7u8v9w0-x1y2-4z3a-4b5c-d6e7f8g9h0i1",
+                  "title": "Plan V1.1 Roadmap",
+                  "status": "pending",
+                  "priority": "medium",
+                  "startDate": "2025-12-15",
+                  "endDate": "2025-12-19",
+                  "daysSpent": 0,
+                  "comment": "Begin planning the next iteration of features based on post-launch feedback and initial usage data, focusing on quick wins and high-impact improvements that will drive growth and retention."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

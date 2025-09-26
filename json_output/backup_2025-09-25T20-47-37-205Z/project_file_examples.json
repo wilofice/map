@@ -1,0 +1,53 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "project_file_examples",
+  "description": "Converted from project_file_examples.xml",
+  "source_file": "backup_2025-09-25T20-47-37-205Z/project_file_examples.xml",
+  "converted_at": "2025-09-26T18:10:03.703Z",
+  "nodes": [
+    {
+      "id": "demo-001",
+      "title": "Advanced Features Demo",
+      "status": "in-progress",
+      "priority": "high",
+      "comment": "This demonstrates the new XML features",
+      "children": [
+        {
+          "id": "code-demo-001",
+          "title": "Code Example",
+          "status": "in-progress",
+          "priority": "medium",
+          "comment": "JavaScript authentication example",
+          "code": {
+            "language": "javascript",
+            "content": "\nasync function authenticateUser(req, res) {\n    const { username, password } = req.body;\n    \n    try {\n        const user = await User.findOne({ username });\n        if (!user || !await bcrypt.compare(password, user.password)) {\n            return res.status(401).json({ error: 'Invalid credentials' });\n        }\n        \n        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);\n        res.json({ token, user: { id: user._id, username: user.username } });\n    } catch (error) {\n        console.error('Auth error:', error);\n        res.status(500).json({ error: 'Server error' });\n    }\n}\n            "
+          }
+        },
+        {
+          "id": "task-demo-001",
+          "title": "LLM Task",
+          "status": "pending",
+          "priority": "high"
+        },
+        {
+          "id": "cli-demo-001",
+          "title": "Deployment Commands",
+          "status": "in-progress",
+          "priority": "low"
+        },
+        {
+          "id": "combined-001",
+          "title": "Combined Example",
+          "status": "pending",
+          "priority": "high",
+          "comment": "This node has all features",
+          "code": {
+            "language": "javascript",
+            "content": "\nconst ProfileComponent = ({ user }) => {\n    const [avatar, setAvatar] = useState(user.avatar);\n    \n    const handleUpload = async (file) => {\n        const formData = new FormData();\n        formData.append('avatar', file);\n        \n        const response = await fetch('/api/upload', {\n            method: 'POST',\n            body: formData\n        });\n        \n        const data = await response.json();\n        setAvatar(data.url);\n    };\n    \n    return (\n        <div className=\"profile\">\n            <img src={avatar} alt=\"Profile\" />\n            <input type=\"file\" onChange={e => handleUpload(e.target.files[0])} />\n        </div>\n    );\n};\n            "
+          }
+        }
+      ]
+    }
+  ]
+}

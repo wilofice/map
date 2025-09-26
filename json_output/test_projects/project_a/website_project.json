@@ -1,0 +1,87 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "website_project",
+  "description": "Converted from website_project.xml",
+  "source_file": "test_projects/project_a/website_project.xml",
+  "converted_at": "2025-09-26T18:10:03.710Z",
+  "nodes": [
+    {
+      "id": "website-001",
+      "title": "Website Development Project",
+      "status": "in-progress",
+      "priority": "high",
+      "comment": "Complete website redesign project",
+      "children": [
+        {
+          "id": "website-002",
+          "title": "Frontend Development",
+          "status": "in-progress",
+          "priority": "high",
+          "comment": "Client-side implementation",
+          "children": [
+            {
+              "id": "website-003",
+              "title": "React Components",
+              "status": "completed",
+              "priority": "high"
+            },
+            {
+              "id": "website-004",
+              "title": "CSS Styling",
+              "status": "in-progress",
+              "priority": "medium"
+            },
+            {
+              "id": "website-005",
+              "title": "Mobile Responsive",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        },
+        {
+          "id": "website-006",
+          "title": "Backend API",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Server-side implementation",
+          "children": [
+            {
+              "id": "website-007",
+              "title": "User Authentication",
+              "status": "pending",
+              "priority": "high"
+            },
+            {
+              "id": "website-008",
+              "title": "Database Schema",
+              "status": "pending",
+              "priority": "medium"
+            }
+          ]
+        },
+        {
+          "id": "website-009",
+          "title": "Testing and Deployment",
+          "status": "pending",
+          "priority": "medium",
+          "children": [
+            {
+              "id": "website-010",
+              "title": "Unit Tests",
+              "status": "pending",
+              "priority": "medium"
+            },
+            {
+              "id": "website-011",
+              "title": "Production Deploy",
+              "status": "pending",
+              "priority": "high"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "test_simple",
+  "description": "Converted from test_simple.xml",
+  "source_file": "test_simple.xml",
+  "converted_at": "2025-09-26T18:10:03.713Z",
+  "nodes": [
+    {
+      "id": "test-001",
+      "title": "Test Node",
+      "status": "pending",
+      "priority": "high",
+      "comment": "Test comment"
+    }
+  ]
+}
