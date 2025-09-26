@@ -1806,7 +1806,10 @@
                 const project = await projectResponse.json();
 
                 // Import nodes
-                await importNodesRecursively(project.id, jsonData, null);
+                console.log('🔍 JSON Data structure:', Object.keys(jsonData));
+                const nodesToImport = jsonData.nodes || jsonData;
+                console.log('📊 Nodes to import:', nodesToImport);
+                await importNodesRecursively(project.id, nodesToImport, null);
 
                 // Switch to new project
                 await selectProject(project.id, project.name);
@@ -1820,10 +1823,19 @@
         }
 
         async function importNodesRecursively(projectId, nodeData, parentId) {
+            console.log('🔍 DEBUG importNodesRecursively called with:', {
+                projectId,
+                nodeDataType: typeof nodeData,
+                nodeDataKeys: nodeData ? Object.keys(nodeData) : 'null',
+                nodeTitle: nodeData ? nodeData.title : 'no title',
+                parentId
+            });
+
             if (!nodeData) return;
 
             // Handle array of nodes
             if (Array.isArray(nodeData)) {
+                console.log('📊 Processing array of nodes, length:', nodeData.length);
                 for (const node of nodeData) {
                     await importNodesRecursively(projectId, node, parentId);
                 }
@@ -1842,6 +1854,8 @@
                 end_date: nodeData.endDate || null,
                 days_spent: nodeData.daysSpent || 0
             };
+
+            console.log('🚀 About to create node with payload:', nodePayload);
 
             // Add code block if present
             if (nodeData.code && nodeData.code.language && nodeData.code.content) {

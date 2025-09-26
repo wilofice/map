@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    {
+      "id": "test-root-001",
+      "title": "🎯 Test Root Node",
+      "priority": "high",
+      "status": "in-progress",
+      "comment": "This should display correctly now!",
+      "startDate": "2025-01-01",
+      "children": [
+        {
+          "id": "test-child-002",
+          "title": "📝 Test Child Node",
+          "priority": "medium",
+          "status": "pending",
+          "comment": "Child node with proper data"
+        }
+      ]
+    }
+  ]
+}

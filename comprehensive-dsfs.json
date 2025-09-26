@@ -1,0 +1,158 @@
+{  "type": "project_plan",
+  "version": "1.0",
+  "nodes": [
+    {
+      "id": "web-app-project-001",
+      "title": "🚀 Full-Stack Web Application",
+      "priority": "high",
+      "status": "in-progress",
+      "comment": "Complete modern web application with React frontend, Node.js backend, and PostgreSQL database. Includes authentication, real-time features, and comprehensive testing.",
+      "startDate": "2025-01-01",
+      "endDate": "2025-06-30",
+      "daysSpent": 15,
+      "taskPromptForLlm": "Create a detailed project plan for a full-stack web application including architecture decisions, technology stack recommendations, timeline, and risk assessment.",
+      "cliCommand": "git clone https://github.com/company/web-app.git && cd web-app && npm run setup",
+      "children": [
+        {
+          "id": "frontend-development-002",
+          "title": "🎨 Frontend Development",
+          "priority": "high",
+          "status": "in-progress",
+          "comment": "React-based single page application with TypeScript, Tailwind CSS, and state management using Redux Toolkit.",
+          "startDate": "2025-01-15",
+          "endDate": "2025-04-15",
+          "daysSpent": 8,
+          "code": {
+            "language": "typescript",
+            "content": "// Main App Component with Router Setup\nimport React from 'react';\nimport { BrowserRouter as Router, Routes, Route } from 'react-router-dom';\nimport { Provider } from 'react-redux';\nimport { store } from './store/store';\nimport { AuthProvider } from './contexts/AuthContext';\nimport Header from './components/Header';\nimport Home from './pages/Home';\nimport Dashboard from './pages/Dashboard';\nimport Login from './pages/Login';\nimport ProtectedRoute from './components/ProtectedRoute';\n\nconst App: React.FC = () => {\n  return (\n    <Provider store={store}>\n      <AuthProvider>\n        <Router>\n          <div className=\"min-h-screen bg-gray-50\">\n            <Header />\n            <main className=\"container mx-auto px-4 py-8\">\n              <Routes>\n                <Route path=\"/\" element={<Home />} />\n                <Route path=\"/login\" element={<Login />} />\n                <Route \n                  path=\"/dashboard\" \n                  element={\n                    <ProtectedRoute>\n                      <Dashboard />\n                    </ProtectedRoute>\n                  } \n                />\n              </Routes>\n            </main>\n          </div>\n        </Router>\n      </AuthProvider>\n    </Provider>\n  );\n};\n\nexport default App;"
+          },
+          "taskPromptForLlm": "Review this React app structure for best practices including performance optimization, accessibility, error boundaries, and code organization.",
+          "cliCommand": "cd frontend && npm run dev",
+          "children": [
+            {
+              "id": "ui-components-003",
+              "title": "🧩 Component Library",
+              "priority": "medium",
+              "status": "completed",
+              "comment": "Reusable UI components built with Tailwind CSS and documented with Storybook.",
+              "daysSpent": 3,
+              "code": {
+                "language": "tsx",
+                "content": "// Button Component with Variants\nimport React from 'react';\nimport { cva, type VariantProps } from 'class-variance-authority';\nimport { cn } from '../utils/cn';\n\nconst buttonVariants = cva(\n  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background',\n  {\n    variants: {\n      variant: {\n        default: 'bg-primary text-primary-foreground hover:bg-primary/90',\n        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',\n        outline: 'border border-input hover:bg-accent hover:text-accent-foreground',\n        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',\n        ghost: 'hover:bg-accent hover:text-accent-foreground',\n        link: 'underline-offset-4 hover:underline text-primary'\n      },\n      size: {\n        default: 'h-10 py-2 px-4',\n        sm: 'h-9 px-3 rounded-md',\n        lg: 'h-11 px-8 rounded-md'\n      }\n    },\n    defaultVariants: {\n      variant: 'default',\n      size: 'default'\n    }\n  }\n);\n\nexport interface ButtonProps\n  extends React.ButtonHTMLAttributes<HTMLButtonElement>,\n    VariantProps<typeof buttonVariants> {\n  asChild?: boolean;\n}\n\nconst Button = React.forwardRef<HTMLButtonElement, ButtonProps>(\n  ({ className, variant, size, asChild = false, ...props }, ref) => {\n    return (\n      <button\n        className={cn(buttonVariants({ variant, size, className }))}\n        ref={ref}\n        {...props}\n      />\n    );\n  }\n);\n\nButton.displayName = 'Button';\n\nexport { Button, buttonVariants };"
+              },
+              "cliCommand": "npm run storybook"
+            },
+            {
+              "id": "state-management-004",
+              "title": "🔄 State Management",
+              "priority": "high",
+              "status": "in-progress",
+              "comment": "Redux Toolkit setup with RTK Query for data fetching and caching.",
+              "daysSpent": 2,
+              "code": {
+                "language": "typescript",
+                "content": "// Redux Store Configuration\nimport { configureStore } from '@reduxjs/toolkit';\nimport { setupListeners } from '@reduxjs/toolkit/query';\nimport { authApi } from './api/authApi';\nimport { postsApi } from './api/postsApi';\nimport authReducer from './slices/authSlice';\nimport uiReducer from './slices/uiSlice';\n\nexport const store = configureStore({\n  reducer: {\n    auth: authReducer,\n    ui: uiReducer,\n    [authApi.reducerPath]: authApi.reducer,\n    [postsApi.reducerPath]: postsApi.reducer,\n  },\n  middleware: (getDefaultMiddleware) =>\n    getDefaultMiddleware({\n      serializableCheck: {\n        ignoredActions: [authApi.util.type, postsApi.util.type],\n      },\n    })\n      .concat(authApi.middleware)\n      .concat(postsApi.middleware),\n  devTools: process.env.NODE_ENV !== 'production',\n});\n\n// Enable listener behavior for the store\nsetupListeners(store.dispatch);\n\nexport type RootState = ReturnType<typeof store.getState>;\nexport type AppDispatch = typeof store.dispatch;"
+              }
+            }
+          ]
+        },
+        {
+          "id": "backend-development-005",
+          "title": "⚙️ Backend API Development",
+          "priority": "high",
+          "status": "pending",
+          "comment": "Node.js REST API with Express, PostgreSQL, JWT authentication, and comprehensive middleware stack.",
+          "startDate": "2025-02-01",
+          "endDate": "2025-05-01",
+          "code": {
+            "language": "javascript",
+            "content": "// Express Server with Security Middleware\nconst express = require('express');\nconst cors = require('cors');\nconst helmet = require('helmet');\nconst rateLimit = require('express-rate-limit');\nconst compression = require('compression');\nconst morgan = require('morgan');\nconst { Pool } = require('pg');\nconst jwt = require('jsonwebtoken');\nconst bcrypt = require('bcryptjs');\nconst { body, validationResult } = require('express-validator');\n\nconst app = express();\nconst PORT = process.env.PORT || 5000;\n\n// Database connection\nconst pool = new Pool({\n  connectionString: process.env.DATABASE_URL,\n  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false\n});\n\n// Security middleware\napp.use(helmet({\n  crossOriginEmbedderPolicy: false,\n  contentSecurityPolicy: {\n    directives: {\n      defaultSrc: [\"'self'\"],\n      styleSrc: [\"'self'\", \"'unsafe-inline'\"],\n      scriptSrc: [\"'self'\"],\n      imgSrc: [\"'self'\", \"data:\", \"https:\"],\n    },\n  },\n}));\n\napp.use(cors({\n  origin: process.env.FRONTEND_URL || 'http://localhost:3000',\n  credentials: true\n}));\n\napp.use(compression());\napp.use(morgan('combined'));\n\n// Rate limiting\nconst limiter = rateLimit({\n  windowMs: 15 * 60 * 1000, // 15 minutes\n  max: 100, // limit each IP to 100 requests per windowMs\n  message: 'Too many requests from this IP, please try again later.',\n  standardHeaders: true,\n  legacyHeaders: false,\n});\n\napp.use('/api/', limiter);\n\n// Body parsing\napp.use(express.json({ limit: '10mb' }));\napp.use(express.urlencoded({ extended: true, limit: '10mb' }));\n\n// Authentication middleware\nconst authenticateToken = (req, res, next) => {\n  const authHeader = req.headers['authorization'];\n  const token = authHeader && authHeader.split(' ')[1];\n\n  if (!token) {\n    return res.status(401).json({ error: 'Access token required' });\n  }\n\n  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {\n    if (err) {\n      return res.status(403).json({ error: 'Invalid or expired token' });\n    }\n    req.user = user;\n    next();\n  });\n};\n\n// Routes\napp.use('/api/auth', require('./routes/auth'));\napp.use('/api/users', authenticateToken, require('./routes/users'));\napp.use('/api/posts', authenticateToken, require('./routes/posts'));\n\n// Error handling middleware\napp.use((error, req, res, next) => {\n  console.error('Error:', error);\n  res.status(error.status || 500).json({\n    error: error.message || 'Internal server error',\n    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })\n  });\n});\n\n// 404 handler\napp.use('*', (req, res) => {\n  res.status(404).json({ error: 'Route not found' });\n});\n\napp.listen(PORT, () => {\n  console.log(`🚀 Server running on port ${PORT}`);\n  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);\n});"
+          },
+          "taskPromptForLlm": "Review this Express.js server setup for security best practices, performance optimization, error handling, and scalability considerations.",
+          "cliCommand": "cd backend && npm run dev",
+          "children": [
+            {
+              "id": "database-design-006",
+              "title": "🗄️ Database Schema",
+              "priority": "high",
+              "status": "completed",
+              "comment": "PostgreSQL database design with proper indexing, relationships, and data integrity constraints.",
+              "daysSpent": 2,
+              "code": {
+                "language": "sql",
+                "content": "-- Users table with authentication\nCREATE TABLE users (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  username VARCHAR(50) UNIQUE NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  password_hash VARCHAR(255) NOT NULL,\n  first_name VARCHAR(100),\n  last_name VARCHAR(100),\n  avatar_url TEXT,\n  email_verified BOOLEAN DEFAULT FALSE,\n  is_active BOOLEAN DEFAULT TRUE,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- Posts table\nCREATE TABLE posts (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  title VARCHAR(255) NOT NULL,\n  slug VARCHAR(255) UNIQUE NOT NULL,\n  content TEXT NOT NULL,\n  excerpt TEXT,\n  featured_image TEXT,\n  status post_status DEFAULT 'draft',\n  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  published_at TIMESTAMP WITH TIME ZONE,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- Post status enum\nCREATE TYPE post_status AS ENUM ('draft', 'published', 'archived');\n\n-- Comments table\nCREATE TABLE comments (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  content TEXT NOT NULL,\n  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,\n  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,\n  is_approved BOOLEAN DEFAULT FALSE,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- Indexes for performance\nCREATE INDEX idx_posts_author_id ON posts(author_id);\nCREATE INDEX idx_posts_status_published ON posts(status, published_at) WHERE status = 'published';\nCREATE INDEX idx_comments_post_id ON comments(post_id);\nCREATE INDEX idx_comments_author_id ON comments(author_id);\nCREATE INDEX idx_users_email ON users(email);\nCREATE INDEX idx_users_username ON users(username);\n\n-- Full-text search\nCREATE INDEX idx_posts_search ON posts USING GIN(to_tsvector('english', title || ' ' || content));\n\n-- Update timestamps trigger\nCREATE OR REPLACE FUNCTION update_updated_at_column()\nRETURNS TRIGGER AS $$\nBEGIN\n    NEW.updated_at = NOW();\n    RETURN NEW;\nEND;\n$$ language 'plpgsql';\n\nCREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();\nCREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();\nCREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();"
+              },
+              "cliCommand": "psql -d webapp -f schema.sql"
+            },
+            {
+              "id": "api-endpoints-007",
+              "title": "🔌 REST API Endpoints",
+              "priority": "medium",
+              "status": "in-progress",
+              "comment": "Comprehensive REST API with proper HTTP methods, status codes, and OpenAPI documentation.",
+              "daysSpent": 3,
+              "code": {
+                "language": "javascript",
+                "content": "// Posts API Routes\nconst express = require('express');\nconst { body, param, query, validationResult } = require('express-validator');\nconst { Pool } = require('pg');\n\nconst router = express.Router();\nconst pool = new Pool({ connectionString: process.env.DATABASE_URL });\n\n// GET /api/posts - List posts with pagination and filtering\nrouter.get('/', [\n  query('page').optional().isInt({ min: 1 }).toInt(),\n  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),\n  query('status').optional().isIn(['draft', 'published', 'archived']),\n  query('search').optional().isString().trim(),\n], async (req, res, next) => {\n  try {\n    const errors = validationResult(req);\n    if (!errors.isEmpty()) {\n      return res.status(400).json({ errors: errors.array() });\n    }\n\n    const { page = 1, limit = 10, status, search } = req.query;\n    const offset = (page - 1) * limit;\n\n    let query = `\n      SELECT p.*, u.username as author_name, u.avatar_url as author_avatar\n      FROM posts p\n      JOIN users u ON p.author_id = u.id\n      WHERE 1=1\n    `;\n    const queryParams = [];\n    let paramCount = 0;\n\n    if (status) {\n      paramCount++;\n      query += ` AND p.status = $${paramCount}`;\n      queryParams.push(status);\n    }\n\n    if (search) {\n      paramCount++;\n      query += ` AND (p.title ILIKE $${paramCount} OR p.content ILIKE $${paramCount})`;\n      queryParams.push(`%${search}%`);\n    }\n\n    query += ` ORDER BY p.created_at DESC LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`;\n    queryParams.push(limit, offset);\n\n    const result = await pool.query(query, queryParams);\n\n    // Get total count for pagination\n    let countQuery = 'SELECT COUNT(*) FROM posts p WHERE 1=1';\n    const countParams = [];\n    let countParamCount = 0;\n\n    if (status) {\n      countParamCount++;\n      countQuery += ` AND p.status = $${countParamCount}`;\n      countParams.push(status);\n    }\n\n    if (search) {\n      countParamCount++;\n      countQuery += ` AND (p.title ILIKE $${countParamCount} OR p.content ILIKE $${countParamCount})`;\n      countParams.push(`%${search}%`);\n    }\n\n    const countResult = await pool.query(countQuery, countParams);\n    const totalItems = parseInt(countResult.rows[0].count);\n    const totalPages = Math.ceil(totalItems / limit);\n\n    res.json({\n      posts: result.rows,\n      pagination: {\n        currentPage: page,\n        totalPages,\n        totalItems,\n        hasNextPage: page < totalPages,\n        hasPrevPage: page > 1\n      }\n    });\n  } catch (error) {\n    next(error);\n  }\n});\n\n// POST /api/posts - Create new post\nrouter.post('/', [\n  body('title').isString().isLength({ min: 1, max: 255 }).trim(),\n  body('content').isString().isLength({ min: 1 }),\n  body('excerpt').optional().isString().isLength({ max: 500 }).trim(),\n  body('status').optional().isIn(['draft', 'published']),\n], async (req, res, next) => {\n  try {\n    const errors = validationResult(req);\n    if (!errors.isEmpty()) {\n      return res.status(400).json({ errors: errors.array() });\n    }\n\n    const { title, content, excerpt, status = 'draft' } = req.body;\n    const authorId = req.user.id;\n    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\n\n    const query = `\n      INSERT INTO posts (title, slug, content, excerpt, status, author_id, published_at)\n      VALUES ($1, $2, $3, $4, $5, $6, $7)\n      RETURNING *\n    `;\n    const publishedAt = status === 'published' ? new Date() : null;\n    \n    const result = await pool.query(query, [\n      title, slug, content, excerpt, status, authorId, publishedAt\n    ]);\n\n    res.status(201).json({ post: result.rows[0] });\n  } catch (error) {\n    if (error.code === '23505') {\n      return res.status(409).json({ error: 'Post with this slug already exists' });\n    }\n    next(error);\n  }\n});\n\nmodule.exports = router;"
+              }
+            }
+          ]
+        },
+        {
+          "id": "testing-deployment-008",
+          "title": "🧪 Testing & Deployment",
+          "priority": "medium",
+          "status": "pending",
+          "comment": "Comprehensive testing strategy including unit tests, integration tests, E2E tests, and CI/CD pipeline setup.",
+          "startDate": "2025-05-01",
+          "endDate": "2025-06-30",
+          "code": {
+            "language": "yaml",
+            "content": "# GitHub Actions CI/CD Pipeline\nname: CI/CD Pipeline\n\non:\n  push:\n    branches: [ main, develop ]\n  pull_request:\n    branches: [ main ]\n\nenv:\n  NODE_VERSION: '18'\n  POSTGRES_VERSION: '14'\n\njobs:\n  test:\n    name: Test Suite\n    runs-on: ubuntu-latest\n    \n    services:\n      postgres:\n        image: postgres:14\n        env:\n          POSTGRES_USER: testuser\n          POSTGRES_PASSWORD: testpass\n          POSTGRES_DB: testdb\n        options: >-\n          --health-cmd pg_isready\n          --health-interval 10s\n          --health-timeout 5s\n          --health-retries 5\n        ports:\n          - 5432:5432\n    \n    steps:\n      - name: Checkout code\n        uses: actions/checkout@v4\n      \n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: ${{ env.NODE_VERSION }}\n          cache: 'npm'\n      \n      - name: Install dependencies\n        run: |\n          npm ci\n          cd frontend && npm ci\n          cd ../backend && npm ci\n      \n      - name: Run linting\n        run: |\n          npm run lint\n          cd frontend && npm run lint\n          cd ../backend && npm run lint\n      \n      - name: Run type checking\n        run: |\n          cd frontend && npm run type-check\n      \n      - name: Setup test database\n        env:\n          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb\n        run: |\n          cd backend && npm run migrate\n      \n      - name: Run backend tests\n        env:\n          DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb\n          JWT_SECRET: test-secret\n          NODE_ENV: test\n        run: |\n          cd backend && npm run test:coverage\n      \n      - name: Run frontend tests\n        run: |\n          cd frontend && npm run test:coverage\n      \n      - name: Upload coverage to Codecov\n        uses: codecov/codecov-action@v3\n        with:\n          files: ./backend/coverage/lcov.info,./frontend/coverage/lcov.info\n  \n  e2e-test:\n    name: E2E Tests\n    runs-on: ubuntu-latest\n    needs: test\n    \n    steps:\n      - name: Checkout code\n        uses: actions/checkout@v4\n      \n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: ${{ env.NODE_VERSION }}\n          cache: 'npm'\n      \n      - name: Install dependencies\n        run: npm ci\n      \n      - name: Install Playwright\n        run: npx playwright install --with-deps\n      \n      - name: Run E2E tests\n        run: npm run test:e2e\n      \n      - name: Upload E2E test results\n        uses: actions/upload-artifact@v3\n        if: always()\n        with:\n          name: playwright-results\n          path: test-results/\n  \n  deploy:\n    name: Deploy to Production\n    runs-on: ubuntu-latest\n    needs: [test, e2e-test]\n    if: github.ref == 'refs/heads/main'\n    \n    steps:\n      - name: Checkout code\n        uses: actions/checkout@v4\n      \n      - name: Setup Node.js\n        uses: actions/setup-node@v4\n        with:\n          node-version: ${{ env.NODE_VERSION }}\n          cache: 'npm'\n      \n      - name: Install dependencies\n        run: |\n          npm ci\n          cd frontend && npm ci\n          cd ../backend && npm ci\n      \n      - name: Build frontend\n        run: |\n          cd frontend && npm run build\n      \n      - name: Deploy to Heroku\n        uses: akhileshns/heroku-deploy@v3.12.12\n        with:\n          heroku_api_key: ${{secrets.HEROKU_API_KEY}}\n          heroku_app_name: ${{secrets.HEROKU_APP_NAME}}\n          heroku_email: ${{secrets.HEROKU_EMAIL}}\n      \n      - name: Run post-deploy health check\n        run: |\n          curl -f ${{secrets.PRODUCTION_URL}}/health || exit 1"
+          },
+          "taskPromptForLlm": "Review this CI/CD pipeline configuration for completeness, security best practices, and optimization opportunities.",
+          "cliCommand": "npm run test && npm run build && npm run deploy",
+          "children": [
+            {
+              "id": "unit-tests-009",
+              "title": "🔬 Unit Tests",
+              "priority": "high",
+              "status": "completed",
+              "comment": "Jest and React Testing Library setup with comprehensive test coverage for components and utilities.",
+              "daysSpent": 2,
+              "code": {
+                "language": "typescript",
+                "content": "// Button Component Test Suite\nimport React from 'react';\nimport { render, screen, fireEvent } from '@testing-library/react';\nimport userEvent from '@testing-library/user-event';\nimport { Button } from '../Button';\n\ndescribe('Button Component', () => {\n  it('renders with default props', () => {\n    render(<Button>Click me</Button>);\n    const button = screen.getByRole('button', { name: 'Click me' });\n    expect(button).toBeInTheDocument();\n    expect(button).toHaveClass('bg-primary', 'text-primary-foreground');\n  });\n\n  it('applies variant classes correctly', () => {\n    const { rerender } = render(<Button variant=\"destructive\">Delete</Button>);\n    let button = screen.getByRole('button');\n    expect(button).toHaveClass('bg-destructive', 'text-destructive-foreground');\n\n    rerender(<Button variant=\"outline\">Outline</Button>);\n    button = screen.getByRole('button');\n    expect(button).toHaveClass('border', 'border-input');\n  });\n\n  it('applies size classes correctly', () => {\n    const { rerender } = render(<Button size=\"sm\">Small</Button>);\n    let button = screen.getByRole('button');\n    expect(button).toHaveClass('h-9', 'px-3');\n\n    rerender(<Button size=\"lg\">Large</Button>);\n    button = screen.getByRole('button');\n    expect(button).toHaveClass('h-11', 'px-8');\n  });\n\n  it('handles click events', async () => {\n    const user = userEvent.setup();\n    const handleClick = jest.fn();\n    render(<Button onClick={handleClick}>Click me</Button>);\n    \n    const button = screen.getByRole('button');\n    await user.click(button);\n    \n    expect(handleClick).toHaveBeenCalledTimes(1);\n  });\n\n  it('supports keyboard navigation', async () => {\n    const user = userEvent.setup();\n    const handleClick = jest.fn();\n    render(<Button onClick={handleClick}>Click me</Button>);\n    \n    const button = screen.getByRole('button');\n    button.focus();\n    expect(button).toHaveFocus();\n    \n    await user.keyboard('{Enter}');\n    expect(handleClick).toHaveBeenCalledTimes(1);\n    \n    await user.keyboard(' ');\n    expect(handleClick).toHaveBeenCalledTimes(2);\n  });\n\n  it('is disabled when disabled prop is true', () => {\n    render(<Button disabled>Disabled</Button>);\n    const button = screen.getByRole('button');\n    expect(button).toBeDisabled();\n    expect(button).toHaveClass('disabled:opacity-50', 'disabled:pointer-events-none');\n  });\n\n  it('forwards ref correctly', () => {\n    const ref = React.createRef<HTMLButtonElement>();\n    render(<Button ref={ref}>Button</Button>);\n    expect(ref.current).toBeInstanceOf(HTMLButtonElement);\n  });\n\n  it('merges custom className with default classes', () => {\n    render(<Button className=\"custom-class\">Custom</Button>);\n    const button = screen.getByRole('button');\n    expect(button).toHaveClass('custom-class');\n    expect(button).toHaveClass('bg-primary'); // Default class should still be there\n  });\n});"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mobile-app-project-010",
+      "title": "📱 Mobile Application",
+      "priority": "medium",
+      "status": "pending",
+      "comment": "React Native mobile application with cross-platform support for iOS and Android.",
+      "startDate": "2025-07-01",
+      "endDate": "2025-12-31",
+      "taskPromptForLlm": "Design a mobile app architecture using React Native with proper navigation, state management, offline capabilities, and native module integration.",
+      "cliCommand": "npx react-native init MobileApp --template typescript",
+      "children": [
+        {
+          "id": "react-native-setup-011",
+          "title": "📲 React Native Setup",
+          "priority": "high",
+          "status": "pending",
+          "comment": "Initial React Native project setup with TypeScript, navigation, and essential libraries.",
+          "code": {
+            "language": "typescript",
+            "content": "// App.tsx - Main Application Component\nimport React from 'react';\nimport { NavigationContainer } from '@react-navigation/native';\nimport { createNativeStackNavigator } from '@react-navigation/native-stack';\nimport { Provider } from 'react-redux';\nimport { PersistGate } from 'redux-persist/integration/react';\nimport { SafeAreaProvider } from 'react-native-safe-area-context';\nimport { store, persistor } from './src/store/store';\nimport { AuthProvider } from './src/contexts/AuthContext';\nimport { ThemeProvider } from './src/contexts/ThemeContext';\nimport AppNavigator from './src/navigation/AppNavigator';\nimport SplashScreen from './src/screens/SplashScreen';\nimport { enableScreens } from 'react-native-screens';\n\n// Enable native screens for better performance\nenableScreens();\n\nconst Stack = createNativeStackNavigator();\n\nconst App: React.FC = () => {\n  return (\n    <SafeAreaProvider>\n      <Provider store={store}>\n        <PersistGate loading={<SplashScreen />} persistor={persistor}>\n          <ThemeProvider>\n            <AuthProvider>\n              <NavigationContainer>\n                <AppNavigator />\n              </NavigationContainer>\n            </AuthProvider>\n          </ThemeProvider>\n        </PersistGate>\n      </Provider>\n    </SafeAreaProvider>\n  );\n};\n\nexport default App;"
+          },
+          "cliCommand": "cd mobile && npm run android"
+        }
+      ]
+    }
+  ]
+}
