@@ -134,29 +134,15 @@ class TopBarView {
         try {
             console.log('🚀 Importing JSON project:', filename);
 
-            // Extract project info
-            const projectName = jsonData.name || filename.replace('.json', '');
-            const projectDescription = jsonData.description || `Imported from ${filename}`;
+            // The server will handle JSON structure validation and node extraction
 
-            // Get nodes array
-            const nodes = Array.isArray(jsonData) ? jsonData : jsonData.nodes;
-
-            if (!nodes || nodes.length === 0) {
-                window.NotificationView?.warning('JSON file contains no nodes to import');
-                return;
-            }
-
-            // Create project via API
-            const response = await fetch('/api/projects', {
+            // Import project via API
+            const response = await fetch('/api/db/import-json', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    name: projectName,
-                    description: projectDescription,
-                    nodes: nodes
-                })
+                body: JSON.stringify(jsonData)
             });
 
             if (!response.ok) {
@@ -167,19 +153,17 @@ class TopBarView {
 
             // Show success message
             window.NotificationView?.success(
-                `Successfully imported "${projectName}" with ${this.countNodes(nodes)} nodes`
+                result.message || `Successfully imported "${filename}"`
             );
 
-            // Refresh project list and select the new project
-            if (window.ProjectController?.refreshProjects) {
-                await window.ProjectController.refreshProjects();
-            }
-
-            // Emit project creation event
+            // Emit project creation event to refresh the UI
             window.EventBus?.emit(window.EVENTS?.PROJECT_CREATED, {
                 project: result.project,
-                nodes: result.nodes
+                nodes: result.project?.nodes || []
             });
+
+            // Also emit to refresh collections if needed
+            window.EventBus?.emit(window.EVENTS?.DATA_REFRESH);
 
             console.log('✅ JSON import completed successfully');
 
