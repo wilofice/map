@@ -1682,6 +1682,79 @@ app.get('/api/db/projects/:id/nodes', (req, res) => {
     }
 });
 
+// Select a project (update last_opened and save to app_state)
+app.post('/api/db/projects/:id/select', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+
+        // Validate project exists
+        const project = db.getProject(projectId);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Update project's last_opened timestamp
+        db.updateProjectLastOpened(projectId);
+
+        // Save project ID to app_state for persistence
+        db.saveAppState('last_opened_project', projectId);
+
+        // Get updated project with nodes
+        const projectWithNodes = db.getProjectWithNodes(projectId);
+
+        console.log(`📌 Project "${project.name}" selected and saved to database for persistence`);
+
+        res.json({
+            success: true,
+            project: projectWithNodes,
+            nodes: projectWithNodes.nodes,
+            message: `Project "${project.name}" selected`
+        });
+    } catch (error) {
+        console.error('Error selecting project:', error);
+        res.status(500).json({ error: 'Failed to select project' });
+    }
+});
+
+// Get the last opened project from database
+app.get('/api/db/last-project', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const lastProjectId = db.getAppState('last_opened_project');
+
+        if (!lastProjectId) {
+            return res.json({ lastProject: null, message: 'No previous project found' });
+        }
+
+        // Check if project still exists
+        const project = db.getProject(lastProjectId);
+        if (!project) {
+            console.log('⚠️ Last opened project no longer exists, clearing app_state');
+            db.saveAppState('last_opened_project', null);
+            return res.json({ lastProject: null, message: 'Previous project no longer exists' });
+        }
+
+        // Get project with nodes
+        const projectWithNodes = db.getProjectWithNodes(lastProjectId);
+
+        res.json({
+            lastProject: projectWithNodes,
+            nodes: projectWithNodes.nodes,
+            message: `Last project: "${project.name}"`
+        });
+    } catch (error) {
+        console.error('Error getting last project:', error);
+        res.status(500).json({ error: 'Failed to get last project' });
+    }
+});
+
 // Create new node
 app.post('/api/db/nodes', (req, res) => {
     if (!db) {

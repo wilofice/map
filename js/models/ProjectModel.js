@@ -139,11 +139,23 @@ class ProjectModel {
                 this.currentProject = null;
             }
 
-            // Clear from localStorage if it was the last selected project
-            const lastProjectId = this.getLastSelectedProject();
-            if (lastProjectId === projectId) {
-                this.clearLastSelectedProject();
-                console.log('🗑️ Cleared deleted project from localStorage');
+            // Clear from database if it was the last selected project
+            try {
+                const response = await fetch('/api/db/last-project');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.lastProject && data.lastProject.id === projectId) {
+                        // Clear the last project from database
+                        await fetch('/api/db/app-state', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: 'last_opened_project', value: null })
+                        });
+                        console.log('🗑️ Cleared deleted project from database app_state');
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to clear deleted project from database:', error);
             }
 
             // Emit event for UI updates
@@ -160,23 +172,28 @@ class ProjectModel {
      */
     async selectProject(projectId) {
         try {
-            const project = await this.getProject(projectId);
-            this.currentProject = project;
+            // Use the new database-based selection endpoint
+            const response = await fetch(`/api/db/projects/${projectId}/select`, {
+                method: 'POST'
+            });
 
-            // Load project nodes
-            const nodes = await this.api.getProjectNodes(projectId);
-            project.nodes = nodes;
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
 
-            // Save to localStorage for persistence across page reloads
-            this.saveLastSelectedProject(projectId);
+            const data = await response.json();
+            this.currentProject = data.project;
+
+            // Update cache
+            this.cache.set(projectId, data.project);
 
             // Emit event for UI updates
             window.EventBus?.emit(window.EVENTS?.PROJECT_SELECTED, {
                 project: this.currentProject,
-                nodes
+                nodes: data.nodes
             });
 
-            console.log(`💾 Project "${project.name}" selected and saved to localStorage`);
+            console.log(`💾 Project "${data.project.name}" selected and saved to database for persistence`);
             return this.currentProject;
         } catch (error) {
             console.error(`❌ Failed to select project ${projectId}:`, error);
@@ -248,67 +265,39 @@ class ProjectModel {
     }
 
     /**
-     * Save last selected project to localStorage
-     */
-    saveLastSelectedProject(projectId) {
-        try {
-            localStorage.setItem('mindmap_last_project', projectId);
-        } catch (error) {
-            console.warn('⚠️ Failed to save last selected project to localStorage:', error);
-        }
-    }
-
-    /**
-     * Get last selected project from localStorage
-     */
-    getLastSelectedProject() {
-        try {
-            return localStorage.getItem('mindmap_last_project');
-        } catch (error) {
-            console.warn('⚠️ Failed to read last selected project from localStorage:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Restore last selected project on app startup
+     * Restore last selected project from database on app startup
      */
     async restoreLastSelectedProject() {
         try {
-            const lastProjectId = this.getLastSelectedProject();
-            if (!lastProjectId) {
-                console.log('🔄 No previous project found in localStorage');
+            console.log('🔄 Attempting to restore last project from database...');
+
+            const response = await fetch('/api/db/last-project');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.lastProject) {
+                console.log('🔄 No previous project found in database');
                 return null;
             }
 
-            console.log(`🔄 Attempting to restore last project: ${lastProjectId}`);
+            // Set current project and emit events
+            this.currentProject = data.lastProject;
+            this.cache.set(data.lastProject.id, data.lastProject);
 
-            // Check if the project still exists
-            const project = await this.getProject(lastProjectId);
-            if (project) {
-                await this.selectProject(lastProjectId);
-                console.log(`✅ Successfully restored project: "${project.name}"`);
-                return project;
-            } else {
-                console.log('⚠️ Last project no longer exists, clearing localStorage');
-                this.clearLastSelectedProject();
-                return null;
-            }
+            // Emit event for UI updates
+            window.EventBus?.emit(window.EVENTS?.PROJECT_SELECTED, {
+                project: this.currentProject,
+                nodes: data.nodes
+            });
+
+            console.log(`✅ Successfully restored project from database: "${data.lastProject.name}"`);
+            return this.currentProject;
         } catch (error) {
-            console.warn('⚠️ Failed to restore last selected project:', error);
-            this.clearLastSelectedProject();
+            console.warn('⚠️ Failed to restore last selected project from database:', error);
             return null;
-        }
-    }
-
-    /**
-     * Clear last selected project from localStorage
-     */
-    clearLastSelectedProject() {
-        try {
-            localStorage.removeItem('mindmap_last_project');
-        } catch (error) {
-            console.warn('⚠️ Failed to clear last selected project from localStorage:', error);
         }
     }
 
