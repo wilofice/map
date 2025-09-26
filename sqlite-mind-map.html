@@ -326,6 +326,9 @@
                 // Load file list for current folder
                 await loadFileList(currentFolder);
 
+                // Update database stats in the sidebar
+                await updateDatabaseStats();
+
                 // Try to load last opened file from localStorage
                 const lastFile = localStorage.getItem('lastOpenedFile');
                 if (lastFile && lastFile !== 'undefined') {
@@ -1832,7 +1835,7 @@
                 project_id: projectId,
                 parent_id: parentId,
                 title: nodeData.title || 'Untitled',
-                comment: nodeData.comment || '',
+                content: nodeData.comment || '',  // Database uses 'content', JSON uses 'comment'
                 priority: nodeData.priority || 'medium',
                 status: nodeData.status || 'pending',
                 start_date: nodeData.startDate || null,
@@ -1943,7 +1946,7 @@
                 title: dbNode.title || 'Untitled',
                 priority: dbNode.priority || 'medium',
                 status: dbNode.status || 'pending',
-                comment: dbNode.comment || '',
+                comment: dbNode.content || '',  // Database uses 'content', mind map uses 'comment'
                 startDate: dbNode.start_date || '',
                 endDate: dbNode.end_date || '',
                 daysSpent: dbNode.days_spent || 0,
@@ -1967,6 +1970,47 @@
             }
 
             return mindMapNode;
+        }
+
+        async function updateDatabaseStats() {
+            try {
+                // Fetch database stats from the server
+                const response = await fetch('/api/db/stats');
+                if (!response.ok) throw new Error('Failed to fetch database stats');
+
+                const stats = await response.json();
+
+                // Update the UI elements
+                const projectCountElement = document.getElementById('projectCount');
+                const nodeCountElement = document.getElementById('nodeCount');
+                const dbSizeElement = document.getElementById('dbSize');
+
+                if (projectCountElement) {
+                    projectCountElement.textContent = stats.projects || 0;
+                }
+
+                if (nodeCountElement) {
+                    nodeCountElement.textContent = stats.nodes || 0;
+                }
+
+                if (dbSizeElement) {
+                    const sizeInKB = Math.round((stats.databaseSize || 0) / 1024);
+                    dbSizeElement.textContent = `${sizeInKB} KB`;
+                }
+
+                console.log('Database stats updated:', stats);
+
+            } catch (error) {
+                console.error('Error updating database stats:', error);
+                // Set fallback values instead of failing
+                const projectCountElement = document.getElementById('projectCount');
+                const nodeCountElement = document.getElementById('nodeCount');
+                const dbSizeElement = document.getElementById('dbSize');
+
+                if (projectCountElement) projectCountElement.textContent = '?';
+                if (nodeCountElement) nodeCountElement.textContent = '?';
+                if (dbSizeElement) dbSizeElement.textContent = '? KB';
+            }
         }
 
         // Sidebar toggle
