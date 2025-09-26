@@ -52,6 +52,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             }
         }, 1500);
+
+        // Restore last selected project after everything is loaded
+        setTimeout(async () => {
+            console.log('🔄 Attempting to restore last selected project...');
+            if (window.ProjectModel) {
+                try {
+                    const restoredProject = await window.ProjectModel.restoreLastSelectedProject();
+                    if (restoredProject) {
+                        window.NotificationView?.success(`Restored project: "${restoredProject.name}"`, 4000);
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to restore last selected project:', error);
+                }
+            }
+        }, 2000);
         
     } catch (error) {
         console.error('❌ Failed to initialize application:', error);

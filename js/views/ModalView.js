@@ -259,9 +259,6 @@ class ModalView {
                         <div class="project-item" data-id="${project.id}">
                             <div class="project-content" onclick="window.ProjectController?.select('${project.id}')">
                                 <div class="project-name">${project.name}</div>
-                                <div class="project-info">
-                                    <small>Updated: ${new Date(project.updated_at).toLocaleDateString()}</small>
-                                </div>
                             </div>
                             <div class="project-actions">
                                 <select class="assign-select" title="Move to collection" onchange="(function(sel){ const val=sel.value; if(val==='')return; if(val==='__none'){ window.ProjectController?.moveToCollection(null, '${project.id}'); } else { window.ProjectController?.moveToCollection(val, '${project.id}'); } sel.value=''; })(this)">

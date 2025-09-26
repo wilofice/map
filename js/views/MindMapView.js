@@ -235,8 +235,10 @@ class MindMapView {
                 const nodeWrapper = e.target.closest('.node-wrapper');
                 const codeContainer = nodeWrapper?.querySelector('.node-code');
                 if (codeContainer) {
-                    const isVisible = codeContainer.style.display !== 'none';
+                    const computedStyle = window.getComputedStyle(codeContainer);
+                    const isVisible = computedStyle.display !== 'none';
                     codeContainer.style.display = isVisible ? 'none' : 'block';
+                    console.log('🔄 Code block toggled:', isVisible ? 'hiding' : 'showing');
                 }
             }
 
@@ -245,8 +247,10 @@ class MindMapView {
                 const nodeWrapper = e.target.closest('.node-wrapper');
                 const taskContainer = nodeWrapper?.querySelector('.node-task-prompt');
                 if (taskContainer) {
-                    const isVisible = taskContainer.style.display !== 'none';
+                    const computedStyle = window.getComputedStyle(taskContainer);
+                    const isVisible = computedStyle.display !== 'none';
                     taskContainer.style.display = isVisible ? 'none' : 'block';
+                    console.log('🤖 Task prompt toggled:', isVisible ? 'hiding' : 'showing');
                 }
             }
 
@@ -255,8 +259,10 @@ class MindMapView {
                 const nodeWrapper = e.target.closest('.node-wrapper');
                 const cliContainer = nodeWrapper?.querySelector('.node-cli-command');
                 if (cliContainer) {
-                    const isVisible = cliContainer.style.display !== 'none';
+                    const computedStyle = window.getComputedStyle(cliContainer);
+                    const isVisible = computedStyle.display !== 'none';
                     cliContainer.style.display = isVisible ? 'none' : 'block';
+                    console.log('⚡ CLI command toggled:', isVisible ? 'hiding' : 'showing');
                 }
             }
 

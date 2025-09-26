@@ -1597,9 +1597,9 @@ h1 {
 .project-selector-modal .modal-content {
     background: var(--color-bg);
     border-radius: 8px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
+    width: 70%;
+    max-width: 500px;
+    max-height: 70vh;
     overflow: hidden;
     border: 1px solid var(--color-border);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
@@ -1636,9 +1636,15 @@ h1 {
 }
 
 .project-selector-modal .modal-body {
-    padding: 1.5rem;
-    max-height: 60vh;
+    padding: 1rem;
+    max-height: 50vh;
     overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.project-selector-modal .modal-body::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
 }
 
 .project-selector-modal .project-list {
@@ -1659,7 +1665,7 @@ h1 {
 
 .project-selector-modal .project-content {
     flex: 1;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     cursor: pointer;
 }
 
@@ -1692,15 +1698,14 @@ h1 {
 .project-selector-modal .project-name {
     font-weight: 500;
     color: var(--color-text);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
 }
 
-.project-selector-modal .project-info {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-}
+/* Removed .project-info - no longer used */
 
 .project-selector-modal .loading,
 .project-selector-modal .empty-message,

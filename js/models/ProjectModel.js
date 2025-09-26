@@ -129,7 +129,7 @@ class ProjectModel {
     async deleteProject(projectId) {
         try {
             await this.api.deleteProject(projectId);
-            
+
             // Remove from cache and projects array
             this.cache.delete(projectId);
             this.projects = this.projects.filter(p => p.id !== projectId);
@@ -137,6 +137,13 @@ class ProjectModel {
             // Clear current project if it's the one being deleted
             if (this.currentProject && this.currentProject.id === projectId) {
                 this.currentProject = null;
+            }
+
+            // Clear from localStorage if it was the last selected project
+            const lastProjectId = this.getLastSelectedProject();
+            if (lastProjectId === projectId) {
+                this.clearLastSelectedProject();
+                console.log('🗑️ Cleared deleted project from localStorage');
             }
 
             // Emit event for UI updates
@@ -160,12 +167,16 @@ class ProjectModel {
             const nodes = await this.api.getProjectNodes(projectId);
             project.nodes = nodes;
 
+            // Save to localStorage for persistence across page reloads
+            this.saveLastSelectedProject(projectId);
+
             // Emit event for UI updates
-            window.EventBus?.emit(window.EVENTS?.PROJECT_SELECTED, { 
+            window.EventBus?.emit(window.EVENTS?.PROJECT_SELECTED, {
                 project: this.currentProject,
-                nodes 
+                nodes
             });
 
+            console.log(`💾 Project "${project.name}" selected and saved to localStorage`);
             return this.currentProject;
         } catch (error) {
             console.error(`❌ Failed to select project ${projectId}:`, error);
@@ -234,6 +245,71 @@ class ProjectModel {
      */
     getProjectsWithoutCollection() {
         return this.projects.filter(project => !project.collection_id);
+    }
+
+    /**
+     * Save last selected project to localStorage
+     */
+    saveLastSelectedProject(projectId) {
+        try {
+            localStorage.setItem('mindmap_last_project', projectId);
+        } catch (error) {
+            console.warn('⚠️ Failed to save last selected project to localStorage:', error);
+        }
+    }
+
+    /**
+     * Get last selected project from localStorage
+     */
+    getLastSelectedProject() {
+        try {
+            return localStorage.getItem('mindmap_last_project');
+        } catch (error) {
+            console.warn('⚠️ Failed to read last selected project from localStorage:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Restore last selected project on app startup
+     */
+    async restoreLastSelectedProject() {
+        try {
+            const lastProjectId = this.getLastSelectedProject();
+            if (!lastProjectId) {
+                console.log('🔄 No previous project found in localStorage');
+                return null;
+            }
+
+            console.log(`🔄 Attempting to restore last project: ${lastProjectId}`);
+
+            // Check if the project still exists
+            const project = await this.getProject(lastProjectId);
+            if (project) {
+                await this.selectProject(lastProjectId);
+                console.log(`✅ Successfully restored project: "${project.name}"`);
+                return project;
+            } else {
+                console.log('⚠️ Last project no longer exists, clearing localStorage');
+                this.clearLastSelectedProject();
+                return null;
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to restore last selected project:', error);
+            this.clearLastSelectedProject();
+            return null;
+        }
+    }
+
+    /**
+     * Clear last selected project from localStorage
+     */
+    clearLastSelectedProject() {
+        try {
+            localStorage.removeItem('mindmap_last_project');
+        } catch (error) {
+            console.warn('⚠️ Failed to clear last selected project from localStorage:', error);
+        }
     }
 
     /**
