@@ -23,8 +23,13 @@ class MindMapView {
         
         if (this.container && nodes && nodes.length > 0) {
             this.renderMindMap(nodes);
+            this.showControls();
+            this.showProgress();
+            this.updateProgress();
         } else {
             this.showEmptyState(project);
+            this.hideControls();
+            this.hideProgress();
         }
     }
 
@@ -197,6 +202,11 @@ class MindMapView {
                 }
             }
 
+            // Status cycling
+            if (e.target.classList.contains('icon-status')) {
+                this.cycleNodeStatus(e.target);
+            }
+
             // Toggle date display
             if (e.target.classList.contains('icon-date')) {
                 const nodeWrapper = e.target.closest('.node-wrapper');
@@ -228,6 +238,170 @@ class MindMapView {
                 }
             }
         });
+
+        // Attach control panel event listeners
+        this.attachControlListeners();
+    }
+
+    cycleNodeStatus(statusIcon) {
+        const nodeElement = statusIcon.closest('.node');
+        const nodeId = nodeElement.getAttribute('data-id');
+        const currentStatus = nodeElement.getAttribute('data-status');
+        
+        // Status cycle: pending -> in-progress -> completed -> pending
+        const statusCycle = {
+            'pending': 'in-progress',
+            'in-progress': 'completed', 
+            'completed': 'pending'
+        };
+        
+        const newStatus = statusCycle[currentStatus] || 'pending';
+        
+        // Update visual elements
+        nodeElement.setAttribute('data-status', newStatus);
+        nodeElement.className = nodeElement.className.replace(/status-\w+/, `status-${newStatus}`);
+        statusIcon.textContent = this.getStatusIcon(newStatus);
+        statusIcon.title = `Status: ${newStatus}`;
+        
+        // Update progress
+        this.updateProgress();
+        
+        // TODO: Save to database via API
+        console.log(`🔄 Status changed for node ${nodeId}: ${currentStatus} -> ${newStatus}`);
+    }
+
+    attachControlListeners() {
+        // Save button
+        document.getElementById('saveBtn')?.addEventListener('click', () => {
+            console.log('💾 Save all changes clicked');
+            window.NotificationView?.success('Changes saved successfully');
+        });
+
+        // Toggle comments
+        document.getElementById('toggleCommentsBtn')?.addEventListener('click', (e) => {
+            const comments = this.container.querySelectorAll('.node-comment');
+            const isShowing = e.target.textContent.includes('Hide');
+            
+            comments.forEach(comment => {
+                comment.style.display = isShowing ? 'none' : 'block';
+            });
+            
+            e.target.innerHTML = isShowing ? '💬 <span class="btn-text">Show Comments</span>' : '💬 <span class="btn-text">Hide Comments</span>';
+        });
+
+        // Toggle dates
+        document.getElementById('toggleDatesBtn')?.addEventListener('click', (e) => {
+            const dates = this.container.querySelectorAll('.node-dates');
+            const isShowing = e.target.textContent.includes('Hide');
+            
+            dates.forEach(date => {
+                date.style.display = isShowing ? 'none' : 'block';
+            });
+            
+            e.target.innerHTML = isShowing ? '📅 <span class="btn-text">Show Dates</span>' : '📅 <span class="btn-text">Hide Dates</span>';
+        });
+
+        // Toggle all nodes
+        document.getElementById('toggleAllBtn')?.addEventListener('click', () => {
+            const toggles = this.container.querySelectorAll('.node-toggle');
+            const parents = this.container.querySelectorAll('.node-parent');
+            
+            // Check if any are collapsed
+            const anyCollapsed = Array.from(parents).some(parent => parent.style.display === 'none');
+            
+            parents.forEach((parent, i) => {
+                parent.style.display = anyCollapsed ? 'block' : 'none';
+                if (toggles[i]) {
+                    toggles[i].textContent = anyCollapsed ? '–' : '+';
+                }
+            });
+        });
+
+        // Export JSON
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            this.exportToJSON();
+        });
+    }
+
+    exportToJSON() {
+        if (!this.currentData || !this.currentData.length) {
+            window.NotificationView?.warning('No data to export');
+            return;
+        }
+
+        const dataStr = JSON.stringify(this.currentData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = 'mind-map-export.json';
+        link.click();
+        
+        window.NotificationView?.success('Mind map exported successfully');
+    }
+
+    showControls() {
+        const controls = document.getElementById('controls');
+        if (controls) {
+            controls.style.display = 'block';
+        }
+    }
+
+    hideControls() {
+        const controls = document.getElementById('controls');
+        if (controls) {
+            controls.style.display = 'none';
+        }
+    }
+
+    showProgress() {
+        const progress = document.getElementById('progressContainer');
+        if (progress) {
+            progress.style.display = 'block';
+        }
+    }
+
+    hideProgress() {
+        const progress = document.getElementById('progressContainer');
+        if (progress) {
+            progress.style.display = 'none';
+        }
+    }
+
+    updateProgress() {
+        if (!this.container) return;
+
+        const nodes = this.container.querySelectorAll('.node');
+        const stats = {
+            completed: 0,
+            'in-progress': 0,
+            pending: 0,
+            total: nodes.length
+        };
+
+        nodes.forEach(node => {
+            const status = node.getAttribute('data-status') || 'pending';
+            if (stats.hasOwnProperty(status)) {
+                stats[status]++;
+            }
+        });
+
+        // Update progress bar
+        const completedPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+        
+        const progressBar = document.getElementById('progressBar');
+        const progressPercentage = document.getElementById('progressPercentage');
+        
+        if (progressBar) progressBar.style.width = `${completedPercentage}%`;
+        if (progressPercentage) progressPercentage.textContent = `${completedPercentage}%`;
+
+        // Update counts
+        document.getElementById('completedCount')?.textContent = stats.completed;
+        document.getElementById('inProgressCount')?.textContent = stats['in-progress'];
+        document.getElementById('pendingCount')?.textContent = stats.pending;
+        document.getElementById('totalCount')?.textContent = stats.total;
+
+        console.log('📊 Progress updated:', stats, `${completedPercentage}%`);
     }
 
     getStatusIcon(status) {

@@ -152,7 +152,12 @@ class CollectionView {
         this.projectTabs.innerHTML = '';
 
         if (!projects || projects.length === 0) {
-            this.projectTabs.innerHTML = '<span class="no-projects">No projects in this collection</span>';
+            this.projectTabs.innerHTML = `
+                <div class="no-projects">
+                    <p>📂 No projects in "${this.escapeHtml(collection.name)}" collection</p>
+                    <button class="btn btn-sm btn-primary" onclick="window.ProjectController?.createNew()">➕ Create First Project</button>
+                </div>
+            `;
             return;
         }
 
@@ -163,11 +168,16 @@ class CollectionView {
             tab.setAttribute('data-project-id', project.id);
             tab.innerHTML = `
                 <span class="project-tab-name">${this.escapeHtml(project.name)}</span>
-                <span class="project-tab-nodes">(${project.node_count || 0})</span>
+                <span class="project-tab-nodes">${project.node_count || 0} nodes</span>
             `;
 
             // Add click handler
             tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                this.projectTabs.querySelectorAll('.project-tab').forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                // Select project
                 window.ProjectController?.select(project.id);
             });
 

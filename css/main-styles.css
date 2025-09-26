@@ -206,9 +206,13 @@ body {
 /* Collection Navigation (hidden initially) */
 .collection-nav {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.5rem;
     margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .collection-select {
@@ -218,22 +222,68 @@ body {
     padding: 0.5rem;
     border-radius: 0.375rem;
     font-size: 0.875rem;
+    width: 100%;
+    max-width: 300px;
 }
 
 .project-tabs {
     display: flex;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.no-projects {
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.no-projects p {
+    margin: 0 0 1rem 0;
+    font-style: italic;
+}
+
+.no-projects button {
+    background: rgba(66, 153, 225, 0.3);
+    border: 1px solid rgba(66, 153, 225, 0.5);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.no-projects button:hover {
+    background: rgba(66, 153, 225, 0.5);
 }
 
 .project-tab {
     background: rgba(66, 153, 225, 0.2);
     border: 1px solid rgba(66, 153, 225, 0.4);
     color: var(--color-text);
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: fit-content;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.project-tab-name {
+    font-weight: 500;
+}
+
+.project-tab-nodes {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
 }
 
 .project-tab.active {
