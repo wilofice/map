@@ -5,6 +5,7 @@ class MindMapView {
     constructor() {
         this.container = null;
         this.currentData = null;
+        this._controlsAttached = false;
         this.bindEvents();
         this.initialize();
     }
@@ -22,6 +23,8 @@ class MindMapView {
         console.log('🗺️ MindMapView: Rendering project', project?.name, 'with', nodes?.length, 'nodes');
         
         if (this.container && nodes && nodes.length > 0) {
+            // Keep a reference to current nodes for export and other ops
+            this.currentData = nodes;
             this.renderMindMap(nodes);
             this.showControls();
             this.showProgress();
@@ -239,8 +242,11 @@ class MindMapView {
             }
         });
 
-        // Attach control panel event listeners
-        this.attachControlListeners();
+        // Attach control panel event listeners once
+        if (!this._controlsAttached) {
+            this.attachControlListeners();
+            this._controlsAttached = true;
+        }
     }
 
     cycleNodeStatus(statusIcon) {
@@ -395,11 +401,15 @@ class MindMapView {
         if (progressBar) progressBar.style.width = `${completedPercentage}%`;
         if (progressPercentage) progressPercentage.textContent = `${completedPercentage}%`;
 
-        // Update counts
-        document.getElementById('completedCount')?.textContent = stats.completed;
-        document.getElementById('inProgressCount')?.textContent = stats['in-progress'];
-        document.getElementById('pendingCount')?.textContent = stats.pending;
-        document.getElementById('totalCount')?.textContent = stats.total;
+    // Update counts (optional chaining cannot be used on assignment targets)
+    const completedEl = document.getElementById('completedCount');
+    const inProgressEl = document.getElementById('inProgressCount');
+    const pendingEl = document.getElementById('pendingCount');
+    const totalEl = document.getElementById('totalCount');
+    if (completedEl) completedEl.textContent = String(stats.completed);
+    if (inProgressEl) inProgressEl.textContent = String(stats['in-progress']);
+    if (pendingEl) pendingEl.textContent = String(stats.pending);
+    if (totalEl) totalEl.textContent = String(stats.total);
 
         console.log('📊 Progress updated:', stats, `${completedPercentage}%`);
     }

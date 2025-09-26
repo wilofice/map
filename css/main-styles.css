@@ -204,15 +204,26 @@ body {
 }
 
 /* Collection Navigation (hidden initially) */
+.project-section { position: relative; }
+
 .collection-nav {
+    position: absolute;
+    top: calc(100% + 6px); /* render just below top-bar content */
+    left: 0;
+    right: auto;
+    z-index: 1100; /* above top bar */
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    max-height: 50vh;
+    overflow: auto;
 }
 
 .collection-select {
@@ -231,6 +242,7 @@ body {
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: flex-start;
+    max-width: min(70vw, 1000px);
 }
 
 .no-projects {
@@ -682,6 +694,9 @@ body {
     margin-top: 0;
     border-radius: 12px;
 }
+
+/* Ensure content below fixed top bar doesn't peek behind */
+.container { position: relative; z-index: 1; }
 
 .container {
     background: transparent;
