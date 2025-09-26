@@ -19,11 +19,33 @@ class ProjectController {
      */
     async select(projectId) {
         try {
-            await window.ProjectModel?.selectProject(projectId);
+            const project = await window.ProjectModel?.selectProject(projectId);
+            // Update the project name in top bar and show assign control via event listeners
+            window.EventBus?.emit(window.EVENTS?.PROJECT_UPDATED, { project });
             window.EventBus?.emit(window.EVENTS?.UI_HIDE_MODAL);
         } catch (error) {
             console.error('❌ Failed to select project:', error);
             window.NotificationView?.error('Failed to select project: ' + error.message);
+        }
+    }
+
+    /**
+     * Move current or specified project to a collection (or remove by null)
+     */
+    async moveToCollection(collectionId, projectId = null) {
+        try {
+            const project = projectId ? await window.ProjectModel?.getProject(projectId) : window.ProjectModel?.getCurrentProject();
+            if (!project) return;
+            await window.ProjectModel?.assignToCollection(project.id, collectionId);
+            // Refresh models/views
+            const updated = await window.ProjectModel?.getProject(project.id, true);
+            window.EventBus?.emit(window.EVENTS?.PROJECT_UPDATED, { project: updated });
+            if (window.CollectionModel?.currentCollection) {
+                await window.CollectionController?.select(window.CollectionModel.currentCollection.id);
+            }
+        } catch (error) {
+            console.error('❌ Failed to move project to collection:', error);
+            window.NotificationView?.error('Failed to move project: ' + error.message);
         }
     }
 

@@ -3,6 +3,8 @@
  */
 class TopBarView {
     constructor() {
+        this.assignContainer = null;
+        this.assignSelect = null;
         this.bindEvents();
         this.initialize();
     }
@@ -15,6 +17,14 @@ class TopBarView {
     initialize() {
         // Setup event listeners for top bar buttons
         this.setupButtonEvents();
+        this.assignContainer = document.getElementById('assignCollection');
+        this.assignSelect = document.getElementById('assignCollectionSelect');
+        this.setupAssignSelect();
+
+        // React to project and collection data
+        window.EventBus?.on(window.EVENTS?.PROJECT_SELECTED, (data) => this.showAssignForProject(data?.project));
+        window.EventBus?.on(window.EVENTS?.COLLECTIONS_LOADED, () => this.refreshAssignOptions());
+        window.EventBus?.on(window.EVENTS?.PROJECT_UPDATED, (e) => this.syncAssignValue(e?.project));
     }
 
     setupButtonEvents() {
@@ -53,6 +63,73 @@ class TopBarView {
             const topBar = document.querySelector('.top-bar');
             topBar?.classList.toggle('collapsed');
         });
+    }
+
+    setupAssignSelect() {
+        if (!this.assignSelect) return;
+        this.assignSelect.addEventListener('change', async (e) => {
+            const project = window.ProjectModel?.getCurrentProject();
+            if (!project) return;
+            const val = e.target.value;
+            try {
+                if (val === '') {
+                    // Reset selection; do nothing
+                    this.syncAssignValue(project);
+                    return;
+                }
+                if (val === '__none') {
+                    await window.ProjectModel?.assignToCollection(project.id, null);
+                    window.NotificationView?.success(`Removed "${project.name}" from its collection`);
+                } else {
+                    await window.ProjectModel?.assignToCollection(project.id, val);
+                    const col = window.CollectionModel?.cache?.get?.(val) || window.CollectionModel?.getAllCollections()?.find(c => c.id === val);
+                    window.NotificationView?.success(`Moved "${project.name}" to collection "${col?.name || 'Selected'}"`);
+                }
+                // Refresh current collection view if it’s showing the affected list
+                if (window.CollectionModel?.currentCollection) {
+                    window.CollectionController?.select(window.CollectionModel.currentCollection.id);
+                }
+                // Ensure UI shows updated value
+                const updated = await window.ProjectModel?.getProject(project.id, true);
+                this.syncAssignValue(updated);
+            } catch (err) {
+                console.error('Assign to collection failed:', err);
+                window.NotificationView?.error('Failed to move project to collection');
+                this.syncAssignValue(project);
+            }
+        });
+    }
+
+    showAssignForProject(project) {
+        if (!this.assignContainer || !this.assignSelect) return;
+        // Show control when a project is active
+        this.assignContainer.style.display = project ? 'flex' : 'none';
+        if (project) {
+            this.refreshAssignOptions();
+            this.syncAssignValue(project);
+        }
+    }
+
+    refreshAssignOptions() {
+        if (!this.assignSelect) return;
+        const collections = window.CollectionModel?.getAllCollections?.() || [];
+        // Preserve first two options
+        while (this.assignSelect.options.length > 2) {
+            this.assignSelect.remove(2);
+        }
+        collections.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `📚 ${c.name}`;
+            this.assignSelect.appendChild(opt);
+        });
+    }
+
+    syncAssignValue(project) {
+        if (!this.assignSelect || !project) return;
+        const val = project.collection_id ?? '';
+        // If project has no collection, keep placeholder selected (not __none)
+        this.assignSelect.value = val === '' || val === null ? '' : String(val);
     }
 
     handleAppReady() {

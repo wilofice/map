@@ -261,10 +261,16 @@ class ModalView {
                                 <div class="project-name">${project.name}</div>
                                 <div class="project-info">
                                     <small>Updated: ${new Date(project.updated_at).toLocaleDateString()}</small>
-                                    <small>Nodes: ${project.node_count || 0}</small>
                                 </div>
                             </div>
-                            <button class="project-delete-btn" onclick="window.ProjectController?.delete('${project.id}')" title="Delete Project">🗑️</button>
+                            <div class="project-actions">
+                                <select class="assign-select" title="Move to collection" onchange="(function(sel){ const val=sel.value; if(val==='')return; if(val==='__none'){ window.ProjectController?.moveToCollection(null, '${project.id}'); } else { window.ProjectController?.moveToCollection(val, '${project.id}'); } sel.value=''; })(this)">
+                                    <option value="">Move…</option>
+                                    <option value="__none">— Remove from collection —</option>
+                                    ${(window.CollectionModel?.getAllCollections?.()||[]).map(c=>`<option value="${c.id}">📚 ${c.name}</option>`).join('')}
+                                </select>
+                                <button class="project-delete-btn" onclick="window.ProjectController?.delete('${project.id}')" title="Delete Project">🗑️</button>
+                            </div>
                         </div>
                     `).join('');
                 }

@@ -62,6 +62,10 @@ class CollectionView {
         console.log('📚 CollectionView: Collection selected', data);
         this.currentCollection = data.collection;
         this.updateCollectionDisplay(data.collection, data.projects);
+        // Sync assign select options/value
+        window.TopBarView?.refreshAssignOptions?.();
+        const current = window.ProjectModel?.getCurrentProject?.();
+        if (current) window.TopBarView?.syncAssignValue?.(current);
     }
 
     handleCollectionCreated(data) {
@@ -99,6 +103,11 @@ class CollectionView {
             option.textContent = collection.name;
             this.collectionSelect.appendChild(option);
         });
+
+        // Show nav if we have collections to choose
+        if (this.collectionNav) {
+            this.collectionNav.style.display = collections.length > 0 ? 'flex' : 'none';
+        }
 
         console.log('📚 CollectionView: Populated', collections.length, 'collections in dropdown');
     }
@@ -152,24 +161,17 @@ class CollectionView {
         this.projectTabs.innerHTML = '';
 
         if (!projects || projects.length === 0) {
-            this.projectTabs.innerHTML = `
-                <div class="no-projects">
-                    <p>📂 No projects in "${this.escapeHtml(collection.name)}" collection</p>
-                    <button class="btn btn-sm btn-primary" onclick="window.ProjectController?.createNew()">➕ Create First Project</button>
-                </div>
-            `;
+            // Keep compact, no large empty state block in top bar
             return;
         }
 
         // Create project tabs
+        const selectedId = window.ProjectModel?.getCurrentProject?.()?.id;
         projects.forEach(project => {
             const tab = document.createElement('div');
-            tab.className = 'project-tab';
+            tab.className = 'project-tab' + (selectedId && selectedId === project.id ? ' active' : '');
             tab.setAttribute('data-project-id', project.id);
-            tab.innerHTML = `
-                <span class="project-tab-name">${this.escapeHtml(project.name)}</span>
-                <span class="project-tab-nodes">${project.node_count || 0} nodes</span>
-            `;
+            tab.innerHTML = `<span class="project-tab-name">${this.escapeHtml(project.name)}</span>`;
 
             // Add click handler
             tab.addEventListener('click', () => {
