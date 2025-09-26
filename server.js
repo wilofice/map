@@ -1538,8 +1538,8 @@ function importNodesToProject(projectId, nodes, parentId = null) {
 
         // Handle advanced features
         const codeContent = nodeData.code ? JSON.stringify(nodeData.code) : null;
-        const taskPrompt = nodeData.taskPromptForLlm || null;
-        const cliCommand = nodeData.cliCommand || null;
+        const taskPrompt = nodeData.taskPromptForLlm || nodeData.task_prompt || null;
+        const cliCommand = nodeData.cliCommand || nodeData.cli_command || null;
 
         // Create the node in database
         const nodeDataForDB = {

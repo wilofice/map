@@ -220,13 +220,43 @@ class MindMapView {
                 }
             }
 
-            // Toggle comment display  
+            // Toggle comment display
             if (e.target.classList.contains('icon-comment')) {
                 const nodeWrapper = e.target.closest('.node-wrapper');
                 const commentContainer = nodeWrapper?.querySelector('.node-comment');
                 if (commentContainer) {
                     const isVisible = commentContainer.style.display !== 'none';
                     commentContainer.style.display = isVisible ? 'none' : 'block';
+                }
+            }
+
+            // Toggle code display
+            if (e.target.classList.contains('icon-code')) {
+                const nodeWrapper = e.target.closest('.node-wrapper');
+                const codeContainer = nodeWrapper?.querySelector('.node-code');
+                if (codeContainer) {
+                    const isVisible = codeContainer.style.display !== 'none';
+                    codeContainer.style.display = isVisible ? 'none' : 'block';
+                }
+            }
+
+            // Toggle task prompt display
+            if (e.target.classList.contains('icon-task')) {
+                const nodeWrapper = e.target.closest('.node-wrapper');
+                const taskContainer = nodeWrapper?.querySelector('.node-task-prompt');
+                if (taskContainer) {
+                    const isVisible = taskContainer.style.display !== 'none';
+                    taskContainer.style.display = isVisible ? 'none' : 'block';
+                }
+            }
+
+            // Toggle CLI command display
+            if (e.target.classList.contains('icon-cli')) {
+                const nodeWrapper = e.target.closest('.node-wrapper');
+                const cliContainer = nodeWrapper?.querySelector('.node-cli-command');
+                if (cliContainer) {
+                    const isVisible = cliContainer.style.display !== 'none';
+                    cliContainer.style.display = isVisible ? 'none' : 'block';
                 }
             }
 

@@ -1,0 +1,60 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "Enhanced Features Test",
+  "description": "Test project to verify LLM prompts and CLI commands display",
+  "nodes": [
+    {
+      "id": "test-root",
+      "title": "Enhanced Features Testing",
+      "status": "in-progress",
+      "priority": "high",
+      "comment": "This project tests all enhanced node features including LLM prompts and CLI commands.",
+      "children": [
+        {
+          "id": "test-task-prompt",
+          "title": "Node with LLM Task Prompt",
+          "status": "pending",
+          "priority": "medium",
+          "comment": "This node contains a task prompt for AI assistance.",
+          "task_prompt": "Please help me analyze the performance bottlenecks in this React application. Focus on:\n1. Component re-rendering issues\n2. Memory leaks\n3. Bundle size optimization\n4. API call efficiency\n\nProvide specific recommendations with code examples."
+        },
+        {
+          "id": "test-cli-command",
+          "title": "Node with CLI Command",
+          "status": "pending",
+          "priority": "medium",
+          "comment": "This node contains a CLI command for automation.",
+          "cli_command": "npm run build && npm run test:coverage && npm run deploy:staging"
+        },
+        {
+          "id": "test-code-block",
+          "title": "Node with Code Block",
+          "status": "completed",
+          "priority": "low",
+          "comment": "This node contains a code example.",
+          "code": {
+            "language": "javascript",
+            "content": "// Example React hook for data fetching\nimport { useState, useEffect } from 'react';\n\nexport const useApiData = (url) => {\n  const [data, setData] = useState(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState(null);\n\n  useEffect(() => {\n    fetch(url)\n      .then(response => response.json())\n      .then(setData)\n      .catch(setError)\n      .finally(() => setLoading(false));\n  }, [url]);\n\n  return { data, loading, error };\n};"
+          }
+        },
+        {
+          "id": "test-all-features",
+          "title": "Node with All Features",
+          "status": "in-progress",
+          "priority": "high",
+          "startDate": "2025-09-26",
+          "endDate": "2025-09-30",
+          "daysSpent": 2,
+          "comment": "This comprehensive node demonstrates all available features working together.",
+          "code": {
+            "language": "python",
+            "content": "# Advanced data processing script\nimport pandas as pd\nimport numpy as np\nfrom sklearn.model_selection import train_test_split\n\ndef process_dataset(filepath):\n    df = pd.read_csv(filepath)\n    X = df.drop('target', axis=1)\n    y = df['target']\n    return train_test_split(X, y, test_size=0.2)"
+          },
+          "task_prompt": "Optimize this machine learning pipeline by:\n1. Adding feature selection\n2. Implementing cross-validation\n3. Adding hyperparameter tuning\n4. Creating evaluation metrics\n\nEnsure the code is production-ready and well-documented.",
+          "cli_command": "python train_model.py --dataset data/train.csv --output models/best_model.pkl --validate"
+        }
+      ]
+    }
+  ]
+}
