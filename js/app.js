@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 try {
                     const restoredProject = await window.ProjectModel.restoreLastSelectedProject();
                     if (restoredProject) {
-                        window.NotificationView?.success(`Restored project: "${restoredProject.name}"`, 4000);
+                        window.NotificationView?.success(`Restored project: "${restoredProject.name}"`, 3000);
                     }
                 } catch (error) {
                     console.error('❌ Failed to restore last selected project:', error);

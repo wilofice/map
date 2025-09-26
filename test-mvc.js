@@ -128,14 +128,24 @@ async function runMVCTests() {
     }
 }
 
-// Auto-run tests when page loads
-if (document.readyState === 'complete') {
-    setTimeout(runMVCTests, 1000);
-} else {
-    window.addEventListener('load', () => {
-        setTimeout(runMVCTests, 1000);
-    });
-}
+// Auto-run tests when page loads only if explicitly enabled
+(function maybeAutoRunTests() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const testFlag = params.get('test') || localStorage.getItem('mvc:test:auto');
+        if (String(testFlag).toLowerCase() === 'true' || testFlag === '1') {
+            if (document.readyState === 'complete') {
+                setTimeout(runMVCTests, 1000);
+            } else {
+                window.addEventListener('load', () => setTimeout(runMVCTests, 1000));
+            }
+        } else {
+            console.log('🧪 MVC Test Suite loaded. Auto-run is disabled. Pass ?test=true or set localStorage mvc:test:auto=true to enable.');
+        }
+    } catch (e) {
+        console.warn('Test auto-run guard failed:', e);
+    }
+})();
 
 // Expose test functions globally for manual testing
 window.testMVCApplication = testMVCApplication;
