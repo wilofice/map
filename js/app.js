@@ -39,6 +39,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         setTimeout(() => {
             window.NotificationView?.success('Application initialized successfully', 3000);
         }, 1000);
+
+        // Force refresh collections after everything is loaded
+        setTimeout(async () => {
+            console.log('🔄 Force refreshing collections...');
+            if (window.CollectionModel && window.CollectionView) {
+                try {
+                    await window.CollectionModel.loadCollections();
+                    console.log('✅ Collections force-refreshed successfully');
+                } catch (error) {
+                    console.error('❌ Failed to force-refresh collections:', error);
+                }
+            }
+        }, 1500);
         
     } catch (error) {
         console.error('❌ Failed to initialize application:', error);

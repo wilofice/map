@@ -10,8 +10,14 @@ class CollectionController {
         window.EventBus?.on(window.EVENTS?.APP_READY, this.handleAppReady.bind(this));
     }
 
-    handleAppReady() {
+    async handleAppReady() {
         console.log('📚 CollectionController: Ready');
+        // Load collections when app is ready
+        try {
+            await window.CollectionModel?.loadCollections();
+        } catch (error) {
+            console.error('❌ Failed to load collections on startup:', error);
+        }
     }
 
     /**

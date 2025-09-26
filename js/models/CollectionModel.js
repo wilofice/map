@@ -40,6 +40,11 @@ class CollectionModel {
                 this.cache.set(collection.id, collection);
             });
 
+            // Emit event for UI updates
+            window.EventBus?.emit(window.EVENTS?.COLLECTIONS_LOADED, { 
+                collections: this.collections 
+            });
+
             return this.collections;
         } catch (error) {
             console.error('❌ Failed to load collections:', error);

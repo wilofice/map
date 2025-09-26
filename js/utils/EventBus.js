@@ -130,6 +130,7 @@ window.EVENTS = {
     PROJECT_LOADED: 'project:loaded',
     
     // Collection Events
+    COLLECTIONS_LOADED: 'collections:loaded',
     COLLECTION_SELECTED: 'collection:selected',
     COLLECTION_CREATED: 'collection:created',
     COLLECTION_UPDATED: 'collection:updated',

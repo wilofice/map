@@ -1,0 +1,19 @@
+[dotenv@17.2.2] injecting env (3) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+✅ Database initialized: ./mind_maps.db
+✅ Database connected and ready
+🚀 Mind Map Server started successfully!
+📍 Server URL: http://localhost:3333
+📂 Working Directory: /Users/genereux/Dev/map
+💾 Database: ✅ Connected
+🔧 Debug Mode: ON
+
+💡 Open the server URL in your browser to use the application
+
+📝 Configuration:
+   PORT: 3333
+   HOST: all interfaces
+   WORKING_ROOT_DIR: /Users/genereux/Dev/map
+   Resolved working path: /Users/genereux/Dev/map
+   Database status: Connected
+   Database projects: 7
+   Database nodes: 24
