@@ -368,10 +368,9 @@ class UIController {
     }
 }
 
-// Create and export singleton instance
-export const uiController = new UIController();
-
-// Export for backward compatibility
+// Create and assign singleton instance to window for global access
+const uiController = new UIController();
+window.UIController = UIController;
 window.uiController = uiController;
 window.toggleAllComments = () => uiController.toggleAllComments();
 window.toggleAllDates = () => uiController.toggleAllDates();

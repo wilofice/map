@@ -379,4 +379,5 @@ if (typeof window !== 'undefined') {
     window.appController = appController;
 }
 
-export default AppController;
+// Assign to window for global access
+window.AppController = AppController;

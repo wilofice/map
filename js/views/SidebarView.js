@@ -251,4 +251,5 @@ export const sidebarView = new SidebarView();
 window.sidebarView = sidebarView;
 window.toggleSidebar = () => sidebarView.toggleSidebar();
 
-export default SidebarView;
+// Assign to window for global access
+window.SidebarView = SidebarView;

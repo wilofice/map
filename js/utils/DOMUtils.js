@@ -332,4 +332,5 @@ if (typeof window !== 'undefined') {
     window.cleanupIds = cleanupIds;
 }
 
-export default DOMUtils;
+// Assign to window for global access
+window.DOMUtils = DOMUtils;

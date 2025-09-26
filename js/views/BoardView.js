@@ -331,4 +331,5 @@ window.populateBoard = () => boardView.populateBoard();
 window.refreshBoard = () => boardView.refreshBoard();
 window.refreshBoardWithAnimation = () => boardView.refreshBoardWithAnimation();
 
-export default BoardView;
+// Assign to window for global access
+window.BoardView = BoardView;

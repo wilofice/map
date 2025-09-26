@@ -385,4 +385,5 @@ window.createTaskPromptElement = (text, nodeWrapper) => advancedComponents.creat
 window.createCliCommandElement = (text, nodeWrapper) => advancedComponents.createCliCommandElement(text, nodeWrapper);
 window.copyToClipboard = (text, button) => advancedComponents.copyToClipboard(text, button);
 
-export default AdvancedComponents;
+// Assign to window for global access
+window.AdvancedComponents = AdvancedComponents;

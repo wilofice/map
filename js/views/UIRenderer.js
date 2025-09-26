@@ -402,4 +402,5 @@ window.renderNode = (nodeData, parentElement) => {
     console.warn('Deprecated: Use uiRenderer.renderXMLNode or uiRenderer.renderJSONNode instead');
 };
 
-export default UIRenderer;
+// Assign to window for global access
+window.UIRenderer = UIRenderer;

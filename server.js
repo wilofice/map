@@ -75,6 +75,16 @@ const builder = new xml2js.Builder({
     xmldec: { version: '1.0', encoding: 'UTF-8' }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: db ? 'connected' : 'disconnected',
+        workingDirectory: workingRootDir
+    });
+});
+
 // List all XML and JSON files in the working root directory
 app.get('/api/files', async (req, res) => {
     try {
