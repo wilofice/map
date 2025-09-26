@@ -1467,6 +1467,30 @@ app.delete('/api/db/projects/:id', (req, res) => {
     }
 });
 
+// Get all nodes for a project
+app.get('/api/db/projects/:id/nodes', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+
+        // Validate project exists
+        const project = db.getProject(projectId);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Get all nodes for the project
+        const nodes = db.getProjectNodes(projectId);
+        res.json(nodes);
+    } catch (error) {
+        console.error('Error fetching project nodes:', error);
+        res.status(500).json({ error: 'Failed to fetch project nodes' });
+    }
+});
+
 // Create new node
 app.post('/api/db/nodes', (req, res) => {
     if (!db) {

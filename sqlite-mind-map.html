@@ -1827,24 +1827,46 @@
                 return;
             }
 
+            // Prepare node data with all supported fields
+            const nodePayload = {
+                project_id: projectId,
+                parent_id: parentId,
+                title: nodeData.title || 'Untitled',
+                comment: nodeData.comment || '',
+                priority: nodeData.priority || 'medium',
+                status: nodeData.status || 'pending',
+                start_date: nodeData.startDate || null,
+                end_date: nodeData.endDate || null,
+                days_spent: nodeData.daysSpent || 0
+            };
+
+            // Add code block if present
+            if (nodeData.code && nodeData.code.language && nodeData.code.content) {
+                nodePayload.code_language = nodeData.code.language;
+                nodePayload.code_content = nodeData.code.content;
+            }
+
+            // Add LLM prompt if present
+            if (nodeData.taskPromptForLlm) {
+                nodePayload.task_prompt = nodeData.taskPromptForLlm;
+            }
+
+            // Add CLI command if present
+            if (nodeData.cliCommand) {
+                nodePayload.cli_command = nodeData.cliCommand;
+            }
+
             // Create single node
             const nodeResponse = await fetch('/api/db/nodes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    project_id: projectId,
-                    parent_id: parentId,
-                    title: nodeData.title || 'Untitled',
-                    comment: nodeData.comment || '',
-                    priority: nodeData.priority || 'medium',
-                    status: nodeData.status || 'pending',
-                    start_date: nodeData.startDate || null,
-                    end_date: nodeData.endDate || null,
-                    days_spent: nodeData.daysSpent || 0
-                })
+                body: JSON.stringify(nodePayload)
             });
 
-            if (!nodeResponse.ok) throw new Error('Failed to create node');
+            if (!nodeResponse.ok) {
+                const errorText = await nodeResponse.text();
+                throw new Error(`Failed to create node: ${errorText}`);
+            }
 
             const newNode = await nodeResponse.json();
 
@@ -1854,6 +1876,97 @@
                     await importNodesRecursively(projectId, child, newNode.id);
                 }
             }
+        }
+
+        async function loadProjectFromDatabase(projectId) {
+            try {
+                console.log(`Loading project from database: ${projectId}`);
+
+                // Fetch project details
+                const projectResponse = await fetch(`/api/db/projects/${projectId}`);
+                if (!projectResponse.ok) throw new Error('Failed to load project');
+
+                const project = await projectResponse.json();
+
+                // Fetch project nodes
+                const nodesResponse = await fetch(`/api/db/projects/${projectId}/nodes`);
+                if (!nodesResponse.ok) throw new Error('Failed to load project nodes');
+
+                const nodes = await nodesResponse.json();
+
+                // Build hierarchical structure
+                const rootNodes = nodes.filter(node => !node.parent_id);
+                const nodeMap = {};
+
+                // Create node map for quick lookup
+                nodes.forEach(node => {
+                    nodeMap[node.id] = {
+                        ...node,
+                        children: []
+                    };
+                });
+
+                // Build hierarchy
+                nodes.forEach(node => {
+                    if (node.parent_id && nodeMap[node.parent_id]) {
+                        nodeMap[node.parent_id].children.push(nodeMap[node.id]);
+                    }
+                });
+
+                // Convert to expected format
+                const mindMapData = {
+                    nodes: rootNodes.map(node => convertDbNodeToMindMapFormat(nodeMap[node.id]))
+                };
+
+                // Show controls and render
+                document.getElementById('controls').style.display = 'block';
+                document.getElementById('progressContainer').style.display = 'block';
+
+                // Render the mind map
+                renderMindMap(mindMapData);
+
+                // Update progress
+                updateProgress();
+                updateDatabaseStats();
+
+                console.log(`Successfully loaded project: ${project.name}`);
+
+            } catch (error) {
+                console.error('Error loading project from database:', error);
+                throw error;
+            }
+        }
+
+        function convertDbNodeToMindMapFormat(dbNode) {
+            const mindMapNode = {
+                id: dbNode.id,
+                title: dbNode.title || 'Untitled',
+                priority: dbNode.priority || 'medium',
+                status: dbNode.status || 'pending',
+                comment: dbNode.comment || '',
+                startDate: dbNode.start_date || '',
+                endDate: dbNode.end_date || '',
+                daysSpent: dbNode.days_spent || 0,
+                children: dbNode.children.map(child => convertDbNodeToMindMapFormat(child))
+            };
+
+            // Add optional fields if they exist
+            if (dbNode.code_language && dbNode.code_content) {
+                mindMapNode.code = {
+                    language: dbNode.code_language,
+                    content: dbNode.code_content
+                };
+            }
+
+            if (dbNode.task_prompt) {
+                mindMapNode.taskPromptForLlm = dbNode.task_prompt;
+            }
+
+            if (dbNode.cli_command) {
+                mindMapNode.cliCommand = dbNode.cli_command;
+            }
+
+            return mindMapNode;
         }
 
         // Sidebar toggle

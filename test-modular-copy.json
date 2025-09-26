@@ -1,13 +1,57 @@
 {
-  "type": "project_plan",
-  "version": "1.0",
   "nodes": [
     {
-      "type": "node",
       "id": "modular-test-1",
       "title": "Modular System Test",
       "priority": "high",
-      "comment": "Testing the modularized system"
+      "status": "pending",
+      "comment": "Testing the modularized system with proper JSON structure",
+      "startDate": "2025-01-01",
+      "endDate": "2025-02-01",
+      "daysSpent": 0,
+      "children": [
+        {
+          "id": "frontend-test-2",
+          "title": "Frontend Component Test",
+          "priority": "medium",
+          "status": "in-progress",
+          "comment": "Testing React components with TypeScript",
+          "code": {
+            "language": "typescript",
+            "content": "// Example React component\ninterface Props {\n  title: string;\n  onClick: () => void;\n}\n\nconst TestButton: React.FC<Props> = ({ title, onClick }) => {\n  return (\n    <button \n      onClick={onClick}\n      className=\"bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded\"\n    >\n      {title}\n    </button>\n  );\n};\n\nexport default TestButton;"
+          },
+          "taskPromptForLlm": "Review this React component for accessibility and performance best practices",
+          "daysSpent": 2
+        },
+        {
+          "id": "backend-test-3",
+          "title": "API Endpoint Test",
+          "priority": "high",
+          "status": "pending",
+          "comment": "Testing REST API endpoints with Express.js",
+          "code": {
+            "language": "javascript",
+            "content": "// Express API endpoint\nconst express = require('express');\nconst router = express.Router();\n\n// GET /api/test\nrouter.get('/test', async (req, res) => {\n  try {\n    const data = await fetchTestData();\n    res.json({ success: true, data });\n  } catch (error) {\n    console.error('Test endpoint error:', error);\n    res.status(500).json({ \n      success: false, \n      error: 'Internal server error' \n    });\n  }\n});\n\nmodule.exports = router;"
+          },
+          "cliCommand": "npm test -- --testPathPattern=api",
+          "daysSpent": 1
+        }
+      ]
+    },
+    {
+      "id": "database-test-4",
+      "title": "Database Integration Test",
+      "priority": "medium",
+      "status": "completed",
+      "comment": "Testing SQLite database operations and migrations",
+      "startDate": "2024-12-15",
+      "endDate": "2024-12-20",
+      "daysSpent": 3,
+      "code": {
+        "language": "sql",
+        "content": "-- Test database schema\nCREATE TABLE IF NOT EXISTS test_data (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  value JSON,\n  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Insert test data\nINSERT INTO test_data (name, value) VALUES \n  ('test1', '{\"status\": \"active\"}'),\n  ('test2', '{\"status\": \"inactive\"}');\n\n-- Query test data\nSELECT * FROM test_data \nWHERE JSON_EXTRACT(value, '$.status') = 'active';"
+      },
+      "cliCommand": "sqlite3 test.db < migrations/test_schema.sql"
     }
   ]
 }
