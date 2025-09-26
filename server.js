@@ -1597,6 +1597,57 @@ app.delete('/api/db/projects/:id', (req, res) => {
     }
 });
 
+// Assign project to collection
+app.put('/api/db/projects/:id/collection', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projectId = req.params.id;
+        const { collection_id } = req.body;
+        
+        // Validate collection exists if collection_id is provided
+        if (collection_id) {
+            const collection = db.getCollection(collection_id);
+            if (!collection) {
+                return res.status(404).json({ error: 'Collection not found' });
+            }
+        }
+        
+        const updatedProject = db.assignProjectToCollection(projectId, collection_id);
+        if (!updatedProject) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        res.json(updatedProject);
+    } catch (error) {
+        console.error('Error assigning project to collection:', error);
+        res.status(500).json({ error: 'Failed to assign project to collection' });
+    }
+});
+
+// Remove project from collection
+app.delete('/api/db/projects/:id/collection', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projectId = req.params.id;
+        const updatedProject = db.removeProjectFromCollection(projectId);
+        
+        if (!updatedProject) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+        
+        res.json(updatedProject);
+    } catch (error) {
+        console.error('Error removing project from collection:', error);
+        res.status(500).json({ error: 'Failed to remove project from collection' });
+    }
+});
+
 // Get all nodes for a project
 app.get('/api/db/projects/:id/nodes', (req, res) => {
     if (!db) {

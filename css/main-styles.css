@@ -1665,3 +1665,223 @@ h1 {
     font-weight: 500;
     font-size: 0.9rem;
 }
+
+/* Modal Tabs Styles */
+.project-selector-modal .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+}
+
+.project-selector-modal .tab-btn {
+    flex: 1;
+    padding: 1rem;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent;
+}
+
+.project-selector-modal .tab-btn.active {
+    color: var(--color-text);
+    border-bottom-color: var(--color-primary);
+    background: rgba(66, 153, 225, 0.1);
+}
+
+.project-selector-modal .tab-btn:hover {
+    background: rgba(66, 153, 225, 0.05);
+    color: var(--color-text);
+}
+
+.project-selector-modal .tab-content {
+    padding: 0;
+}
+
+.project-selector-modal .tab-pane {
+    display: none;
+    padding: 1.5rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.project-selector-modal .tab-pane.active {
+    display: block;
+}
+
+.project-selector-modal .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.project-selector-modal .section-header h3 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Collection Management Styles */
+.project-selector-modal .collection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.project-selector-modal .collection-item {
+    background: var(--color-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.project-selector-modal .collection-item:hover {
+    border-color: var(--color-primary);
+    background: var(--color-secondary-hover);
+    transform: translateY(-1px);
+}
+
+.project-selector-modal .collection-info {
+    flex: 1;
+}
+
+.project-selector-modal .collection-name {
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+}
+
+.project-selector-modal .collection-meta {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.project-selector-modal .collection-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.project-selector-modal .collection-item:hover .collection-actions {
+    opacity: 1;
+}
+
+/* Project Actions with Collection Selector */
+.project-selector-modal .project-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
+}
+
+.project-selector-modal .collection-selector {
+    background: var(--color-bg);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.project-selector-modal .collection-selector:hover {
+    border-color: var(--color-primary);
+}
+
+.project-selector-modal .collection-selector:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
+/* Button Icons */
+.project-selector-modal .btn-icon {
+    background: var(--color-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 0.4rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.project-selector-modal .btn-icon:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.project-selector-modal .btn-icon.delete {
+    background: var(--color-danger);
+    color: white;
+}
+
+.project-selector-modal .btn-icon.delete:hover {
+    background: var(--color-danger-hover);
+}
+
+.project-selector-modal .btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.project-selector-modal .btn-sm:hover {
+    background: var(--color-primary-hover);
+}
+
+/* No items messages */
+.project-selector-modal .no-projects,
+.project-selector-modal .no-collections {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--color-success);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10001;
+    animation: slideIn 0.3s ease;
+}
+
+.notification.error {
+    background: var(--color-danger);
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}

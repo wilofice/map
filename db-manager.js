@@ -155,7 +155,12 @@ class DatabaseManager {
                 UPDATE projects SET last_opened = CURRENT_TIMESTAMP WHERE id = ?
             `),
             updateProject: this.db.prepare(`
-                UPDATE projects SET name = COALESCE(?, name), description = COALESCE(?, description), updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                UPDATE projects SET 
+                    name = COALESCE(?, name), 
+                    description = COALESCE(?, description),
+                    collection_id = CASE WHEN ? IS NOT NULL THEN ? ELSE collection_id END,
+                    updated_at = CURRENT_TIMESTAMP 
+                WHERE id = ?
             `),
             deleteProject: this.db.prepare(`
                 DELETE FROM projects WHERE id = ?
@@ -306,13 +311,33 @@ class DatabaseManager {
 
     updateProject(id, updates) {
         try {
-            const { name, description } = updates;
-            this.stmts.updateProject.run(name, description, id);
+            const { name, description, collection_id } = updates;
+            this.stmts.updateProject.run(name, description, collection_id, collection_id, id);
 
             // Return the updated project
             return this.getProject(id);
         } catch (error) {
             console.error('Error updating project:', error);
+            throw error;
+        }
+    }
+
+    // Assign project to collection
+    assignProjectToCollection(projectId, collectionId) {
+        try {
+            return this.updateProject(projectId, { collection_id: collectionId });
+        } catch (error) {
+            console.error('Error assigning project to collection:', error);
+            throw error;
+        }
+    }
+
+    // Remove project from collection
+    removeProjectFromCollection(projectId) {
+        try {
+            return this.updateProject(projectId, { collection_id: null });
+        } catch (error) {
+            console.error('Error removing project from collection:', error);
             throw error;
         }
     }
