@@ -153,5 +153,3 @@ window.EVENTS = {
     DATA_ERROR: 'data:error',
     DATA_SAVED: 'data:saved'
 };
-
-export { EventBus, EVENTS };

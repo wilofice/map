@@ -88,5 +88,3 @@ class CollectionController {
 
 // Create global CollectionController instance
 window.CollectionController = new CollectionController();
-
-export default CollectionController;

@@ -42,5 +42,3 @@ class MindMapView {
 
 // Create global MindMapView instance
 window.MindMapView = new MindMapView();
-
-export default MindMapView;

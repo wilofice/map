@@ -57,5 +57,3 @@ class TopBarView {
 
 // Create global TopBarView instance
 window.TopBarView = new TopBarView();
-
-export default TopBarView;

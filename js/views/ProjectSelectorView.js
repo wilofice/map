@@ -13,5 +13,3 @@ class ProjectSelectorView {
 
 // Create global ProjectSelectorView instance
 window.ProjectSelectorView = new ProjectSelectorView();
-
-export default ProjectSelectorView;

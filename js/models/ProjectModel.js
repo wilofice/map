@@ -274,5 +274,3 @@ class ProjectModel {
 
 // Create global ProjectModel instance
 window.ProjectModel = new ProjectModel();
-
-export default ProjectModel;

@@ -85,5 +85,3 @@ class ProjectController {
 
 // Create global ProjectController instance
 window.ProjectController = new ProjectController();
-
-export default ProjectController;

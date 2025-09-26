@@ -17,5 +17,3 @@ class CollectionView {
 
 // Create global CollectionView instance
 window.CollectionView = new CollectionView();
-
-export default CollectionView;

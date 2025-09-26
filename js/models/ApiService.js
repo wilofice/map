@@ -249,5 +249,3 @@ class ApiService {
 
 // Create global ApiService instance
 window.ApiService = new ApiService();
-
-export default ApiService;

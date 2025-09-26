@@ -277,5 +277,3 @@ class CollectionModel {
 
 // Create global CollectionModel instance
 window.CollectionModel = new CollectionModel();
-
-export default CollectionModel;

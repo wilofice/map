@@ -355,5 +355,3 @@ class AppController {
 
 // Create global AppController instance
 window.AppController = new AppController();
-
-export default AppController;

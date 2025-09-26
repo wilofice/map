@@ -303,5 +303,3 @@ class NotificationView {
 
 // Create global NotificationView instance
 window.NotificationView = new NotificationView();
-
-export default NotificationView;

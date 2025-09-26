@@ -372,5 +372,3 @@ class ModalView {
 
 // Create global ModalView instance
 window.ModalView = new ModalView();
-
-export default ModalView;

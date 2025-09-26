@@ -3,7 +3,7 @@
  * Handles UI state management and global toggle functions
  */
 
-export class UIController {
+class UIController {
     constructor() {
         this.state = {
             areCommentsVisible: false,
@@ -379,5 +379,3 @@ window.toggleAllAddButtons = () => uiController.toggleAllAddButtons();
 window.toggleAllNodes = () => uiController.toggleAllNodes();
 window.toggleFlash = () => uiController.toggleFlash();
 window.toggleAnimateLines = () => uiController.toggleAnimateLines();
-
-export default UIController;
