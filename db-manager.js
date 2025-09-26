@@ -208,11 +208,70 @@ class DatabaseManager {
         };
     }
 
-    // Project Operations
-    createProject(id, name, description = '', filePath = '') {
+    // Collection Operations
+    createCollection(id, name, description = '') {
         try {
-            this.stmts.insertProject.run(id, name, description, filePath);
-            return { id, name, description, filePath };
+            this.stmts.insertCollection.run(id, name, description);
+            return { id, name, description };
+        } catch (error) {
+            console.error('Error creating collection:', error);
+            throw error;
+        }
+    }
+
+    getCollection(id) {
+        try {
+            return this.stmts.getCollection.get(id);
+        } catch (error) {
+            console.error('Error getting collection:', error);
+            throw error;
+        }
+    }
+
+    getAllCollections() {
+        try {
+            return this.stmts.getAllCollections.all();
+        } catch (error) {
+            console.error('Error getting all collections:', error);
+            throw error;
+        }
+    }
+
+    updateCollection(id, updates) {
+        try {
+            const { name, description } = updates;
+            this.stmts.updateCollection.run(name, description, id);
+            return this.getCollection(id);
+        } catch (error) {
+            console.error('Error updating collection:', error);
+            throw error;
+        }
+    }
+
+    deleteCollection(id) {
+        try {
+            this.stmts.deleteCollection.run(id);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting collection:', error);
+            throw error;
+        }
+    }
+
+    getCollectionProjects(collectionId) {
+        try {
+            return this.stmts.getCollectionProjects.all(collectionId);
+        } catch (error) {
+            console.error('Error getting collection projects:', error);
+            throw error;
+        }
+    }
+
+    // Project Operations
+    createProject(id, name, description = '', filePath = '', collectionId = null) {
+        try {
+            this.stmts.insertProject.run(id, name, description, filePath, collectionId);
+            return { id, name, description, filePath, collection_id: collectionId };
         } catch (error) {
             console.error('Error creating project:', error);
             throw error;

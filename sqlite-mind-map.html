@@ -47,6 +47,7 @@
             <div class="action-buttons">
                 <button class="top-btn" id="switchProjectBtn" title="Switch to another project">🔄</button>
                 <button class="top-btn" id="newProjectBtn" title="New Project">➕</button>
+                <button class="top-btn" id="newCollectionBtn" title="New Collection">📚</button>
                 <button class="top-btn" id="importJsonBtn" title="Import JSON">📁</button>
                 <button class="top-btn" id="searchProjectsBtn" title="Search Projects">🔍</button>
             </div>
@@ -322,6 +323,9 @@
 
                 // Update database stats in the sidebar
                 await updateDatabaseStats();
+
+                // Initialize collections
+                await initCollections();
 
                 // Try to load last opened file from localStorage
                 const lastFile = localStorage.getItem('lastOpenedFile');
@@ -1734,18 +1738,49 @@
         }
 
         function createNewProject() {
-            const projectName = prompt('Enter project name:');
-            if (projectName && projectName.trim()) {
-                createProject(projectName.trim());
+            // Check if we're in a collection context
+            if (currentCollection) {
+                createProjectInCollection(currentCollection.id);
+            } else {
+                // Show collection selection dialog
+                showCreateProjectDialog();
             }
         }
 
-        async function createProject(name) {
+        async function showCreateProjectDialog() {
+            const name = prompt('Enter project name:');
+            if (!name || !name.trim()) return;
+
+            let collectionId = null;
+
+            // If collections exist, ask user to select one
+            if (allCollections.length > 0) {
+                const collectionChoice = prompt(
+                    `Select collection:\n\n` +
+                    `0. No collection (standalone)\n` +
+                    allCollections.map((c, i) => `${i + 1}. ${c.name}`).join('\n') +
+                    `\nEnter number (0-${allCollections.length}):`
+                );
+
+                if (collectionChoice === null) return; // User cancelled
+
+                const choiceNum = parseInt(collectionChoice);
+                if (choiceNum > 0 && choiceNum <= allCollections.length) {
+                    collectionId = allCollections[choiceNum - 1].id;
+                }
+            }
+
+            const description = prompt('Enter project description (optional):') || '';
+
             try {
                 const response = await fetch('/api/db/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, description: '' })
+                    body: JSON.stringify({ 
+                        name: name.trim(), 
+                        description,
+                        collection_id: collectionId 
+                    })
                 });
 
                 if (!response.ok) throw new Error('Failed to create project');
@@ -1754,16 +1789,20 @@
                 currentProject = project;
                 document.getElementById('currentProjectName').textContent = project.name;
 
-                // Show controls and clear mind map
-                document.getElementById('controls').style.display = 'block';
-                document.getElementById('progressContainer').style.display = 'block';
-                document.getElementById('mindMapContainer').innerHTML = '<div class="empty-project">Start adding nodes to your new project!</div>';
+                // If created in current collection, refresh collection view
+                if (collectionId && currentCollection && collectionId === currentCollection.id) {
+                    await loadCollectionProjects(collectionId);
+                }
+
+                // Show controls and load project
+                await loadProjectFromDatabase(project.id);
 
                 updateDatabaseStats();
                 console.log(`Created new project: ${project.name}`);
+                
             } catch (error) {
                 console.error('Error creating project:', error);
-                alert('Error creating project');
+                alert('Error creating project: ' + error.message);
             }
         }
 
@@ -2152,6 +2191,227 @@
             }
         }
 
+        // ===== COLLECTIONS FUNCTIONALITY =====
+        
+        let currentCollection = null;
+        let allCollections = [];
+
+        // Load all collections from database
+        async function loadCollections() {
+            try {
+                const response = await fetch('/api/db/collections');
+                if (!response.ok) throw new Error('Failed to load collections');
+                
+                allCollections = await response.json();
+                updateCollectionUI();
+                console.log(`📚 Loaded ${allCollections.length} collections`);
+                
+                return allCollections;
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                return [];
+            }
+        }
+
+        // Update collection UI in top bar
+        function updateCollectionUI() {
+            const collectionSelect = document.getElementById('collectionSelect');
+            if (!collectionSelect) return;
+
+            // Clear existing options
+            collectionSelect.innerHTML = '<option value="">Select Collection</option>';
+
+            // Add collections as options
+            allCollections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.id;
+                option.textContent = `${collection.name} (${collection.project_count || 0})`;
+                collectionSelect.appendChild(option);
+            });
+
+            // Show collection navigation if collections exist
+            const collectionNav = document.getElementById('collectionNav');
+            if (allCollections.length > 0) {
+                collectionNav.style.display = 'flex';
+            }
+
+            // Update current collection selection
+            if (currentCollection) {
+                collectionSelect.value = currentCollection.id;
+                loadCollectionProjects(currentCollection.id);
+            }
+        }
+
+        // Create new collection
+        async function createNewCollection() {
+            const name = prompt('Enter collection name:');
+            if (!name || !name.trim()) return;
+
+            const description = prompt('Enter collection description (optional):') || '';
+
+            try {
+                const response = await fetch('/api/db/collections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim(), description })
+                });
+
+                if (!response.ok) throw new Error('Failed to create collection');
+
+                const collection = await response.json();
+                console.log('✅ Created collection:', collection.name);
+
+                // Reload collections and select the new one
+                await loadCollections();
+                selectCollection(collection.id);
+                
+            } catch (error) {
+                console.error('Error creating collection:', error);
+                alert('Failed to create collection: ' + error.message);
+            }
+        }
+
+        // Select and load a collection
+        async function selectCollection(collectionId) {
+            if (!collectionId) {
+                currentCollection = null;
+                clearProjectTabs();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/db/collections/${collectionId}`);
+                if (!response.ok) throw new Error('Collection not found');
+
+                currentCollection = await response.json();
+                console.log('📚 Selected collection:', currentCollection.name);
+
+                // Update UI
+                document.getElementById('collectionSelect').value = collectionId;
+                
+                // Load projects in this collection
+                await loadCollectionProjects(collectionId);
+                
+            } catch (error) {
+                console.error('Error selecting collection:', error);
+                alert('Failed to select collection: ' + error.message);
+            }
+        }
+
+        // Load projects within a collection
+        async function loadCollectionProjects(collectionId) {
+            try {
+                const response = await fetch(`/api/db/collections/${collectionId}/projects`);
+                if (!response.ok) throw new Error('Failed to load collection projects');
+
+                const projects = await response.json();
+                updateProjectTabs(projects);
+                
+                console.log(`📋 Loaded ${projects.length} projects in collection`);
+                
+            } catch (error) {
+                console.error('Error loading collection projects:', error);
+                clearProjectTabs();
+            }
+        }
+
+        // Update project tabs in collection navigation
+        function updateProjectTabs(projects) {
+            const projectTabs = document.getElementById('projectTabs');
+            if (!projectTabs) return;
+
+            projectTabs.innerHTML = '';
+
+            projects.forEach(project => {
+                const tab = document.createElement('div');
+                tab.className = 'project-tab';
+                tab.dataset.projectId = project.id;
+                tab.textContent = project.name;
+                tab.title = `${project.name} (${project.node_count || 0} nodes)`;
+                
+                tab.onclick = () => loadProjectFromCollection(project.id, project.name);
+                projectTabs.appendChild(tab);
+            });
+        }
+
+        // Clear project tabs
+        function clearProjectTabs() {
+            const projectTabs = document.getElementById('projectTabs');
+            if (projectTabs) projectTabs.innerHTML = '';
+        }
+
+        // Load project from collection context
+        async function loadProjectFromCollection(projectId, projectName) {
+            try {
+                // Update active tab
+                document.querySelectorAll('.project-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.projectId === projectId);
+                });
+
+                // Load project using existing function
+                await loadProjectFromDatabase(projectId);
+                
+                console.log(`🎯 Loaded project "${projectName}" from collection`);
+                
+            } catch (error) {
+                console.error('Error loading project from collection:', error);
+                alert('Failed to load project: ' + error.message);
+            }
+        }
+
+        // Enhanced project creation with collection support
+        async function createProjectInCollection(collectionId = null) {
+            const name = prompt('Enter project name:');
+            if (!name || !name.trim()) return;
+
+            const description = prompt('Enter project description (optional):') || '';
+
+            try {
+                const response = await fetch('/api/db/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name.trim(), 
+                        description,
+                        collection_id: collectionId 
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to create project');
+
+                const project = await response.json();
+                console.log('✅ Created project in collection:', project.name);
+
+                // If we're in a collection, refresh the collection view
+                if (collectionId && currentCollection) {
+                    await loadCollectionProjects(collectionId);
+                }
+                
+                // Load the new project
+                await loadProjectFromDatabase(project.id);
+                
+            } catch (error) {
+                console.error('Error creating project:', error);
+                alert('Failed to create project: ' + error.message);
+            }
+        }
+
+        // Initialize collections on app start
+        async function initCollections() {
+            try {
+                await loadCollections();
+                
+                // Setup collection dropdown handler
+                const collectionSelect = document.getElementById('collectionSelect');
+                if (collectionSelect) {
+                    collectionSelect.onchange = (e) => selectCollection(e.target.value);
+                }
+                
+            } catch (error) {
+                console.error('Error initializing collections:', error);
+            }
+        }
+
         // Top bar toggle
         document.getElementById('topBarToggle')?.addEventListener('click', function() {
             const topBar = document.querySelector('.top-bar');
@@ -2175,6 +2435,10 @@
 
         document.getElementById('newProjectBtn')?.addEventListener('click', function() {
             createNewProject();
+        });
+
+        document.getElementById('newCollectionBtn')?.addEventListener('click', function() {
+            createNewCollection();
         });
 
         document.getElementById('importJsonBtn')?.addEventListener('click', function() {

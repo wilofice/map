@@ -1271,6 +1271,116 @@ app.get('/api/pure-json-stats/:filename(*)', async (req, res) => {
 // ===== DATABASE API ENDPOINTS =====
 // New SQLite-powered endpoints for enhanced functionality
 
+// ===== COLLECTIONS API =====
+
+// Get all collections
+app.get('/api/db/collections', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const collections = db.getAllCollections();
+        res.json(collections);
+    } catch (error) {
+        console.error('Error getting collections:', error);
+        res.status(500).json({ error: 'Failed to get collections' });
+    }
+});
+
+// Get collection by ID
+app.get('/api/db/collections/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const collection = db.getCollection(req.params.id);
+        if (!collection) {
+            return res.status(404).json({ error: 'Collection not found' });
+        }
+        res.json(collection);
+    } catch (error) {
+        console.error('Error getting collection:', error);
+        res.status(500).json({ error: 'Failed to get collection' });
+    }
+});
+
+// Create new collection
+app.post('/api/db/collections', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { name, description } = req.body;
+        
+        if (!name || name.trim() === '') {
+            return res.status(400).json({ error: 'Collection name is required' });
+        }
+        
+        const id = crypto.randomUUID();
+        const collection = db.createCollection(id, name.trim(), description || '');
+        res.status(201).json(collection);
+    } catch (error) {
+        console.error('Error creating collection:', error);
+        res.status(500).json({ error: 'Failed to create collection' });
+    }
+});
+
+// Update collection
+app.put('/api/db/collections/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { name, description } = req.body;
+        const updatedCollection = db.updateCollection(req.params.id, { name, description });
+        
+        if (!updatedCollection) {
+            return res.status(404).json({ error: 'Collection not found' });
+        }
+        
+        res.json(updatedCollection);
+    } catch (error) {
+        console.error('Error updating collection:', error);
+        res.status(500).json({ error: 'Failed to update collection' });
+    }
+});
+
+// Delete collection
+app.delete('/api/db/collections/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        db.deleteCollection(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting collection:', error);
+        res.status(500).json({ error: 'Failed to delete collection' });
+    }
+});
+
+// Get projects in a collection
+app.get('/api/db/collections/:id/projects', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const projects = db.getCollectionProjects(req.params.id);
+        res.json(projects);
+    } catch (error) {
+        console.error('Error getting collection projects:', error);
+        res.status(500).json({ error: 'Failed to get collection projects' });
+    }
+});
+
+// ===== PROJECTS API =====
+
 // Get all projects from database
 app.get('/api/db/projects', (req, res) => {
     if (!db) {
@@ -1334,13 +1444,13 @@ app.post('/api/db/projects', (req, res) => {
     }
 
     try {
-        const { name, description = '', nodes = [] } = req.body;
+        const { name, description = '', nodes = [], collection_id = null } = req.body;
         if (!name) {
             return res.status(400).json({ error: 'Project name is required' });
         }
 
         const projectId = uuidv4();
-        const project = db.createProject(projectId, name, description);
+        const project = db.createProject(projectId, name, description, '', collection_id);
 
         // If nodes are provided, import them
         if (nodes && nodes.length > 0) {
