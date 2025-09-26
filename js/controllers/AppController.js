@@ -1,25 +1,14 @@
 /**
- * Application Controller for Mind Map MVC application
- * Handles application orchestration, event management, and view coordination
+ * AppController - Main application controller
+ * Coordinates all other controllers and manages application lifecycle
  */
-
-export class AppController {
+class AppController {
     constructor() {
-        this.initialized = false;
-        this.currentView = 'mindmap'; // 'mindmap' or 'board'
-        this.version = 'Phase 4 - Full Controller Separation';
-        
-        // Dependencies will be injected
-        this.apiClient = null;
-        this.dataModel = null;
-        this.fileModel = null;
-        this.syncModel = null;
-        this.uiRenderer = null;
-        this.boardView = null;
-        this.sidebarView = null;
-        this.advancedComponents = null;
-        this.uiController = null;
-        this.DOMUtils = null;
+        this.isInitialized = false;
+        this.currentProject = null;
+        this.currentCollection = null;
+        this.bindEvents();
+        this.init();
     }
 
     /**
