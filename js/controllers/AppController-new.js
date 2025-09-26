@@ -110,12 +110,15 @@ class AppController {
     initializeUI() {
         // Hide loading indicator
         this.hideLoadingIndicator();
-        
+
         // Show top bar
         const topBar = document.getElementById('topBar');
         if (topBar) {
             topBar.style.display = 'flex';
         }
+
+        // Setup control button event listeners
+        this.setupControlEvents();
     }
 
     /**
@@ -124,15 +127,16 @@ class AppController {
     handleProjectSelected(data) {
         const { project, nodes } = data;
         this.currentProject = project;
-        
+        this.currentData = { nodes: nodes || [] };
+
         console.log(`📝 Project selected: ${project.name}`);
-        
+
         // Update UI
         this.updateProjectDisplay(project);
-        
+
         // Show controls and progress
         this.showProjectControls();
-        
+
         // Update stats
         this.updateDatabaseStats();
     }
@@ -331,6 +335,256 @@ class AppController {
         loadingElements.forEach(el => {
             el.style.display = 'none';
         });
+    }
+
+    /**
+     * Setup control button event listeners
+     */
+    setupControlEvents() {
+        // UI Control Buttons
+        document.getElementById('toggleCommentsBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleAllComments();
+            }
+        });
+
+        document.getElementById('toggleDatesBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleAllDates();
+            }
+        });
+
+        document.getElementById('toggleAddBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleAllAddButtons();
+            }
+        });
+
+        document.getElementById('toggleAllBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleAllNodes();
+            }
+        });
+
+        document.getElementById('toggleFlashBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleFlash();
+            }
+        });
+
+        document.getElementById('toggleAnimateLinesBtn')?.addEventListener('click', () => {
+            if (window.uiController) {
+                window.uiController.toggleAnimateLines();
+            }
+        });
+
+        // Board View Button
+        document.getElementById('toggleViewBtn')?.addEventListener('click', () => {
+            this.toggleBoardView();
+        });
+
+        // Export Button
+        document.getElementById('exportBtn')?.addEventListener('click', () => {
+            this.exportJSON();
+        });
+
+        // Save Button
+        document.getElementById('saveBtn')?.addEventListener('click', () => {
+            this.manualSave();
+        });
+    }
+
+    /**
+     * Toggle between mind map and board view
+     */
+    toggleBoardView() {
+        const mindMapContainer = document.getElementById('mindMapContainer');
+        const boardContainer = document.getElementById('boardContainer');
+        const toggleBtn = document.getElementById('toggleViewBtn');
+
+        if (!mindMapContainer || !boardContainer || !toggleBtn) return;
+
+        const isBoardView = boardContainer.style.display === 'block';
+
+        if (isBoardView) {
+            // Switch to mind map view
+            mindMapContainer.style.display = 'block';
+            boardContainer.style.display = 'none';
+            toggleBtn.innerHTML = '📋 <span class="btn-text">Board View</span>';
+            toggleBtn.classList.remove('btn-success');
+            toggleBtn.classList.add('btn-info');
+        } else {
+            // Switch to board view
+            mindMapContainer.style.display = 'none';
+            boardContainer.style.display = 'block';
+            toggleBtn.innerHTML = '🧠 <span class="btn-text">Mind Map</span>';
+            toggleBtn.classList.remove('btn-info');
+            toggleBtn.classList.add('btn-success');
+
+            // Populate board view
+            this.populateBoardView();
+        }
+    }
+
+    /**
+     * Populate board view with current project data
+     */
+    populateBoardView() {
+        if (!this.currentData || !this.currentData.nodes) {
+            this.showEmptyBoard();
+            return;
+        }
+
+        // Get all nodes recursively
+        const allNodes = [];
+        this.collectNodesRecursively(this.currentData.nodes, allNodes);
+
+        // Group by status
+        const todoNodes = allNodes.filter(node => !node.status || node.status === 'pending');
+        const inProgressNodes = allNodes.filter(node => node.status === 'in-progress');
+        const doneNodes = allNodes.filter(node => node.status === 'completed');
+
+        // Populate columns
+        this.populateBoardColumn('todoCards', todoNodes);
+        this.populateBoardColumn('inProgressCards', inProgressNodes);
+        this.populateBoardColumn('doneCards', doneNodes);
+
+        // Update counts
+        document.getElementById('todoCount').textContent = todoNodes.length;
+        document.getElementById('inProgressBoardCount').textContent = inProgressNodes.length;
+        document.getElementById('doneCount').textContent = doneNodes.length;
+
+        console.log('📋 Board view populated with', allNodes.length, 'nodes');
+    }
+
+    /**
+     * Collect nodes recursively from hierarchical structure
+     */
+    collectNodesRecursively(nodes, allNodes, parentPath = '') {
+        if (!Array.isArray(nodes)) return;
+
+        nodes.forEach(node => {
+            const nodePath = parentPath ? `${parentPath} > ${node.title}` : node.title;
+            allNodes.push({
+                ...node,
+                path: nodePath,
+                parentPath: parentPath
+            });
+
+            if (node.children && Array.isArray(node.children)) {
+                this.collectNodesRecursively(node.children, allNodes, nodePath);
+            }
+        });
+    }
+
+    /**
+     * Populate a board column with nodes
+     */
+    populateBoardColumn(containerId, nodes) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (nodes.length === 0) {
+            container.innerHTML = '<div class="empty-column">No tasks</div>';
+            return;
+        }
+
+        container.innerHTML = nodes.map(node => this.createTaskCard(node)).join('');
+    }
+
+    /**
+     * Create a task card for board view
+     */
+    createTaskCard(node) {
+        const priorityClass = node.priority ? `priority-${node.priority}` : '';
+        const title = node.title || 'Untitled Task';
+        const path = node.path || '';
+
+        return `
+            <div class="task-card ${priorityClass}" data-node-id="${node.id}">
+                <div class="task-title">${title}</div>
+                ${path !== title ? `<div class="task-path">${path}</div>` : ''}
+                ${node.comment ? `<div class="task-comment">${node.comment}</div>` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Show empty board state
+     */
+    showEmptyBoard() {
+        const columns = ['todoCards', 'inProgressCards', 'doneCards'];
+        columns.forEach(columnId => {
+            const container = document.getElementById(columnId);
+            if (container) {
+                container.innerHTML = '<div class="empty-column">No data loaded</div>';
+            }
+        });
+
+        // Reset counters
+        document.getElementById('todoCount').textContent = '0';
+        document.getElementById('inProgressBoardCount').textContent = '0';
+        document.getElementById('doneCount').textContent = '0';
+    }
+
+    /**
+     * Export current project as JSON with hierarchical structure
+     */
+    exportJSON() {
+        if (!this.currentProject || !this.currentData) {
+            window.NotificationView?.warning('No project loaded to export');
+            return;
+        }
+
+        try {
+            // Create hierarchical JSON structure
+            const jsonData = {
+                type: "project_plan",
+                version: "1.0",
+                name: this.currentProject.name,
+                description: this.currentProject.description,
+                nodes: this.currentData.nodes || []
+            };
+
+            // Create and download file
+            const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.currentProject.name.replace(/[^a-z0-9]/gi, '_')}_export.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            window.NotificationView?.success(`Exported ${this.currentProject.name} as JSON`);
+            console.log('📤 Project exported as JSON');
+        } catch (error) {
+            console.error('Export failed:', error);
+            window.NotificationView?.error('Export failed: ' + error.message);
+        }
+    }
+
+    /**
+     * Manual save current project
+     */
+    async manualSave() {
+        if (!this.currentProject) {
+            window.NotificationView?.warning('No project loaded to save');
+            return;
+        }
+
+        try {
+            // Save via ProjectModel
+            if (window.ProjectModel) {
+                await window.ProjectModel.saveProject(this.currentProject.id, this.currentData);
+                window.NotificationView?.success('Project saved successfully');
+                console.log('💾 Project saved manually');
+            }
+        } catch (error) {
+            console.error('Save failed:', error);
+            window.NotificationView?.error('Save failed: ' + error.message);
+        }
     }
 
     /**
