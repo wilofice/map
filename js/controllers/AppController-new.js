@@ -249,31 +249,16 @@ class AppController {
      * Update database statistics
      */
     async updateDatabaseStats() {
-        try {
-            const stats = await window.ApiService?.getStats();
-            if (stats) {
-                this.displayStats(stats);
-            }
-        } catch (error) {
-            console.error('❌ Failed to update database stats:', error);
-        }
+            return;
     }
 
     /**
-     * Display statistics in UI
+     * Display statistics in UI - DISABLED
+     * Database stats display has been removed from the UI
      */
     displayStats(stats) {
-        const projectCountEl = document.getElementById('projectCount');
-        const nodeCountEl = document.getElementById('nodeCount');
-        const dbSizeEl = document.getElementById('dbSize');
-
-        if (projectCountEl) projectCountEl.textContent = stats.projects || 0;
-        if (nodeCountEl) nodeCountEl.textContent = stats.nodes || 0;
-        if (dbSizeEl) {
-            // Convert bytes to KB and format
-            const sizeInKB = Math.round((stats.databaseSize || 0) / 1024);
-            dbSizeEl.textContent = `${sizeInKB} KB`;
-        }
+        // No-op: Database stats display has been removed from the UI
+        return;
     }
 
     /**

@@ -2379,44 +2379,9 @@
         }
 
         async function updateDatabaseStats() {
-            try {
-                // Fetch database stats from the server
-                const response = await fetch('/api/db/stats');
-                if (!response.ok) throw new Error('Failed to fetch database stats');
-
-                const stats = await response.json();
-
-                // Update the UI elements
-                const projectCountElement = document.getElementById('projectCount');
-                const nodeCountElement = document.getElementById('nodeCount');
-                const dbSizeElement = document.getElementById('dbSize');
-
-                if (projectCountElement) {
-                    projectCountElement.textContent = stats.projects || 0;
-                }
-
-                if (nodeCountElement) {
-                    nodeCountElement.textContent = stats.nodes || 0;
-                }
-
-                if (dbSizeElement) {
-                    const sizeInKB = Math.round((stats.databaseSize || 0) / 1024);
-                    dbSizeElement.textContent = `${sizeInKB} KB`;
-                }
-
-                console.log('Database stats updated:', stats);
-
-            } catch (error) {
-                console.error('Error updating database stats:', error);
-                // Set fallback values instead of failing
-                const projectCountElement = document.getElementById('projectCount');
-                const nodeCountElement = document.getElementById('nodeCount');
-                const dbSizeElement = document.getElementById('dbSize');
-
-                if (projectCountElement) projectCountElement.textContent = '?';
-                if (nodeCountElement) nodeCountElement.textContent = '?';
-                if (dbSizeElement) dbSizeElement.textContent = '? KB';
-            }
+            // Database stats display has been removed from the UI
+            // This function is kept as a no-op to avoid breaking existing calls
+            return;
         }
 
         // ===== COLLECTIONS FUNCTIONALITY =====
