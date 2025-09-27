@@ -90,10 +90,21 @@ class DatabaseManager {
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
 
+                CREATE TABLE IF NOT EXISTS node_progress (
+                    id TEXT PRIMARY KEY,
+                    node_id TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    agent_type TEXT DEFAULT 'ai',
+                    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_nodes_project_id ON nodes(project_id);
                 CREATE INDEX IF NOT EXISTS idx_nodes_parent_id ON nodes(parent_id);
                 CREATE INDEX IF NOT EXISTS idx_nodes_status ON nodes(status);
                 CREATE INDEX IF NOT EXISTS idx_projects_last_opened ON projects(last_opened DESC);
+                CREATE INDEX IF NOT EXISTS idx_node_progress_node_id ON node_progress(node_id);
+                CREATE INDEX IF NOT EXISTS idx_node_progress_created_at ON node_progress(created_at DESC);
             `);
         }
     }
@@ -204,11 +215,23 @@ class DatabaseManager {
 
             // App State
             setAppState: this.db.prepare(`
-                INSERT OR REPLACE INTO app_state (key, value, updated_at) 
+                INSERT OR REPLACE INTO app_state (key, value, updated_at)
                 VALUES (?, ?, CURRENT_TIMESTAMP)
             `),
             getAppState: this.db.prepare(`
                 SELECT value FROM app_state WHERE key = ?
+            `),
+
+            // Node Progress
+            insertNodeProgress: this.db.prepare(`
+                INSERT INTO node_progress (id, node_id, message, agent_type)
+                VALUES (?, ?, ?, ?)
+            `),
+            getNodeProgress: this.db.prepare(`
+                SELECT * FROM node_progress WHERE node_id = ? ORDER BY created_at DESC
+            `),
+            deleteNodeProgress: this.db.prepare(`
+                DELETE FROM node_progress WHERE node_id = ?
             `)
         };
     }
@@ -528,6 +551,81 @@ class DatabaseManager {
         } catch (error) {
             console.error('Error getting stats:', error);
             return null;
+        }
+    }
+
+    // Node Progress Operations
+    addNodeProgress(nodeId, message, agentType = 'ai') {
+        try {
+            const { v4: uuidv4 } = require('uuid');
+            const id = uuidv4();
+            this.stmts.insertNodeProgress.run(id, nodeId, message, agentType);
+            return { id, node_id: nodeId, message, agent_type: agentType, created_at: new Date().toISOString() };
+        } catch (error) {
+            console.error('Error adding node progress:', error);
+            throw error;
+        }
+    }
+
+    getNodeProgress(nodeId) {
+        try {
+            return this.stmts.getNodeProgress.all(nodeId);
+        } catch (error) {
+            console.error('Error getting node progress:', error);
+            throw error;
+        }
+    }
+
+    deleteNodeProgress(nodeId) {
+        try {
+            this.stmts.deleteNodeProgress.run(nodeId);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting node progress:', error);
+            throw error;
+        }
+    }
+
+    // AI-focused methods
+    getNodeWithProgress(nodeId) {
+        try {
+            const node = this.getNode(nodeId);
+            if (!node) return null;
+
+            const progress = this.getNodeProgress(nodeId);
+            return { ...node, progress_history: progress };
+        } catch (error) {
+            console.error('Error getting node with progress:', error);
+            throw error;
+        }
+    }
+
+    getProjectWithContext(projectId) {
+        try {
+            const project = this.getProject(projectId);
+            if (!project) return null;
+
+            const nodes = this.getProjectNodes(projectId);
+
+            // Add progress history to each node
+            const nodesWithProgress = nodes.map(node => {
+                const progress = this.getNodeProgress(node.id);
+                return { ...node, progress_history: progress };
+            });
+
+            return {
+                project,
+                nodes: nodesWithProgress,
+                stats: {
+                    total_nodes: nodes.length,
+                    pending: nodes.filter(n => n.status === 'pending').length,
+                    in_progress: nodes.filter(n => n.status === 'in-progress').length,
+                    completed: nodes.filter(n => n.status === 'completed').length
+                }
+            };
+        } catch (error) {
+            console.error('Error getting project with context:', error);
+            throw error;
         }
     }
 

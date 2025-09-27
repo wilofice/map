@@ -2048,6 +2048,240 @@ function escapeXML(text) {
     });
 }
 
+// ============================================================================
+// AI CO-PILOT API ENDPOINTS
+// ============================================================================
+
+// Get project with AI-optimized context
+app.get('/api/ai/projects/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+        const projectContext = db.getProjectWithContext(projectId);
+
+        if (!projectContext) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        res.json(projectContext);
+    } catch (error) {
+        console.error('❌ Error getting AI project context:', error);
+        res.status(500).json({ error: 'Failed to get project context' });
+    }
+});
+
+// Get node with progress history
+app.get('/api/ai/nodes/:id', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const nodeId = req.params.id;
+        const nodeWithProgress = db.getNodeWithProgress(nodeId);
+
+        if (!nodeWithProgress) {
+            return res.status(404).json({ error: 'Node not found' });
+        }
+
+        res.json(nodeWithProgress);
+    } catch (error) {
+        console.error('❌ Error getting AI node:', error);
+        res.status(500).json({ error: 'Failed to get node' });
+    }
+});
+
+// Update node status (AI-safe)
+app.put('/api/ai/nodes/:id/status', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const nodeId = req.params.id;
+        const { status } = req.body;
+
+        // Validate status values (same as existing system)
+        const validStatuses = ['pending', 'in-progress', 'completed'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                error: 'Invalid status',
+                valid_statuses: validStatuses
+            });
+        }
+
+        // Get current node
+        const node = db.getNode(nodeId);
+        if (!node) {
+            return res.status(404).json({ error: 'Node not found' });
+        }
+
+        // Update node status
+        const updatedNode = db.updateNode(nodeId, { status });
+
+        console.log(`🤖 AI updated node ${nodeId} status: ${node.status} → ${status}`);
+
+        res.json({
+            success: true,
+            node: updatedNode,
+            previous_status: node.status,
+            new_status: status
+        });
+    } catch (error) {
+        console.error('❌ Error updating AI node status:', error);
+        res.status(500).json({ error: 'Failed to update node status' });
+    }
+});
+
+// Add progress to node (new feature)
+app.post('/api/ai/nodes/:id/progress', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const nodeId = req.params.id;
+        const { message, agent_type = 'ai' } = req.body;
+
+        if (!message || message.trim() === '') {
+            return res.status(400).json({ error: 'Progress message is required' });
+        }
+
+        // Verify node exists
+        const node = db.getNode(nodeId);
+        if (!node) {
+            return res.status(404).json({ error: 'Node not found' });
+        }
+
+        // Add progress entry
+        const progressEntry = db.addNodeProgress(nodeId, message.trim(), agent_type);
+
+        console.log(`🤖 AI added progress to node ${nodeId}: "${message}"`);
+
+        res.json({
+            success: true,
+            progress: progressEntry,
+            node_title: node.title
+        });
+    } catch (error) {
+        console.error('❌ Error adding AI node progress:', error);
+        res.status(500).json({ error: 'Failed to add progress' });
+    }
+});
+
+// Get pending tasks (AI task queue)
+app.get('/api/ai/tasks/queue', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const { priority, limit = 10, project_id } = req.query;
+
+        // Build search query
+        let whereClause = "WHERE n.status = 'pending'";
+        const params = [];
+
+        if (priority) {
+            whereClause += " AND n.priority = ?";
+            params.push(priority);
+        }
+
+        if (project_id) {
+            whereClause += " AND n.project_id = ?";
+            params.push(project_id);
+        }
+
+        const query = `
+            SELECT n.*, p.name as project_name
+            FROM nodes n
+            JOIN projects p ON n.project_id = p.id
+            ${whereClause}
+            ORDER BY
+                CASE n.priority
+                    WHEN 'high' THEN 1
+                    WHEN 'medium' THEN 2
+                    WHEN 'low' THEN 3
+                    ELSE 4
+                END,
+                n.created_at ASC
+            LIMIT ?
+        `;
+
+        params.push(parseInt(limit));
+
+        const stmt = db.db.prepare(query);
+        const tasks = stmt.all(...params);
+
+        res.json({
+            tasks,
+            total: tasks.length,
+            filters: { priority, project_id }
+        });
+    } catch (error) {
+        console.error('❌ Error getting AI task queue:', error);
+        res.status(500).json({ error: 'Failed to get task queue' });
+    }
+});
+
+// Search for tasks (AI-optimized)
+app.get('/api/ai/search', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const { q: query, status, priority, project_id } = req.query;
+
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        let whereClause = "WHERE (n.title LIKE ? OR n.content LIKE ? OR n.task_prompt LIKE ?)";
+        const searchTerm = `%${query}%`;
+        const params = [searchTerm, searchTerm, searchTerm];
+
+        if (status) {
+            whereClause += " AND n.status = ?";
+            params.push(status);
+        }
+
+        if (priority) {
+            whereClause += " AND n.priority = ?";
+            params.push(priority);
+        }
+
+        if (project_id) {
+            whereClause += " AND n.project_id = ?";
+            params.push(project_id);
+        }
+
+        const searchQuery = `
+            SELECT n.*, p.name as project_name
+            FROM nodes n
+            JOIN projects p ON n.project_id = p.id
+            ${whereClause}
+            ORDER BY n.updated_at DESC
+            LIMIT 50
+        `;
+
+        const stmt = db.db.prepare(searchQuery);
+        const results = stmt.all(...params);
+
+        res.json({
+            results,
+            total: results.length,
+            query: { q: query, status, priority, project_id }
+        });
+    } catch (error) {
+        console.error('❌ Error in AI search:', error);
+        res.status(500).json({ error: 'Search failed' });
+    }
+});
+
 app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
     console.log(`🚀 Mind Map Server started successfully!`);
