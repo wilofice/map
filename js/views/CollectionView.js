@@ -172,12 +172,12 @@ class CollectionView {
 
         if (!projects || projects.length === 0) {
             // Hide project select if no projects
-            this.projectSelect.style.display = 'none';
+            this.projectSelect.classList.add('hidden');
             return;
         }
 
         // Show project select
-        this.projectSelect.style.display = 'block';
+        this.projectSelect.classList.remove('hidden');
 
         // Get currently selected project
         const selectedId = window.ProjectModel?.getCurrentProject?.()?.id;

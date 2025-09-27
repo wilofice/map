@@ -1654,6 +1654,11 @@ h1 {
     }
 }
 
+/* Hidden utility class for proper show/hide */
+.hidden {
+    display: none !important;
+}
+
 /* Very small screens only - vertical stacking for collection nav */
 @media (max-width: 480px) {
     .collection-nav {
