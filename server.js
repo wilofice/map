@@ -954,8 +954,21 @@ app.get('/api/load-json/:filename(*)', async (req, res) => {
         let jsonData = JSON.parse(jsonContent);
         await expandJsonImports(jsonData, path.dirname(filePath));
 
+        // Normalize to expected project_plan shape for validation/conversion
+        let nodes = [];
+        if (jsonData && Array.isArray(jsonData.nodes)) {
+            nodes = jsonData.nodes;
+        } else if (jsonData && jsonData.project_plan && Array.isArray(jsonData.project_plan.nodes)) {
+            nodes = jsonData.project_plan.nodes;
+        } else if (Array.isArray(jsonData)) {
+            nodes = jsonData;
+        } else {
+            nodes = [];
+        }
+        const normalized = { type: 'project_plan', version: jsonData.version || '1.0', nodes };
+
         // Validate expanded JSON format
-        const validation = MindMapConverter.validateJson(JSON.stringify(jsonData));
+        const validation = MindMapConverter.validateJson(JSON.stringify(normalized));
         if (!validation.valid) {
             return res.status(400).json({ 
                 error: 'Invalid JSON format', 
@@ -965,7 +978,7 @@ app.get('/api/load-json/:filename(*)', async (req, res) => {
 
         if (format === 'xml') {
             // Convert JSON to XML format for existing UI
-            const xmlContent = MindMapConverter.jsonToXml(JSON.stringify(jsonData));
+            const xmlContent = MindMapConverter.jsonToXml(JSON.stringify(normalized));
             const parsedData = await parser.parseStringPromise(xmlContent);
             res.json({
                 data: parsedData,
@@ -975,7 +988,7 @@ app.get('/api/load-json/:filename(*)', async (req, res) => {
         } else {
             // Return raw JSON
             res.json({
-                data: jsonData,
+                data: normalized,
                 originalFormat: 'json',
                 filename: filename
             });
@@ -1594,13 +1607,13 @@ app.post('/api/db/projects', (req, res) => {
 });
 
 // JSON Import endpoint
-app.post('/api/db/import-json', (req, res) => {
+app.post('/api/db/import-json', async (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
 
     try {
-        const { collection_id, ...jsonData } = req.body;
+    const { collection_id, base_dir, ...jsonData } = req.body;
         let projectName = 'Imported Project';
         let projectDescription = 'Imported from JSON file';
         let nodes = [];
@@ -1623,11 +1636,12 @@ app.post('/api/db/import-json', (req, res) => {
 
         // Expand JSON-native imports in nodes before importing to DB
         const tempContainer = { nodes };
-        expandJsonImports(tempContainer, process.cwd()).then(() => {
-            nodes = tempContainer.nodes;
+        const baseDir = base_dir || workingRootDir;
+        await expandJsonImports(tempContainer, baseDir);
+        nodes = tempContainer.nodes;
 
-            const projectId = uuidv4();
-            const project = db.createProject(projectId, projectName, projectDescription, '', targetCollectionId);
+        const projectId = uuidv4();
+        const project = db.createProject(projectId, projectName, projectDescription, '', targetCollectionId);
 
             // Log project creation activity
             db.logActivity(projectId, 'project_created', {
@@ -1637,27 +1651,23 @@ app.post('/api/db/import-json', (req, res) => {
                 import_source: 'json'
             }, null, req.get('User-Agent'), req.ip);
 
-            // Import nodes
-            if (nodes && nodes.length > 0) {
-                importNodesToProject(projectId, nodes);
-                // Log import activity
-                db.logActivity(projectId, 'nodes_imported', {
-                    node_count: nodes.length,
-                    source: 'json_import',
-                    collection_id: targetCollectionId
-                }, null, req.get('User-Agent'), req.ip);
-            }
+        // Import nodes
+        if (nodes && nodes.length > 0) {
+            importNodesToProject(projectId, nodes);
+            // Log import activity
+            db.logActivity(projectId, 'nodes_imported', {
+                node_count: nodes.length,
+                source: 'json_import',
+                collection_id: targetCollectionId
+            }, null, req.get('User-Agent'), req.ip);
+        }
 
-            // Return complete project
-            const completeProject = db.getProjectWithNodes(projectId);
-            res.json({
-                success: true,
-                project: completeProject,
-                message: `Successfully imported ${nodes.length} nodes`
-            });
-        }).catch(error => {
-            console.error('Error expanding JSON imports during DB import:', error);
-            res.status(500).json({ error: 'Failed to process JSON imports' });
+        // Return complete project
+        const completeProject = db.getProjectWithNodes(projectId);
+        res.json({
+            success: true,
+            project: completeProject,
+            message: `Successfully imported ${nodes.length} nodes`
         });
     } catch (error) {
         console.error('Error importing JSON:', error);

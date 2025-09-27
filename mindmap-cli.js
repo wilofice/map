@@ -177,6 +177,8 @@ class MindMapCLI {
                 process.exit(1);
             }
             payload.collection_id = options.collectionId || 'default-collection';
+            // Provide base directory so server can resolve JSON import paths
+            payload.base_dir = path.dirname(path.resolve(filePath));
             const response = await this.makeRequest('/api/db/import-json', {
                 method: 'POST',
                 body: JSON.stringify(payload)
