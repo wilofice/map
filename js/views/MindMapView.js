@@ -338,6 +338,29 @@ class MindMapView {
 
         const totalUpdated = this.countUpdatedNodes(nodeElement);
         console.log(`🔄 Status changed for node ${nodeId} and ${totalUpdated - 1} children: ${currentStatus} -> ${newStatus}`);
+
+        // Notify others (BoardView, etc.)
+        try {
+            // Collect all updated node IDs
+            const updatedIds = [];
+            const pushIds = (el) => {
+                const id = el.getAttribute('data-id');
+                if (id) updatedIds.push(id);
+                const childContainer = el.querySelector('.node-parent');
+                if (childContainer) {
+                    const childNodes = childContainer.querySelectorAll(':scope > .node');
+                    childNodes.forEach(pushIds);
+                }
+            };
+            pushIds(nodeElement);
+            window.EventBus?.emit(window.EVENTS?.NODE_STATUS_CHANGED, {
+                nodeIds: updatedIds,
+                newStatus,
+                source: 'MindMapView'
+            });
+        } catch (e) {
+            console.warn('Event emit failed:', e);
+        }
     }
 
     updateNodeStatus(nodeElement, newStatus) {

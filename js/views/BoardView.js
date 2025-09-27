@@ -3,9 +3,7 @@
  * Handles kanban-style board visualization
  */
 
-import { dataModel } from '../models/DataModel.js';
-
-export class BoardView {
+class BoardView {
     constructor() {
         this.boardContainer = null;
         this.columns = {
@@ -14,6 +12,13 @@ export class BoardView {
             completed: null
         };
         this.initialized = false;
+        this._bound = false;
+        this.bindEvents();
+    }
+
+    _getDataModel() {
+        // Prefer global dataModel; fall back to potential mvc container if present
+        return window.dataModel || (window.mvc && window.mvc.dataModel) || null;
     }
 
     initialize(containerId = 'boardContainer') {
@@ -23,17 +28,53 @@ export class BoardView {
             return false;
         }
 
-        this.columns.pending = document.getElementById('pendingColumn')?.querySelector('.column-content');
-        this.columns.inProgress = document.getElementById('inProgressColumn')?.querySelector('.column-content');
-        this.columns.completed = document.getElementById('completedColumn')?.querySelector('.column-content');
+        // Align with index.html IDs
+        this.columns.pending = document.getElementById('todoCards');
+        this.columns.inProgress = document.getElementById('inProgressCards');
+        this.columns.completed = document.getElementById('doneCards');
 
         if (!this.columns.pending || !this.columns.inProgress || !this.columns.completed) {
-            console.error('Board column elements not found');
+            console.error('Board column elements not found (expected #todoCards, #inProgressCards, #doneCards)');
             return false;
         }
 
         this.initialized = true;
         return true;
+    }
+
+    bindEvents() {
+        if (this._bound) return;
+
+        // Refresh board when project changes/loads
+        window.EventBus?.on(window.EVENTS?.PROJECT_SELECTED, () => {
+            // Lazy init in case toggle created the DOM later
+            if (!this.initialized) this.initialize('boardContainer');
+            if (this.initialized) this.refreshBoard();
+        });
+
+        // React to node status changes from other views
+        window.EventBus?.on(window.EVENTS?.NODE_STATUS_CHANGED, (payload) => {
+            // Ignore our own emissions to avoid loops
+            if (payload?.source === 'BoardView') return;
+            if (!this.initialized) this.initialize('boardContainer');
+            if (this.initialized) this.refreshBoard();
+        });
+
+        // Toggle view integration
+        window.EventBus?.on(window.EVENTS?.UI_TOGGLE_VIEW, (payload) => {
+            if (payload?.view === 'board') {
+                if (!this.initialized) this.initialize('boardContainer');
+                if (this.initialized) this.refreshBoardWithAnimation();
+            }
+        });
+
+        // Optional: when data is saved/loaded
+        window.EventBus?.on?.(window.EVENTS?.DATA_LOADED, () => {
+            if (!this.initialized) this.initialize('boardContainer');
+            if (this.initialized) this.refreshBoard();
+        });
+
+        this._bound = true;
     }
 
     populateBoard() {
@@ -49,28 +90,80 @@ export class BoardView {
             if (column) column.innerHTML = '';
         });
 
-        const xmlData = dataModel.getXmlData();
-        const jsonData = dataModel.getJsonData();
-        const currentFile = dataModel.getCurrentFile();
+    // Authoritative model: JSON
+    // First, sync any live DOM status changes from MindMapView into the JSON model
+    const dm = this._getDataModel();
+    try { if (dm) this.syncStatusesFromDOM(dm); } catch (e) { console.warn('syncStatusesFromDOM failed:', e); }
+
+    const jsonData = dm && typeof dm.getJsonData === 'function' ? dm.getJsonData() : null;
+    const xmlData = dm && typeof dm.getXmlData === 'function' ? dm.getXmlData() : null;
+    const currentFile = dm && typeof dm.getCurrentFile === 'function' ? dm.getCurrentFile() : undefined;
 
         console.log('xmlData:', xmlData);
         console.log('jsonData:', jsonData);
         console.log('currentFile:', currentFile);
 
-        // Handle JSON data
+        // Prefer JSON as the authoritative live model
         if (jsonData && jsonData.nodes) {
             this.populateFromJSON(jsonData.nodes);
             return;
         }
 
-        // Handle XML data
-        if (!xmlData) {
+        // Fallback to XML if JSON is not present
+        if (xmlData) {
+            this.populateFromXML(xmlData);
+            return;
+        }
+
+        // Last resort: derive a flat view from the MindMap DOM
+        const domNodes = this._buildFlatNodesFromDom();
+        if (domNodes && domNodes.length) {
+            this.populateFromJSON(domNodes);
+            return;
+        }
+
+        // No data
+        if (!xmlData && !jsonData) {
             console.log('No data available');
             this.showEmptyBoard();
             return;
         }
 
-        this.populateFromXML(xmlData);
+    }
+
+    // Synchronize statuses from MindMapView DOM into the JSON model (for live updates)
+    syncStatusesFromDOM(dm) {
+        const json = dm && typeof dm.getJsonData === 'function' ? dm.getJsonData() : null;
+        if (!json || !Array.isArray(json.nodes)) return;
+        // Select nodes rendered in MindMapView
+        const domNodes = document.querySelectorAll('.node[data-id][data-status]');
+        if (!domNodes || domNodes.length === 0) return;
+        let updatedAny = false;
+        domNodes.forEach(el => {
+            const id = el.getAttribute('data-id');
+            const status = el.getAttribute('data-status');
+            if (!id || !status) return;
+            const updated = this._updateStatusInJsonArray(json.nodes, id, status);
+            if (updated) updatedAny = true;
+        });
+        if (updatedAny && dm && typeof dm.setJsonData === 'function') {
+            dm.setJsonData(json);
+        }
+    }
+
+    // Build a flat list of nodes from the MindMap DOM as a fallback
+    _buildFlatNodesFromDom() {
+        const list = [];
+        const els = document.querySelectorAll('.node[data-id]');
+        els.forEach(el => {
+            const id = el.getAttribute('data-id');
+            const status = el.getAttribute('data-status') || 'pending';
+            const priority = el.getAttribute('data-priority') || 'medium';
+            const titleEl = el.querySelector('.node-title');
+            const title = titleEl ? titleEl.textContent.trim() : 'Untitled';
+            list.push({ id, title, status, priority, children: [] });
+        });
+        return list;
     }
 
     populateFromJSON(jsonNodes) {
@@ -222,28 +315,65 @@ export class BoardView {
 
     changeTaskStatus(nodeId, newStatus) {
         console.log(`Changing task ${nodeId} to status ${newStatus}`);
-        
-        // Find the node in the DOM and update its status
-        const nodeElement = document.querySelector(`[data-id="${nodeId}"]`);
-        if (nodeElement) {
-            nodeElement.dataset.status = newStatus;
-            
-            // Update the status icon
-            const statusIcon = nodeElement.querySelector('.status-icon');
-            if (statusIcon) {
-                statusIcon.textContent = this.getStatusIcon(newStatus);
-            }
-            
-            // Trigger auto-save
-            if (window.autoSave) {
-                window.autoSave();
-            }
-            
-            // Refresh the board
-            setTimeout(() => {
-                this.populateBoard();
-            }, 100);
+
+        // Update the card in the board (dataset uses data-node-id)
+        const cardEl = this.boardContainer?.querySelector(`[data-node-id="${nodeId}"]`);
+        if (cardEl) {
+            cardEl.dataset.status = newStatus;
+            const statusSpan = cardEl.querySelector('.card-status');
+            if (statusSpan) statusSpan.textContent = this.getStatusIcon(newStatus);
         }
+
+        // Update underlying data model so switch between views reflects latest state
+        const dm = this._getDataModel();
+        try {
+            if (dm && typeof dm.updateNodeStatus === 'function') {
+                dm.updateNodeStatus(nodeId, newStatus);
+            } else {
+                const json = dm && typeof dm.getJsonData === 'function' ? dm.getJsonData() : null;
+                if (json && Array.isArray(json.nodes)) {
+                    const updated = this._updateStatusInJsonArray(json.nodes, nodeId, newStatus);
+                    if (updated && dm && typeof dm.setJsonData === 'function') {
+                        dm.setJsonData(json);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to update model status:', e);
+        }
+
+        // Optionally trigger a save if available
+        if (typeof window.autoSave === 'function') {
+            try { window.autoSave(); } catch (e) { console.warn('autoSave failed:', e); }
+        }
+
+        // Recompute columns from the latest model snapshot
+        setTimeout(() => this.populateBoard(), 100);
+
+        // Notify others
+        try {
+            window.EventBus?.emit(window.EVENTS?.NODE_STATUS_CHANGED, {
+                nodeIds: [nodeId],
+                newStatus,
+                source: 'BoardView'
+            });
+        } catch (e) {
+            console.warn('EventBus emit failed:', e);
+        }
+    }
+
+    // Helper: recursively update status by id in JSON nodes
+    _updateStatusInJsonArray(nodes, nodeId, newStatus) {
+        for (const n of nodes) {
+            if (n && n.id === nodeId) {
+                n.status = newStatus;
+                return true;
+            }
+            if (n && Array.isArray(n.children) && this._updateStatusInJsonArray(n.children, nodeId, newStatus)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     getPriorityIcon(priority) {
@@ -272,13 +402,14 @@ export class BoardView {
     }
 
     updateCounters(pendingCount, inProgressCount, completedCount) {
-        const pendingCounter = document.getElementById('pendingCount');
-        const inProgressCounter = document.getElementById('inProgressCount');
-        const completedCounter = document.getElementById('completedCount');
-        
-        if (pendingCounter) pendingCounter.textContent = pendingCount;
-        if (inProgressCounter) inProgressCounter.textContent = inProgressCount;
-        if (completedCounter) completedCounter.textContent = completedCount;
+        // Board view counters (match index.html)
+        const todoCounter = document.getElementById('todoCount');
+        const inProgCounter = document.getElementById('inProgressBoardCount');
+        const doneCounter = document.getElementById('doneCount');
+
+        if (todoCounter) todoCounter.textContent = pendingCount;
+        if (inProgCounter) inProgCounter.textContent = inProgressCount;
+        if (doneCounter) doneCounter.textContent = completedCount;
     }
 
     refreshBoard() {
@@ -322,8 +453,8 @@ export class BoardView {
     }
 }
 
-// Create and export singleton instance
-export const boardView = new BoardView();
+// Create singleton instance
+const boardView = new BoardView();
 
 // Export for backward compatibility
 window.boardView = boardView;

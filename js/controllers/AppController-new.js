@@ -484,6 +484,9 @@ class AppController {
             toggleBtn.innerHTML = '📋 <span class="btn-text">Board View</span>';
             toggleBtn.classList.remove('btn-success');
             toggleBtn.classList.add('btn-info');
+
+            // Announce view change
+            window.EventBus?.emit(window.EVENTS?.UI_TOGGLE_VIEW, { view: 'mindmap' });
         } else {
             // Switch to board view
             mindMapContainer.style.display = 'none';
@@ -492,8 +495,22 @@ class AppController {
             toggleBtn.classList.remove('btn-info');
             toggleBtn.classList.add('btn-success');
 
-            // Populate board view
-            this.populateBoardView();
+            // Initialize and populate the dedicated BoardView
+            try {
+                if (window.boardView && typeof window.boardView.initialize === 'function') {
+                    window.boardView.initialize('boardContainer');
+                    window.boardView.refreshBoardWithAnimation?.();
+                } else {
+                    // Fallback to legacy in-controller renderer
+                    this.populateBoardView();
+                }
+            } catch (e) {
+                console.warn('BoardView populate failed, falling back:', e);
+                this.populateBoardView();
+            }
+
+            // Announce view change
+            window.EventBus?.emit(window.EVENTS?.UI_TOGGLE_VIEW, { view: 'board' });
         }
     }
 
