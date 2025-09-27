@@ -303,14 +303,46 @@ class BoardView {
                     ${node.endDate ? `<span class="end-date">🏁 ${node.endDate}</span>` : ''}
                 </div>
             ` : ''}
-            <div class="card-actions">
-                <button class="card-btn" onclick="boardView.changeTaskStatus('${node.id}', 'pending')" title="Move to Pending">🔲</button>
-                <button class="card-btn" onclick="boardView.changeTaskStatus('${node.id}', 'in-progress')" title="Move to In Progress">🟡</button>
-                <button class="card-btn" onclick="boardView.changeTaskStatus('${node.id}', 'completed')" title="Move to Completed">✅</button>
-            </div>
         `;
+        // Hint for the interaction
+        card.title = 'Ctrl/Cmd + Click: cycle status';
+
+        // Ctrl/Cmd + Click cycles status: pending -> in-progress -> completed -> pending
+        const clickHandler = (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                const current = card.dataset.status || 'pending';
+                const next = this.getNextStatus(current);
+                this.changeTaskStatus(node.id, next);
+            }
+        };
+        card.addEventListener('click', clickHandler);
+
+        // On macOS, Ctrl+Click opens context menu; intercept when ctrlKey held
+        card.addEventListener('contextmenu', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                // Also handle status cycle here just in case click is suppressed by the browser
+                const current = card.dataset.status || 'pending';
+                const next = this.getNextStatus(current);
+                this.changeTaskStatus(node.id, next);
+            }
+        });
         
         return card;
+    }
+
+    getNextStatus(status) {
+        switch (status) {
+            case 'pending':
+                return 'in-progress';
+            case 'in-progress':
+                return 'completed';
+            case 'completed':
+            default:
+                return 'pending';
+        }
     }
 
     changeTaskStatus(nodeId, newStatus) {
