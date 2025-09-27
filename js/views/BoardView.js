@@ -356,6 +356,41 @@ class BoardView {
             if (statusSpan) statusSpan.textContent = this.getStatusIcon(newStatus);
         }
 
+        // Update the corresponding MindMap DOM node so fallback derivation and other views stay in sync
+        try {
+            const mapNode = document.querySelector(`.node[data-id="${nodeId}"]`);
+            if (mapNode) {
+                // Update data-status and CSS class
+                mapNode.setAttribute('data-status', newStatus);
+                mapNode.className = mapNode.className.replace(/status-\w+/, `status-${newStatus}`);
+                // Update its status icon if present, using MindMapView icons for consistency
+                const statusIcon = mapNode.querySelector('.icon-status');
+                if (statusIcon) {
+                    const getMMIcon = window.MindMapView?.getStatusIcon?.bind(window.MindMapView);
+                    statusIcon.textContent = getMMIcon ? getMMIcon(newStatus) : this.getStatusIcon(newStatus);
+                    statusIcon.title = `Status: ${newStatus}`;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to update MindMap DOM node status:', e);
+        }
+
+        // Move the card to the appropriate column immediately for instant UX feedback
+        try {
+            if (cardEl) {
+                const targetContainer = newStatus === 'completed'
+                    ? this.columns.completed
+                    : newStatus === 'in-progress'
+                        ? this.columns.inProgress
+                        : this.columns.pending;
+                if (targetContainer && cardEl.parentElement !== targetContainer) {
+                    targetContainer.appendChild(cardEl);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to move card element:', e);
+        }
+
         // Update underlying data model so switch between views reflects latest state
         const dm = this._getDataModel();
         try {
@@ -377,6 +412,16 @@ class BoardView {
         // Optionally trigger a save if available
         if (typeof window.autoSave === 'function') {
             try { window.autoSave(); } catch (e) { console.warn('autoSave failed:', e); }
+        }
+
+        // Update counters immediately based on DOM, to reflect move without waiting
+        try {
+            const pCount = this.columns.pending?.querySelectorAll('.task-card').length || 0;
+            const iCount = this.columns.inProgress?.querySelectorAll('.task-card').length || 0;
+            const cCount = this.columns.completed?.querySelectorAll('.task-card').length || 0;
+            this.updateCounters(pCount, iCount, cCount);
+        } catch (e) {
+            console.warn('Counter update failed:', e);
         }
 
         // Recompute columns from the latest model snapshot
