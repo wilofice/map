@@ -114,9 +114,13 @@ class CollectionView {
             this.collectionSelect.appendChild(option);
         });
 
-        // Show nav if we have collections to choose
+        // Show nav if we have collections to choose (use CSS class, avoid inline display)
         if (this.collectionNav) {
-            this.collectionNav.style.display = collections.length > 0 ? 'flex' : 'none';
+            if (collections.length > 0) {
+                this.collectionNav.classList.remove('hidden');
+            } else {
+                this.collectionNav.classList.add('hidden');
+            }
         }
 
         console.log('📚 CollectionView: Populated', collections.length, 'collections in dropdown');
@@ -150,9 +154,9 @@ class CollectionView {
     }
 
     updateCollectionDisplay(collection, projects) {
-        // Show collection navigation
+        // Show collection navigation (avoid inline display)
         if (this.collectionNav) {
-            this.collectionNav.style.display = 'block';
+            this.collectionNav.classList.remove('hidden');
         }
 
         // Update collection select to show current selection

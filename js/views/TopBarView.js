@@ -103,7 +103,12 @@ class TopBarView {
     showAssignForProject(project) {
         if (!this.assignContainer || !this.assignSelect) return;
         // Show control when a project is active
-        this.assignContainer.style.display = project ? 'flex' : 'none';
+        // Use CSS classes to show/hide to avoid breaking flex layout
+        if (project) {
+            this.assignContainer.classList.remove('hidden');
+        } else {
+            this.assignContainer.classList.add('hidden');
+        }
         if (project) {
             this.refreshAssignOptions();
             this.syncAssignValue(project);
