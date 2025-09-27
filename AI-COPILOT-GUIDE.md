@@ -109,6 +109,9 @@ mindmap lowest-priority-task <project-id>
 # List pending tasks (AI work queue)
 mindmap list-tasks [options]
 
+# Filter tasks by priority, status, and/or project (FLEXIBLE!)
+mindmap filter-tasks [options]
+
 # List tasks for specific project
 mindmap list-tasks --project-id=<project-id>
 
@@ -120,6 +123,28 @@ mindmap lowest-priority-task <project-id>
 
 # Search for specific tasks
 mindmap search <query> [options]
+```
+
+### Advanced Task Filtering
+```bash
+# Filter by priority only
+mindmap filter-tasks --priority=high
+mindmap filter-tasks --priority=medium
+mindmap filter-tasks --priority=low
+
+# Filter by status only
+mindmap filter-tasks --status=pending
+mindmap filter-tasks --status=in-progress
+mindmap filter-tasks --status=completed
+
+# Filter by project only
+mindmap filter-tasks --project-id=<project-id>
+
+# Combine multiple filters
+mindmap filter-tasks --project-id=abc123 --priority=high
+mindmap filter-tasks --project-id=abc123 --status=in-progress
+mindmap filter-tasks --priority=medium --status=pending --limit=10
+mindmap filter-tasks --project-id=abc123 --priority=low --status=completed
 ```
 
 ### Task Management
@@ -313,6 +338,7 @@ node mindmap-cli.js update-status $TASK_ID in-progress
 |---------|---------|---------|
 | `projects` | List all projects | `mindmap projects` |
 | `list-tasks` | Find work to do | `mindmap list-tasks --priority=high` |
+| `filter-tasks` | Flexible task filtering | `mindmap filter-tasks --priority=high --status=pending` |
 | `highest-priority-task` | Get top priority task in project | `mindmap highest-priority-task abc123` |
 | `lowest-priority-task` | Get lowest priority task in project | `mindmap lowest-priority-task abc123` |
 | `get-node` | Get task details | `mindmap get-node abc123` |

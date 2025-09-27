@@ -2346,6 +2346,77 @@ app.get('/api/ai/tasks/queue', (req, res) => {
     }
 });
 
+// Get tasks with flexible filtering (AI-optimized)
+app.get('/api/ai/tasks', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const {
+            priority,
+            status,
+            project_id,
+            limit = 50
+        } = req.query;
+
+        // Build flexible search query
+        let whereClause = "WHERE 1=1"; // Always true base condition
+        const params = [];
+
+        if (priority) {
+            whereClause += " AND n.priority = ?";
+            params.push(priority);
+        }
+
+        if (status) {
+            whereClause += " AND n.status = ?";
+            params.push(status);
+        }
+
+        if (project_id) {
+            whereClause += " AND n.project_id = ?";
+            params.push(project_id);
+        }
+
+        const query = `
+            SELECT n.*, p.name as project_name
+            FROM nodes n
+            JOIN projects p ON n.project_id = p.id
+            ${whereClause}
+            ORDER BY
+                CASE n.priority
+                    WHEN 'high' THEN 1
+                    WHEN 'medium' THEN 2
+                    WHEN 'low' THEN 3
+                    ELSE 4
+                END,
+                CASE n.status
+                    WHEN 'pending' THEN 1
+                    WHEN 'in-progress' THEN 2
+                    WHEN 'completed' THEN 3
+                    ELSE 4
+                END,
+                n.created_at ASC
+            LIMIT ?
+        `;
+
+        params.push(parseInt(limit));
+
+        const stmt = db.db.prepare(query);
+        const tasks = stmt.all(...params);
+
+        res.json({
+            tasks: tasks,
+            total: tasks.length,
+            filters: { priority, status, project_id }
+        });
+    } catch (error) {
+        console.error('❌ Error getting filtered tasks:', error);
+        res.status(500).json({ error: 'Failed to get tasks' });
+    }
+});
+
 // Search for tasks (AI-optimized)
 app.get('/api/ai/search', (req, res) => {
     if (!db) {

@@ -273,6 +273,74 @@ class MindMapCLI {
         }
     }
 
+    // Command: Filter tasks with flexible criteria
+    async filterTasks(options = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            if (options.priority) queryParams.append('priority', options.priority);
+            if (options.status) queryParams.append('status', options.status);
+            if (options.projectId) queryParams.append('project_id', options.projectId);
+            if (options.limit) queryParams.append('limit', options.limit);
+
+            const response = await this.makeRequest(`/api/ai/tasks?${queryParams}`);
+
+            // If _returnData option is set, return the response instead of printing
+            if (options._returnData) {
+                return response;
+            }
+
+            if (options.format === 'json') {
+                console.log(JSON.stringify(response));
+                return;
+            }
+
+            if (response.tasks.length === 0) {
+                console.log('📋 No tasks found matching the specified criteria');
+                if (options.priority || options.status || options.projectId) {
+                    console.log('🔍 Filters applied:');
+                    if (options.projectId) console.log(`   📁 Project: ${options.projectId}`);
+                    if (options.priority) console.log(`   ⚡ Priority: ${options.priority}`);
+                    if (options.status) console.log(`   📊 Status: ${options.status}`);
+                }
+                return;
+            }
+
+            // Build filter description
+            let filterDesc = '';
+            const filters = [];
+            if (options.projectId) filters.push(`project ${options.projectId}`);
+            if (options.priority) filters.push(`${options.priority} priority`);
+            if (options.status) filters.push(`${options.status} status`);
+
+            if (filters.length > 0) {
+                filterDesc = ` (${filters.join(', ')})`;
+            }
+
+            console.log(`📋 Found ${response.tasks.length} tasks${filterDesc}:`);
+            response.tasks.forEach(task => {
+                const priorityIcon = task.priority === 'high' ? '🔴' :
+                                   task.priority === 'medium' ? '🟡' : '🟢';
+                const statusIcon = task.status === 'completed' ? '✅' :
+                                 task.status === 'in-progress' ? '🔄' : '⏳';
+                console.log(`  ${priorityIcon}${statusIcon} ${task.title}`);
+                console.log(`     📁 Project: ${task.project_name}`);
+                console.log(`     🔗 ID: ${task.id}`);
+                console.log(`     ⚡ Priority: ${task.priority} | 📊 Status: ${task.status}`);
+                if (task.content || task.comment) {
+                    const content = task.content || task.comment;
+                    const preview = content.length > 100
+                        ? content.substring(0, 100) + '...'
+                        : content;
+                    console.log(`     📄 ${preview}`);
+                }
+                console.log('');
+            });
+        } catch (error) {
+            console.error('❌ Error filtering tasks:', error.message);
+            process.exit(1);
+        }
+    }
+
     // Command: Get highest priority task in a project
     async getHighestPriorityTask(projectId, options = {}) {
         try {
@@ -386,6 +454,7 @@ COMMANDS:
   get-project <id>                Get project details with context
   get-node <id>                   Get node details with progress history
   list-tasks                      List pending tasks (AI task queue)
+  filter-tasks                    Filter tasks by priority, status, and/or project
   highest-priority-task <proj-id> Get highest priority task in project
   lowest-priority-task <proj-id>  Get lowest priority task in project
   update-status <id> <status>     Update node status (pending|in-progress|completed)
@@ -395,12 +464,12 @@ COMMANDS:
   help                            Show this help message
 
 OPTIONS:
-  --priority=<high|medium|low>  Filter by priority
-  --status=<status>            Filter by status
-  --limit=<number>             Limit number of results
-  --project-id=<id>            Filter by project
-  --format=<json|human>        Output format
-  --show-nodes                 Show nodes in project details
+  --priority=<high|medium|low>          Filter by priority
+  --status=<pending|in-progress|completed> Filter by status
+  --limit=<number>                      Limit number of results
+  --project-id=<id>                     Filter by project
+  --format=<json|human>                 Output format
+  --show-nodes                          Show nodes in project details
 
 CONFIGURATION:
   mindmap config --api-url=<url>     Set API endpoint
@@ -409,7 +478,9 @@ CONFIGURATION:
 EXAMPLES:
   mindmap projects
   mindmap list-tasks --priority=high --limit=5
-  mindmap list-tasks --project-id=abc123
+  mindmap filter-tasks --project-id=abc123 --priority=medium
+  mindmap filter-tasks --status=in-progress --limit=10
+  mindmap filter-tasks --project-id=abc123 --status=completed
   mindmap highest-priority-task abc123
   mindmap lowest-priority-task abc123 --format=json
   mindmap get-project abc123 --show-nodes
@@ -467,6 +538,10 @@ async function main() {
 
             case 'list-tasks':
                 await cli.listTasks(options);
+                break;
+
+            case 'filter-tasks':
+                await cli.filterTasks(options);
                 break;
 
             case 'highest-priority-task':
