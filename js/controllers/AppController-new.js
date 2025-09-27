@@ -416,6 +416,11 @@ class AppController {
         document.getElementById('saveBtn')?.addEventListener('click', () => {
             this.manualSave();
         });
+
+        // Story Button
+        document.getElementById('storyBtn')?.addEventListener('click', () => {
+            window.StoryView?.showProjectStory();
+        });
     }
 
     /**

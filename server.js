@@ -1462,9 +1462,21 @@ app.post('/api/db/projects', (req, res) => {
         const projectId = uuidv4();
         const project = db.createProject(projectId, name, description, '', collection_id);
 
+        // Log activity
+        db.logActivity(projectId, 'project_created', {
+            name: name,
+            description: description,
+            collection_id: collection_id
+        }, null, req.get('User-Agent'), req.ip);
+
         // If nodes are provided, import them
         if (nodes && nodes.length > 0) {
             importNodesToProject(projectId, nodes);
+            // Log node import activity
+            db.logActivity(projectId, 'nodes_imported', {
+                node_count: nodes.length,
+                source: 'project_creation'
+            }, null, req.get('User-Agent'), req.ip);
         }
 
         // Return the complete project with nodes
@@ -1755,19 +1767,65 @@ app.get('/api/db/last-project', (req, res) => {
     }
 });
 
+// Get project activity/story
+app.get('/api/db/projects/:id/activity', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+
+        // Validate project exists
+        const project = db.getProject(projectId);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const activities = db.getProjectActivity(projectId, limit, offset);
+        const totalCount = db.getProjectActivityCount(projectId);
+
+        res.json({
+            activities,
+            pagination: {
+                total: totalCount,
+                limit,
+                offset,
+                has_more: offset + limit < totalCount
+            }
+        });
+    } catch (error) {
+        console.error('Error getting project activity:', error);
+        res.status(500).json({ error: 'Failed to get project activity' });
+    }
+});
+
 // Create new node
 app.post('/api/db/nodes', (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
-    
+
     try {
         const nodeData = req.body;
         if (!nodeData.id) {
             nodeData.id = uuidv4();
         }
-        
+
         const node = db.createNode(nodeData);
+
+        // Log activity
+        if (nodeData.project_id) {
+            db.logActivity(nodeData.project_id, 'node_created', {
+                node_id: node.id,
+                title: node.title,
+                status: node.status,
+                priority: node.priority
+            }, node.id, req.get('User-Agent'), req.ip);
+        }
+
         res.json(node);
     } catch (error) {
         console.error('Error creating node:', error);
@@ -1780,12 +1838,33 @@ app.put('/api/db/nodes/:id', (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
-    
+
     try {
         const nodeId = req.params.id;
         const updates = req.body;
-        
+
+        // Get original node for comparison
+        const originalNode = db.getNode(nodeId);
         const updatedNode = db.updateNode(nodeId, updates);
+
+        // Log activity with changed fields
+        if (originalNode && updatedNode) {
+            const changes = {};
+            ['title', 'content', 'status', 'priority', 'start_date', 'end_date'].forEach(field => {
+                if (originalNode[field] !== updatedNode[field]) {
+                    changes[field] = { from: originalNode[field], to: updatedNode[field] };
+                }
+            });
+
+            if (Object.keys(changes).length > 0) {
+                db.logActivity(updatedNode.project_id, 'node_updated', {
+                    node_id: nodeId,
+                    title: updatedNode.title,
+                    changes: changes
+                }, nodeId, req.get('User-Agent'), req.ip);
+            }
+        }
+
         res.json(updatedNode);
     } catch (error) {
         console.error('Error updating node:', error);
@@ -1798,10 +1877,25 @@ app.delete('/api/db/nodes/:id', (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
-    
+
     try {
         const nodeId = req.params.id;
+
+        // Get node info before deletion for activity log
+        const node = db.getNode(nodeId);
+
         db.deleteNode(nodeId);
+
+        // Log activity
+        if (node) {
+            db.logActivity(node.project_id, 'node_deleted', {
+                node_id: nodeId,
+                title: node.title,
+                status: node.status,
+                priority: node.priority
+            }, nodeId, req.get('User-Agent'), req.ip);
+        }
+
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting node:', error);

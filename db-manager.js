@@ -99,12 +99,28 @@ class DatabaseManager {
                     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
                 );
 
+                CREATE TABLE IF NOT EXISTS project_activity (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    activity_type TEXT NOT NULL,
+                    activity_data TEXT NOT NULL,
+                    node_id TEXT,
+                    user_agent TEXT,
+                    ip_address TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_nodes_project_id ON nodes(project_id);
                 CREATE INDEX IF NOT EXISTS idx_nodes_parent_id ON nodes(parent_id);
                 CREATE INDEX IF NOT EXISTS idx_nodes_status ON nodes(status);
                 CREATE INDEX IF NOT EXISTS idx_projects_last_opened ON projects(last_opened DESC);
                 CREATE INDEX IF NOT EXISTS idx_node_progress_node_id ON node_progress(node_id);
                 CREATE INDEX IF NOT EXISTS idx_node_progress_created_at ON node_progress(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_project_activity_project_id ON project_activity(project_id);
+                CREATE INDEX IF NOT EXISTS idx_project_activity_created_at ON project_activity(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_project_activity_type ON project_activity(activity_type);
             `);
         }
     }
@@ -232,6 +248,29 @@ class DatabaseManager {
             `),
             deleteNodeProgress: this.db.prepare(`
                 DELETE FROM node_progress WHERE node_id = ?
+            `),
+
+            // Project Activity
+            insertProjectActivity: this.db.prepare(`
+                INSERT INTO project_activity (id, project_id, activity_type, activity_data, node_id, user_agent, ip_address)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `),
+            getProjectActivity: this.db.prepare(`
+                SELECT pa.*,
+                       n.title as node_title,
+                       p.name as project_name
+                FROM project_activity pa
+                LEFT JOIN nodes n ON pa.node_id = n.id
+                LEFT JOIN projects p ON pa.project_id = p.id
+                WHERE pa.project_id = ?
+                ORDER BY pa.created_at DESC
+                LIMIT ? OFFSET ?
+            `),
+            getProjectActivityCount: this.db.prepare(`
+                SELECT COUNT(*) as count FROM project_activity WHERE project_id = ?
+            `),
+            deleteProjectActivity: this.db.prepare(`
+                DELETE FROM project_activity WHERE project_id = ?
             `)
         };
     }
@@ -582,6 +621,69 @@ class DatabaseManager {
             return { success: true };
         } catch (error) {
             console.error('Error deleting node progress:', error);
+            throw error;
+        }
+    }
+
+    // Project Activity Operations
+    logActivity(projectId, activityType, activityData, nodeId = null, userAgent = null, ipAddress = null) {
+        try {
+            const { v4: uuidv4 } = require('uuid');
+            const id = uuidv4();
+            const dataString = typeof activityData === 'string' ? activityData : JSON.stringify(activityData);
+
+            this.stmts.insertProjectActivity.run(id, projectId, activityType, dataString, nodeId, userAgent, ipAddress);
+            return {
+                id,
+                project_id: projectId,
+                activity_type: activityType,
+                activity_data: dataString,
+                node_id: nodeId,
+                user_agent: userAgent,
+                ip_address: ipAddress,
+                created_at: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error logging activity:', error);
+            throw error;
+        }
+    }
+
+    getProjectActivity(projectId, limit = 50, offset = 0) {
+        try {
+            const activities = this.stmts.getProjectActivity.all(projectId, limit, offset);
+
+            // Parse activity_data back to objects where possible
+            return activities.map(activity => {
+                try {
+                    const parsedData = JSON.parse(activity.activity_data);
+                    return { ...activity, activity_data: parsedData };
+                } catch {
+                    // If not valid JSON, keep as string
+                    return activity;
+                }
+            });
+        } catch (error) {
+            console.error('Error getting project activity:', error);
+            throw error;
+        }
+    }
+
+    getProjectActivityCount(projectId) {
+        try {
+            return this.stmts.getProjectActivityCount.get(projectId).count;
+        } catch (error) {
+            console.error('Error getting project activity count:', error);
+            throw error;
+        }
+    }
+
+    deleteProjectActivity(projectId) {
+        try {
+            this.stmts.deleteProjectActivity.run(projectId);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting project activity:', error);
             throw error;
         }
     }
