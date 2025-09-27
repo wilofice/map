@@ -1,14 +1,17 @@
 # 🤖 AI Co-Pilot Integration Guide
 
-This guide explains how to use the MindMap CLI system for AI agent task management and project automation.
+This guide explains how to use the MindMap CLI system for AI agent task management, project/collection automation, and JSON-based imports.
 
 ## 🛠️ System Overview
 
 The MindMap CLI allows AI agents to:
-- **Discover Tasks**: Find pending work from project queues
-- **Update Progress**: Track work status and add progress notes
-- **Manage Projects**: Access project context and node details
-- **Search & Filter**: Find specific tasks by priority, status, or keywords
+- Discover Tasks: find pending work from project queues
+- Update Progress: track work status and add progress notes
+- Manage Projects: access project context and node details
+- Search & Filter: find tasks by priority, status, or keywords
+- Manage Collections: list and create collections, and assign projects to them
+- Create/Import Projects: create projects directly or import from JSON
+- JSON Operations: create/update nodes using JSON payloads
 
 ## 📋 Prerequisites
 
@@ -28,17 +31,17 @@ The MindMap CLI allows AI agents to:
 
 ### Step 1: Discover Available Work
 
-**Find high-priority tasks:**
+Find high-priority tasks:
 ```bash
 node mindmap-cli.js list-tasks --priority=high --limit=5
 ```
 
-**Find all pending tasks:**
+Find all pending tasks:
 ```bash
 node mindmap-cli.js list-tasks --status=pending --limit=10
 ```
 
-**Search for specific work:**
+Search for specific work:
 ```bash
 node mindmap-cli.js search "authentication" --status=pending
 node mindmap-cli.js search "frontend" --priority=high
@@ -46,26 +49,26 @@ node mindmap-cli.js search "frontend" --priority=high
 
 ### Step 2: Get Task Context
 
-**Get detailed task information:**
+Get detailed task information:
 ```bash
 node mindmap-cli.js get-node <task-id>
 ```
 
-**Get project context:**
+Get project context:
 ```bash
 node mindmap-cli.js get-project <project-id> --show-nodes
 ```
 
 ### Step 3: Start Working
 
-**Update task status to in-progress:**
+Update task status to in-progress:
 ```bash
 node mindmap-cli.js update-status <task-id> in-progress
 ```
 
 ### Step 4: Track Progress
 
-**Add progress updates:**
+Add progress updates:
 ```bash
 node mindmap-cli.js add-progress <task-id> "Initialized project structure"
 node mindmap-cli.js add-progress <task-id> "Completed authentication setup"
@@ -74,12 +77,12 @@ node mindmap-cli.js add-progress <task-id> "All tests passing"
 
 ### Step 5: Complete Work
 
-**Mark task as completed:**
+Mark task as completed:
 ```bash
 node mindmap-cli.js update-status <task-id> completed
 ```
 
-**Add final progress note:**
+Add final progress note:
 ```bash
 node mindmap-cli.js add-progress <task-id> "Task completed successfully - ready for review"
 ```
@@ -102,6 +105,34 @@ mindmap highest-priority-task <project-id>
 
 # Get lowest priority task in a specific project
 mindmap lowest-priority-task <project-id>
+```
+
+### Collections and Projects
+```bash
+# List all collections
+mindmap collections
+
+# Create a new collection
+mindmap create-collection "My Ideas" --description="Scratch pad"
+
+# Create a new project (defaults to collection 'default-collection')
+mindmap create-project "Research Plan" --collection-id=my-collection --description="Initial research"
+
+# Import a project (nodes + optional metadata) from JSON
+mindmap import-json ./path/to/project.json --collection-id=my-collection
+
+# Assign/remove a project to/from a collection
+mindmap assign-project-collection <project-id> --collection-id=my-collection
+mindmap assign-project-collection <project-id> --remove
+```
+
+### JSON-based Node Operations
+```bash
+# Update a node with JSON
+mindmap update-node-json <node-id> --file=./node-update.json
+
+# Create a node from JSON
+mindmap create-node-json --file=./new-node.json --project-id=<project-id>
 ```
 
 ### Task Discovery
@@ -242,7 +273,7 @@ node mindmap-cli.js list-tasks --priority=high
 
 ### JSON Format (for parsing)
 ```bash
-node mindmap-cli.js list-tasks --priority=high --format=json
+node mindmap-cli.js filter-tasks --priority=high --format=json
 ```
 ```json
 {
@@ -316,7 +347,7 @@ node mindmap-cli.js config --api-url=http://localhost:3333
 ### Batch Processing
 ```bash
 # Process multiple high-priority tasks
-for task in $(node mindmap-cli.js list-tasks --priority=high --format=json | jq -r '.tasks[].id'); do
+for task in $(node mindmap-cli.js filter-tasks --priority=high --format=json | jq -r '.tasks[].id'); do
     echo "Processing task: $task"
     node mindmap-cli.js get-node $task
 done
@@ -325,10 +356,10 @@ done
 ### Integration with Other Tools
 ```bash
 # Export task list for external processing
-node mindmap-cli.js list-tasks --format=json > current_tasks.json
+node mindmap-cli.js filter-tasks --format=json > current_tasks.json
 
 # Search and update in one workflow
-TASK_ID=$(node mindmap-cli.js search "authentication" --format=json | jq -r '.tasks[0].id')
+TASK_ID=$(node mindmap-cli.js search "authentication" --format=json | jq -r '.results[0].id')
 node mindmap-cli.js update-status $TASK_ID in-progress
 ```
 
@@ -337,6 +368,10 @@ node mindmap-cli.js update-status $TASK_ID in-progress
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `projects` | List all projects | `mindmap projects` |
+| `collections` | List all collections | `mindmap collections` |
+| `create-collection` | Create a new collection | `mindmap create-collection "Ideas"` |
+| `create-project` | Create a new project | `mindmap create-project "Alpha" --collection-id=default-collection` |
+| `import-json` | Import project from JSON | `mindmap import-json ./project.json --collection-id=alpha` |
 | `list-tasks` | Find work to do | `mindmap list-tasks --priority=high` |
 | `filter-tasks` | Flexible task filtering | `mindmap filter-tasks --priority=high --status=pending` |
 | `highest-priority-task` | Get top priority task in project | `mindmap highest-priority-task abc123` |
@@ -345,10 +380,13 @@ node mindmap-cli.js update-status $TASK_ID in-progress
 | `update-status` | Change task status | `mindmap update-status abc123 in-progress` |
 | `add-progress` | Track progress | `mindmap add-progress abc123 "Feature completed"` |
 | `search` | Find specific tasks | `mindmap search "auth" --status=pending` |
+| `assign-project-collection` | Assign/remove project to/from a collection | `mindmap assign-project-collection <project-id> --collection-id=my-collection` |
+| `update-node-json` | Update a node using JSON | `mindmap update-node-json <node-id> --file=./update.json` |
+| `create-node-json` | Create a node using JSON | `mindmap create-node-json --file=./node.json --project-id=<project-id>` |
 
 ---
 
-**🚀 Ready to integrate? Start with `node mindmap-cli.js projects` to see available work!**
+🚀 Ready to integrate? Start with `node mindmap-cli.js collections` or `node mindmap-cli.js projects` to explore your workspace.
 
 
 

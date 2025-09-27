@@ -2,7 +2,7 @@
 
 ## Overview
 
-The mind map application now supports modern JSON format for storing project data, providing better structure, type safety, and advanced features compared to the legacy XML format. This guide covers the complete JSON schema and best practices.
+The mind map application supports a modern JSON format for storing project data, providing better structure, type safety, and advanced features compared to the legacy XML format. This guide covers the JSON schema, import/export via CLI, and best practices.
 
 **Note:** For legacy XML documentation, see `PROJECT_FILE_GUIDE.md`.
 
@@ -12,6 +12,9 @@ The mind map application now supports modern JSON format for storing project dat
 
 ```json
 {
+  "name": "Optional Project Name",
+  "description": "Optional project description",
+  "collection_id": "Optional collection id when importing",
   "nodes": [
     {
       "id": "unique-identifier",
@@ -35,6 +38,12 @@ The mind map application now supports modern JSON format for storing project dat
   ]
 }
 ```
+
+### Root Structure (Important)
+
+- The property `nodes` is required and must be a list (array).
+- While the system supports multiple root nodes in this list, we highly encourage providing exactly one root node. All other nodes should be children of that single root.
+- Using a single root produces the most predictable layout and interactions in the UI.
 
 ## Core Properties
 
@@ -182,6 +191,19 @@ Execute terminal commands directly from nodes:
 }
 ```
 
+## Importing and Exporting Projects
+
+You can import a project from JSON or create one via the CLI and optionally seed nodes from a JSON file.
+
+- Import a project from JSON (uses collection_id in file or flag):
+  - mindmap import-json ./project.json --collection-id=my-collection
+- Create a new empty project in a collection:
+  - mindmap create-project "My Project" --collection-id=my-collection --description="Description"
+- Create a new project and seed nodes from a file (array or {"nodes": [...]}):
+  - mindmap create-project "My Project" --from-file=./nodes.json
+
+Project-level fields `name`, `description`, and `collection_id` are optional and used primarily during import. The `nodes` array is required.
+
 ## File Organization
 
 ### Directory Structure
@@ -224,6 +246,8 @@ For large projects, split into multiple files:
   ]
 }
 ```
+
+Note: `dataSource`, `dataImported`, and `dataImportFrom` are optional provenance hints used for human context and organization. They are currently not interpreted by the importer/renderer logic beyond being preserved as part of the node data.
 
 ## Complete Example
 
@@ -330,6 +354,7 @@ The application validates JSON structure on load. Common validation errors:
 - **Missing ID**: Each node must have a unique `id`
 - **Invalid Date Format**: Use ISO format (YYYY-MM-DD)
 - **Invalid Code Block**: Must include both `language` and `content`
+- **Unknown Fields**: Extra fields may be ignored by the app; prefer documenting extensions in this guide
 
 ### Performance Optimization
 
@@ -430,4 +455,4 @@ Planned features for JSON format:
 
 ---
 
-*This guide covers JSON format v1.0. Check the repository for updates and new features.*
+*This guide covers JSON format v1.1. Check the repository for updates and new features.*
