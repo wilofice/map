@@ -333,7 +333,9 @@ class MindMapView {
         // Update progress
         this.updateProgress();
 
-        // TODO: Save to database via API
+        // Save to database via API
+        this.saveNodeStatusToDatabase(nodeElement, newStatus);
+
         const totalUpdated = this.countUpdatedNodes(nodeElement);
         console.log(`🔄 Status changed for node ${nodeId} and ${totalUpdated - 1} children: ${currentStatus} -> ${newStatus}`);
     }
@@ -685,6 +687,63 @@ class MindMapView {
         this.currentData = data;
         if (data && data.nodes) {
             this.renderMindMap(data.nodes);
+        }
+    }
+
+    /**
+     * Save node status changes to database and collect all affected nodes
+     */
+    async saveNodeStatusToDatabase(nodeElement, newStatus) {
+        try {
+            // Collect all nodes that were updated (parent + children)
+            const updatedNodes = [];
+            this.collectUpdatedNodes(nodeElement, newStatus, updatedNodes);
+
+            // Update each node in the database
+            for (const { nodeId, status, title } of updatedNodes) {
+                try {
+                    const response = await fetch(`/api/db/nodes/${nodeId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            status: status
+                        })
+                    });
+
+                    if (!response.ok) {
+                        console.error(`Failed to update node ${nodeId}: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`Error updating node ${nodeId}:`, error);
+                }
+            }
+
+            console.log(`✅ Updated ${updatedNodes.length} nodes in database`);
+        } catch (error) {
+            console.error('❌ Failed to save status changes to database:', error);
+        }
+    }
+
+    /**
+     * Recursively collect all nodes that were updated
+     */
+    collectUpdatedNodes(nodeElement, newStatus, updatedNodes) {
+        const nodeId = nodeElement.getAttribute('data-id');
+        const title = nodeElement.querySelector('.node-title')?.textContent || 'Untitled';
+
+        if (nodeId) {
+            updatedNodes.push({ nodeId, status: newStatus, title });
+        }
+
+        // Collect children
+        const childContainer = nodeElement.querySelector('.node-parent');
+        if (childContainer) {
+            const childNodes = childContainer.querySelectorAll(':scope > .node');
+            childNodes.forEach(childNode => {
+                this.collectUpdatedNodes(childNode, newStatus, updatedNodes);
+            });
         }
     }
 }
