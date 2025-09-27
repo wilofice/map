@@ -1,0 +1,308 @@
+# 🤖 AI Co-Pilot Integration Guide
+
+This guide explains how to use the MindMap CLI system for AI agent task management and project automation.
+
+## 🛠️ System Overview
+
+The MindMap CLI allows AI agents to:
+- **Discover Tasks**: Find pending work from project queues
+- **Update Progress**: Track work status and add progress notes
+- **Manage Projects**: Access project context and node details
+- **Search & Filter**: Find specific tasks by priority, status, or keywords
+
+## 📋 Prerequisites
+
+1. **Server Running**: Ensure the MindMap server is running on port 3333
+   ```bash
+   node server.js
+   # or
+   PORT=3333 node server.js
+   ```
+
+2. **CLI Access**: The CLI is located at `mindmap-cli.js` in the project root
+   ```bash
+   node mindmap-cli.js --help
+   ```
+
+## 🎯 Core Workflow for AI Agents
+
+### Step 1: Discover Available Work
+
+**Find high-priority tasks:**
+```bash
+node mindmap-cli.js list-tasks --priority=high --limit=5
+```
+
+**Find all pending tasks:**
+```bash
+node mindmap-cli.js list-tasks --status=pending --limit=10
+```
+
+**Search for specific work:**
+```bash
+node mindmap-cli.js search "authentication" --status=pending
+node mindmap-cli.js search "frontend" --priority=high
+```
+
+### Step 2: Get Task Context
+
+**Get detailed task information:**
+```bash
+node mindmap-cli.js get-node <task-id>
+```
+
+**Get project context:**
+```bash
+node mindmap-cli.js get-project <project-id> --show-nodes
+```
+
+### Step 3: Start Working
+
+**Update task status to in-progress:**
+```bash
+node mindmap-cli.js update-status <task-id> in-progress
+```
+
+### Step 4: Track Progress
+
+**Add progress updates:**
+```bash
+node mindmap-cli.js add-progress <task-id> "Initialized project structure"
+node mindmap-cli.js add-progress <task-id> "Completed authentication setup"
+node mindmap-cli.js add-progress <task-id> "All tests passing"
+```
+
+### Step 5: Complete Work
+
+**Mark task as completed:**
+```bash
+node mindmap-cli.js update-status <task-id> completed
+```
+
+**Add final progress note:**
+```bash
+node mindmap-cli.js add-progress <task-id> "Task completed successfully - ready for review"
+```
+
+## 📊 CLI Commands Reference
+
+### Project Management
+```bash
+# List all projects
+mindmap projects
+
+# Get project details with nodes
+mindmap get-project <project-id> --show-nodes
+
+# Get specific node details
+mindmap get-node <node-id>
+```
+
+### Task Discovery
+```bash
+# List pending tasks (AI work queue)
+mindmap list-tasks [options]
+
+# Search for specific tasks
+mindmap search <query> [options]
+```
+
+### Task Management
+```bash
+# Update task status
+mindmap update-status <node-id> <status>
+# Status options: pending, in-progress, completed
+
+# Add progress message
+mindmap add-progress <node-id> <message>
+```
+
+### Filtering Options
+```bash
+--priority=<high|medium|low>    # Filter by priority
+--status=<status>               # Filter by status
+--limit=<number>                # Limit results
+--project-id=<id>               # Filter by project
+--format=<json|human>           # Output format
+```
+
+## 🎬 Example AI Workflow Script
+
+Here's a complete example of an AI agent working session:
+
+```bash
+#!/bin/bash
+# AI Co-Pilot Workflow Example
+
+CLI="node mindmap-cli.js"
+
+echo "🤖 AI Co-Pilot Starting Work Session..."
+
+# Step 1: Find high-priority work
+echo "📋 Looking for high-priority tasks..."
+$CLI list-tasks --priority=high --limit=1
+
+# Step 2: Get task details (replace with actual task ID)
+TASK_ID="your-task-id-here"
+echo "📝 Getting task details..."
+$CLI get-node $TASK_ID
+
+# Step 3: Start working
+echo "🔄 Starting work on task..."
+$CLI update-status $TASK_ID in-progress
+
+# Step 4: Add progress updates
+echo "⚙️ AI working on task..."
+$CLI add-progress $TASK_ID "Initialized project structure"
+$CLI add-progress $TASK_ID "Configured dependencies and setup"
+$CLI add-progress $TASK_ID "Implemented core functionality"
+
+# Step 5: Complete the task
+echo "✅ Completing task..."
+$CLI update-status $TASK_ID completed
+$CLI add-progress $TASK_ID "Task completed successfully - all tests passing"
+
+# Step 6: Show final status
+echo "📊 Final task status:"
+$CLI get-node $TASK_ID
+
+echo "🎉 AI Co-Pilot work session completed!"
+```
+
+## 🔧 Configuration
+
+### Set API Endpoint
+```bash
+node mindmap-cli.js config --api-url=http://localhost:3333
+```
+
+### Show Current Configuration
+```bash
+node mindmap-cli.js config --list
+```
+
+### Environment Variables
+```bash
+export MINDMAP_API_URL=http://localhost:3333
+```
+
+## 📝 Output Formats
+
+### Human-Readable (Default)
+```bash
+node mindmap-cli.js list-tasks --priority=high
+```
+```
+📋 Found 3 pending tasks:
+  🔴 Frontend Development
+     📁 Project: test-features
+     🔗 ID: 31962c97-b692-457a-b683-771af044d791
+     📄 All frontend components have been implemented and tested.
+```
+
+### JSON Format (for parsing)
+```bash
+node mindmap-cli.js list-tasks --priority=high --format=json
+```
+```json
+{
+  "tasks": [
+    {
+      "id": "31962c97-b692-457a-b683-771af044d791",
+      "title": "Frontend Development",
+      "priority": "high",
+      "status": "pending",
+      "project_name": "test-features",
+      "comment": "All frontend components have been implemented and tested."
+    }
+  ]
+}
+```
+
+## 🧠 AI Agent Best Practices
+
+### 1. Task Selection Strategy
+- **Prioritize high-priority tasks** for immediate attention
+- **Check project context** before starting work
+- **Look for related tasks** in the same project
+
+### 2. Progress Tracking
+- **Update status immediately** when starting work
+- **Add frequent progress notes** to track incremental progress
+- **Include specific details** in progress messages
+- **Mark completion clearly** with final status
+
+### 3. Error Handling
+- **Verify task exists** before updating status
+- **Check for API connectivity** before starting workflows
+- **Handle failed requests gracefully**
+
+### 4. Context Awareness
+- **Read task descriptions** for specific requirements
+- **Check project scope** for related dependencies
+- **Review existing progress** before adding updates
+
+## 🔍 Troubleshooting
+
+### Server Connection Issues
+```bash
+# Check if server is running
+curl http://localhost:3333/api/health
+
+# Test CLI connectivity
+node mindmap-cli.js projects
+```
+
+### Task ID Issues
+```bash
+# List available tasks to get correct IDs
+node mindmap-cli.js list-tasks --limit=20
+
+# Verify task exists
+node mindmap-cli.js get-node <task-id>
+```
+
+### Configuration Issues
+```bash
+# Reset configuration
+rm .mindmap-cli-config.json
+
+# Set correct API URL
+node mindmap-cli.js config --api-url=http://localhost:3333
+```
+
+## 📚 Advanced Usage
+
+### Batch Processing
+```bash
+# Process multiple high-priority tasks
+for task in $(node mindmap-cli.js list-tasks --priority=high --format=json | jq -r '.tasks[].id'); do
+    echo "Processing task: $task"
+    node mindmap-cli.js get-node $task
+done
+```
+
+### Integration with Other Tools
+```bash
+# Export task list for external processing
+node mindmap-cli.js list-tasks --format=json > current_tasks.json
+
+# Search and update in one workflow
+TASK_ID=$(node mindmap-cli.js search "authentication" --format=json | jq -r '.tasks[0].id')
+node mindmap-cli.js update-status $TASK_ID in-progress
+```
+
+## 🎯 Quick Reference Card
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `projects` | List all projects | `mindmap projects` |
+| `list-tasks` | Find work to do | `mindmap list-tasks --priority=high` |
+| `get-node` | Get task details | `mindmap get-node abc123` |
+| `update-status` | Change task status | `mindmap update-status abc123 in-progress` |
+| `add-progress` | Track progress | `mindmap add-progress abc123 "Feature completed"` |
+| `search` | Find specific tasks | `mindmap search "auth" --status=pending` |
+
+---
+
+**🚀 Ready to integrate? Start with `node mindmap-cli.js projects` to see available work!**
