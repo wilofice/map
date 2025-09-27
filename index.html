@@ -39,6 +39,14 @@
                 <span class="project-name" id="currentProjectName">No project loaded</span>
             </div>
 
+            <!-- Quick Assign to Collection -->
+            <div class="assign-collection" id="assignCollection" title="Move this project to a collection" style="display: none;">
+                <select class="assign-select" id="assignCollectionSelect">
+                    <option value="">Move to collection…</option>
+                    <option value="__none">— Remove from collection —</option>
+                </select>
+            </div>
+
             <!-- Quick Project Actions -->
             <div class="action-buttons" id="actionButtons">
                 <button class="top-btn" id="switchProjectBtn" title="Switch to another project">🔄</button>
@@ -51,20 +59,12 @@
 
         <!-- Right Section: Collection Navigation -->
         <div class="top-bar-section collection-section">
-            <!-- Quick Assign to Collection -->
-            <div class="assign-collection" id="assignCollection" title="Move this project to a collection" style="display: none;">
-                <select class="assign-select" id="assignCollectionSelect">
-                    <option value="">Move to collection…</option>
-                    <option value="__none">— Remove from collection —</option>
-                </select>
-            </div>
-
             <!-- Collection Navigation -->
-            <div class="collection-nav" id="collectionNav" style="display: none;">
+            <div class="collection-nav" id="collectionNav" style="display: block;">
                 <select class="collection-select" id="collectionSelect">
                     <option value="">Select Collection</option>
                 </select>
-                <select class="project-select" id="projectSelect" style="display: none;">
+                <select class="project-select" id="projectSelect" style="display: block;">
                     <option value="">Select Project</option>
                 </select>
             </div>
