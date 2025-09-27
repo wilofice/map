@@ -92,7 +92,7 @@ class MindMapView {
                         ${hasChildren ? '<span class="node-toggle">–</span>' : '<span class="node-toggle">•</span>'}
                         <span class="node-icon icon-status" title="Status: ${node.status}">${this.getStatusIcon(node.status)}</span>
                         <span class="node-title">${this.escapeHtml(node.title || 'Untitled')}</span>
-                        <span class="node-icon icon-copy-id" title="Copy Node ID">�</span>
+                        <span class="node-icon icon-copy-id" title="Copy Node ID">📋</span>
                         <span class="node-icon icon-comment" title="Toggle Comment" style="display: ${hasComment ? 'inline' : 'none'};">💬</span>
                         <span class="node-icon icon-code" title="Toggle Code" style="display: ${hasCode ? 'inline' : 'none'};">💻</span>
                         <span class="node-icon icon-task" title="Toggle Task Prompt" style="display: ${hasTaskPrompt ? 'inline' : 'none'};">🤖</span>

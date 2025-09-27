@@ -27,22 +27,13 @@
 </head>
 <body>
     <div class="top-bar">
-        <div class="top-bar-section project-section">
+        <!-- Center Section: Project info and main controls -->
+        <div class="top-bar-section center-section">
             <div class="project-info">
                 <span class="folder-icon">💾</span>
                 <span class="project-name" id="currentProjectName">No project loaded</span>
             </div>
 
-            <!-- Collection Navigation (will be enhanced later) -->
-            <div class="collection-nav" id="collectionNav" style="display: none;">
-                <select class="collection-select" id="collectionSelect">
-                    <option value="">Select Collection</option>
-                </select>
-                <div class="project-tabs" id="projectTabs"></div>
-            </div>
-        </div>
-
-        <div class="top-bar-section actions-section">
             <!-- Quick Project Actions -->
             <div class="action-buttons">
                 <button class="top-btn" id="switchProjectBtn" title="Switch to another project">🔄</button>
@@ -51,21 +42,15 @@
                 <button class="top-btn" id="importJsonBtn" title="Import JSON">📁</button>
                 <button class="top-btn" id="searchProjectsBtn" title="Search Projects">🔍</button>
             </div>
+        </div>
 
-            <!-- Database Stats -->
-            <div class="stats-display" id="dbStats">
-                <div class="stat-item">
-                    <span class="stat-label">Projects:</span>
-                    <span class="stat-value" id="projectCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Nodes:</span>
-                    <span class="stat-value" id="nodeCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Size:</span>
-                    <span class="stat-value" id="dbSize">0 KB</span>
-                </div>
+        <!-- Right Section: Collection Navigation -->
+        <div class="top-bar-section collection-section">
+            <div class="collection-nav" id="collectionNav" style="display: none;">
+                <select class="collection-select" id="collectionSelect">
+                    <option value="">Select Collection</option>
+                </select>
+                <div class="project-tabs" id="projectTabs"></div>
             </div>
         </div>
 

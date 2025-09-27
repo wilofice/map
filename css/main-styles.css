@@ -92,15 +92,16 @@ body {
     gap: 1.5rem;
 }
 
-.project-section {
-    flex: 1;
-    min-width: 300px;
+.center-section {
+    flex: 2;
+    min-width: 400px;
+    gap: 1.5rem;
 }
 
-.actions-section {
-    flex: 2;
+.collection-section {
+    flex: 1;
     justify-content: flex-end;
-    gap: 2rem;
+    min-width: 250px;
 }
 
 .project-info {
@@ -201,10 +202,10 @@ body {
 }
 
 /* Collection Navigation - Improved Design */
-.project-section {
+.center-section {
     position: relative;
-    flex: 1;
-    min-width: 300px;
+    flex: 2;
+    min-width: 400px;
 }
 
 /* Collection Nav compact: one row with select + horizontal list */
@@ -1577,6 +1578,38 @@ h1 {
 
     .task-card {
         padding: 0.75rem;
+    }
+
+    /* Responsive top bar layout */
+    .top-bar {
+        flex-direction: column;
+        height: auto;
+        min-height: var(--top-bar-height);
+        padding: 0.75rem 1rem;
+    }
+
+    .center-section {
+        width: 100%;
+        min-width: auto;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .collection-section {
+        width: 100%;
+        min-width: auto;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .project-info {
+        justify-content: center;
     }
 }
 
