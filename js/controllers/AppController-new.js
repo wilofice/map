@@ -201,6 +201,9 @@ class AppController {
                 titleEl.addEventListener('blur', commit);
             }
         }
+
+        // Update Move to Collection button when project changes
+        this.updateMoveToCollectionButton();
     }
 
     /**
@@ -209,23 +212,57 @@ class AppController {
     updateCollectionDisplay(collection, projects) {
         const collectionNav = document.getElementById('collectionNav');
         const collectionSelect = document.getElementById('collectionSelect');
-        
+
         if (collection && projects) {
             // Show collection navigation
             if (collectionNav) {
                 collectionNav.style.display = 'block';
             }
-            
+
             // Update collection select
             if (collectionSelect) {
                 collectionSelect.value = collection.id;
             }
-            
+
         } else {
             // Hide collection navigation
             if (collectionNav) {
                 collectionNav.style.display = 'none';
             }
+        }
+
+        // Update Move to Collection button
+        this.updateMoveToCollectionButton();
+    }
+
+    /**
+     * Update Move to Collection button visibility and text
+     */
+    updateMoveToCollectionButton() {
+        const moveBtn = document.getElementById('moveToCollectionBtn');
+        const moveBtnText = document.getElementById('moveToCollectionText');
+
+        if (!moveBtn || !moveBtnText) return;
+
+        const currentProject = window.ProjectModel?.getCurrentProject?.();
+        const selectedCollection = this.currentCollection;
+
+        // Show button only if we have both a project and a selected collection
+        if (currentProject && selectedCollection) {
+            moveBtn.style.display = 'inline-block';
+
+            // Update button text to show the target collection
+            if (currentProject.collection_id === selectedCollection.id) {
+                moveBtnText.textContent = `Already in "${selectedCollection.name}"`;
+                moveBtn.style.opacity = '0.6';
+                moveBtn.style.cursor = 'default';
+            } else {
+                moveBtnText.textContent = `Move to "${selectedCollection.name}"`;
+                moveBtn.style.opacity = '1';
+                moveBtn.style.cursor = 'pointer';
+            }
+        } else {
+            moveBtn.style.display = 'none';
         }
     }
 
@@ -420,6 +457,11 @@ class AppController {
         // Story Button
         document.getElementById('storyBtn')?.addEventListener('click', () => {
             window.StoryView?.showProjectStory();
+        });
+
+        // Move to Collection Button
+        document.getElementById('moveToCollectionBtn')?.addEventListener('click', () => {
+            this.moveCurrentProjectToSelectedCollection();
         });
     }
 
@@ -626,6 +668,54 @@ class AppController {
             currentCollection: this.currentCollection,
             timestamp: Date.now()
         };
+    }
+
+    /**
+     * Move current project to the currently selected collection
+     */
+    async moveCurrentProjectToSelectedCollection() {
+        try {
+            const currentProject = window.ProjectModel?.getCurrentProject?.();
+            if (!currentProject) {
+                window.NotificationView?.error('No project is currently loaded');
+                return;
+            }
+
+            const selectedCollection = this.currentCollection;
+            if (!selectedCollection) {
+                window.NotificationView?.error('Please select a collection first');
+                return;
+            }
+
+            // Check if project is already in the selected collection
+            if (currentProject.collection_id === selectedCollection.id) {
+                window.NotificationView?.info(`"${currentProject.name}" is already in "${selectedCollection.name}"`);
+                return;
+            }
+
+            // Move project to selected collection
+            await window.ProjectModel?.assignToCollection(currentProject.id, selectedCollection.id);
+
+            // Show success message
+            window.NotificationView?.success(
+                `Moved "${currentProject.name}" to collection "${selectedCollection.name}"`
+            );
+
+            // Refresh the collection view to show updated project list
+            if (selectedCollection.id === this.currentCollection?.id) {
+                window.CollectionController?.select(selectedCollection.id);
+            }
+
+            // Emit events to update UI
+            window.EventBus?.emit(window.EVENTS?.PROJECT_UPDATED, { project: currentProject });
+            window.EventBus?.emit(window.EVENTS?.DATA_REFRESH);
+
+            console.log(`✅ Moved project "${currentProject.name}" to collection "${selectedCollection.name}"`);
+
+        } catch (error) {
+            console.error('❌ Failed to move project to collection:', error);
+            window.NotificationView?.error('Failed to move project: ' + error.message);
+        }
     }
 
     /**

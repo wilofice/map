@@ -1495,10 +1495,13 @@ app.post('/api/db/import-json', (req, res) => {
     }
 
     try {
-        const jsonData = req.body;
+        const { collection_id, ...jsonData } = req.body;
         let projectName = 'Imported Project';
         let projectDescription = 'Imported from JSON file';
         let nodes = [];
+
+        // Determine collection ID - use provided collection_id or default to 'default-collection'
+        const targetCollectionId = collection_id || 'default-collection';
 
         // Handle different JSON formats
         if (jsonData.nodes) {
@@ -1514,11 +1517,25 @@ app.post('/api/db/import-json', (req, res) => {
         }
 
         const projectId = uuidv4();
-        const project = db.createProject(projectId, projectName, projectDescription);
+        const project = db.createProject(projectId, projectName, projectDescription, '', targetCollectionId);
+
+        // Log project creation activity
+        db.logActivity(projectId, 'project_created', {
+            name: projectName,
+            description: projectDescription,
+            collection_id: targetCollectionId,
+            import_source: 'json'
+        }, null, req.get('User-Agent'), req.ip);
 
         // Import nodes
         if (nodes && nodes.length > 0) {
             importNodesToProject(projectId, nodes);
+            // Log import activity
+            db.logActivity(projectId, 'nodes_imported', {
+                node_count: nodes.length,
+                source: 'json_import',
+                collection_id: targetCollectionId
+            }, null, req.get('User-Agent'), req.ip);
         }
 
         // Return complete project
@@ -1641,7 +1658,15 @@ app.put('/api/db/projects/:id/collection', (req, res) => {
         if (!updatedProject) {
             return res.status(404).json({ error: 'Project not found' });
         }
-        
+
+        // Log activity for collection assignment
+        const collectionName = collection_id ? db.getCollection(collection_id)?.name : 'None';
+        db.logActivity(projectId, 'project_moved_to_collection', {
+            collection_id: collection_id,
+            collection_name: collectionName,
+            project_name: updatedProject.name
+        });
+
         res.json(updatedProject);
     } catch (error) {
         console.error('Error assigning project to collection:', error);

@@ -216,7 +216,16 @@ class TopBarView {
         try {
             console.log('🚀 Importing JSON project:', filename);
 
-            // The server will handle JSON structure validation and node extraction
+            // Get currently selected collection ID (default to 'default-collection' if none selected)
+            const currentCollectionId = window.CollectionModel?.currentCollection?.id || 'default-collection';
+
+            console.log('📚 Importing to collection:', currentCollectionId);
+
+            // Prepare import data with collection_id
+            const importData = {
+                collection_id: currentCollectionId,
+                ...jsonData
+            };
 
             // Import project via API
             const response = await fetch('/api/db/import-json', {
@@ -224,7 +233,7 @@ class TopBarView {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(jsonData)
+                body: JSON.stringify(importData)
             });
 
             if (!response.ok) {

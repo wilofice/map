@@ -22,9 +22,12 @@ class DatabaseManager {
             
             // Create tables if they don't exist
             this.createTables();
-            
+
             // Prepare statements for better performance
             this.prepareStatements();
+
+            // Ensure Default collection exists
+            this.ensureDefaultCollection();
             
             console.log(`✅ Database initialized: ${this.dbPath}`);
         } catch (error) {
@@ -273,6 +276,26 @@ class DatabaseManager {
                 DELETE FROM project_activity WHERE project_id = ?
             `)
         };
+    }
+
+    ensureDefaultCollection() {
+        try {
+            const { v4: uuidv4 } = require('uuid');
+            const defaultId = 'default-collection';
+
+            // Check if Default collection already exists
+            const existing = this.stmts.getCollection.get(defaultId);
+
+            if (!existing) {
+                // Create Default collection
+                this.stmts.insertCollection.run(defaultId, 'Default', 'Default collection for imported projects');
+                console.log('✅ Created Default collection');
+            } else {
+                console.log('✅ Default collection already exists');
+            }
+        } catch (error) {
+            console.error('❌ Error ensuring Default collection:', error);
+        }
     }
 
     // Collection Operations
