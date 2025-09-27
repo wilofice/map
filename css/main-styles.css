@@ -282,6 +282,32 @@ body {
     box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
 }
 
+/* Project Select - matches collection select styling */
+.project-select {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--color-text);
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    min-width: 160px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.project-select:hover {
+    background: rgba(30, 41, 59, 1);
+    border-color: rgba(99, 179, 237, 0.5);
+}
+
+.project-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
 /* Project list acts like horizontally stacked items with scroll */
 .project-tabs {
     display: flex;
@@ -1610,6 +1636,17 @@ h1 {
 
     .project-info {
         justify-content: center;
+    }
+
+    .collection-nav {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .project-select {
+        margin-left: 0;
+        min-width: 140px;
     }
 }
 

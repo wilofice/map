@@ -5,7 +5,7 @@ class CollectionView {
     constructor() {
         this.collectionSelect = null;
         this.collectionNav = null;
-        this.projectTabs = null;
+        this.projectSelect = null;
         this.currentCollection = null;
         this.bindEvents();
         this.initialize();
@@ -14,7 +14,7 @@ class CollectionView {
     initialize() {
         this.collectionSelect = document.getElementById('collectionSelect');
         this.collectionNav = document.getElementById('collectionNav');
-        this.projectTabs = document.getElementById('projectTabs');
+        this.projectSelect = document.getElementById('projectSelect');
 
         // Add change listener to collection select
         if (this.collectionSelect) {
@@ -22,6 +22,16 @@ class CollectionView {
                 const collectionId = e.target.value;
                 if (collectionId) {
                     window.CollectionController?.select(collectionId);
+                }
+            });
+        }
+
+        // Add change listener to project select
+        if (this.projectSelect) {
+            this.projectSelect.addEventListener('change', (e) => {
+                const projectId = e.target.value;
+                if (projectId) {
+                    window.ProjectController?.select(projectId);
                 }
             });
         }
@@ -150,43 +160,43 @@ class CollectionView {
             this.collectionSelect.value = collection.id;
         }
 
-        // Update project tabs
-        this.updateProjectTabs(projects, collection);
+        // Update project select dropdown
+        this.updateProjectSelect(projects, collection);
     }
 
-    updateProjectTabs(projects, collection) {
-        if (!this.projectTabs) return;
+    updateProjectSelect(projects, collection) {
+        if (!this.projectSelect) return;
 
-        // Clear existing tabs
-        this.projectTabs.innerHTML = '';
+        // Clear existing options (except the first placeholder)
+        this.projectSelect.innerHTML = '<option value="">Select Project</option>';
 
         if (!projects || projects.length === 0) {
-            // Keep compact, no large empty state block in top bar
+            // Hide project select if no projects
+            this.projectSelect.style.display = 'none';
             return;
         }
 
-        // Create project tabs
+        // Show project select
+        this.projectSelect.style.display = 'block';
+
+        // Get currently selected project
         const selectedId = window.ProjectModel?.getCurrentProject?.()?.id;
+
+        // Populate project options
         projects.forEach(project => {
-            const tab = document.createElement('div');
-            tab.className = 'project-tab' + (selectedId && selectedId === project.id ? ' active' : '');
-            tab.setAttribute('data-project-id', project.id);
-            tab.innerHTML = `<span class="project-tab-name">${this.escapeHtml(project.name)}</span>`;
+            const option = document.createElement('option');
+            option.value = project.id;
+            option.textContent = project.name;
 
-            // Add click handler
-            tab.addEventListener('click', () => {
-                // Remove active class from all tabs
-                this.projectTabs.querySelectorAll('.project-tab').forEach(t => t.classList.remove('active'));
-                // Add active class to clicked tab
-                tab.classList.add('active');
-                // Select project
-                window.ProjectController?.select(project.id);
-            });
+            // Mark as selected if this is the current project
+            if (selectedId && selectedId === project.id) {
+                option.selected = true;
+            }
 
-            this.projectTabs.appendChild(tab);
+            this.projectSelect.appendChild(option);
         });
 
-        console.log('📚 CollectionView: Updated project tabs with', projects.length, 'projects');
+        console.log('📚 CollectionView: Updated project select with', projects.length, 'projects');
     }
 
     escapeHtml(text) {
