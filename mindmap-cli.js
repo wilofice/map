@@ -70,6 +70,223 @@ class MindMapCLI {
         }
     }
 
+    // ============================
+    // Collections
+    // ============================
+    async listCollections() {
+        try {
+            const collections = await this.makeRequest('/api/db/collections');
+            if (!collections || collections.length === 0) {
+                console.log('📚 No collections found');
+                return;
+            }
+            console.log(`📚 Found ${collections.length} collections:`);
+            collections.forEach(c => {
+                console.log(`  📦 ${c.id} - ${c.name}`);
+                if (c.description) console.log(`     📄 ${c.description}`);
+                if (typeof c.project_count !== 'undefined') console.log(`     🗂️  ${c.project_count} projects`);
+                console.log('');
+            });
+        } catch (error) {
+            console.error('❌ Error listing collections:', error.message);
+            process.exit(1);
+        }
+    }
+
+    async createCollection(name, options = {}) {
+        try {
+            if (!name || name.trim() === '') {
+                console.error('❌ Collection name is required');
+                process.exit(1);
+            }
+            const body = { name: name.trim(), description: options.description || '' };
+            const collection = await this.makeRequest('/api/db/collections', {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+            console.log('✅ Collection created:');
+            console.log(JSON.stringify(collection, null, 2));
+        } catch (error) {
+            console.error('❌ Error creating collection:', error.message);
+            process.exit(1);
+        }
+    }
+
+    // ============================
+    // Projects
+    // ============================
+    async createProject(name, options = {}) {
+        try {
+            if (!name || name.trim() === '') {
+                console.error('❌ Project name is required');
+                process.exit(1);
+            }
+            let nodes = [];
+            // Optional nodes from JSON file
+            const filePath = options.fromFile || options.nodesFile;
+            if (filePath) {
+                if (!fs.existsSync(filePath)) {
+                    console.error(`❌ Nodes file not found: ${filePath}`);
+                    process.exit(1);
+                }
+                const raw = fs.readFileSync(filePath, 'utf8');
+                try {
+                    const parsed = JSON.parse(raw);
+                    // Accept either {nodes:[...]} or an array
+                    nodes = Array.isArray(parsed) ? parsed : (parsed.nodes || []);
+                } catch (e) {
+                    console.error('❌ Invalid JSON in nodes file:', e.message);
+                    process.exit(1);
+                }
+            }
+
+            const body = {
+                name: name.trim(),
+                description: options.description || '',
+                nodes,
+                collection_id: options.collectionId || 'default-collection'
+            };
+            const project = await this.makeRequest('/api/db/projects', {
+                method: 'POST',
+                body: JSON.stringify(body)
+            });
+            console.log('✅ Project created:');
+            console.log(JSON.stringify(project, null, 2));
+        } catch (error) {
+            console.error('❌ Error creating project:', error.message);
+            process.exit(1);
+        }
+    }
+
+    async importJsonProject(filePath, options = {}) {
+        try {
+            if (!filePath) {
+                console.error('❌ Usage: mindmap import-json <file> [--collection-id=<id>]');
+                process.exit(1);
+            }
+            if (!fs.existsSync(filePath)) {
+                console.error(`❌ File not found: ${filePath}`);
+                process.exit(1);
+            }
+            const raw = fs.readFileSync(filePath, 'utf8');
+            let payload;
+            try {
+                payload = JSON.parse(raw);
+            } catch (e) {
+                console.error('❌ Invalid JSON file:', e.message);
+                process.exit(1);
+            }
+            payload.collection_id = options.collectionId || 'default-collection';
+            const response = await this.makeRequest('/api/db/import-json', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            console.log('✅ JSON import successful:');
+            console.log(JSON.stringify(response, null, 2));
+        } catch (error) {
+            console.error('❌ Error importing JSON project:', error.message);
+            process.exit(1);
+        }
+    }
+
+    async assignProjectToCollection(projectId, options = {}) {
+        try {
+            if (!projectId) {
+                console.error('❌ Usage: mindmap assign-project-collection <project-id> [--collection-id=<id>|--remove]');
+                process.exit(1);
+            }
+            if (options.remove) {
+                const response = await this.makeRequest(`/api/db/projects/${projectId}/collection`, {
+                    method: 'DELETE'
+                });
+                console.log('✅ Project removed from collection');
+                console.log(JSON.stringify(response, null, 2));
+                return;
+            }
+            const collectionId = options.collectionId || 'default-collection';
+            const response = await this.makeRequest(`/api/db/projects/${projectId}/collection`, {
+                method: 'PUT',
+                body: JSON.stringify({ collection_id: collectionId })
+            });
+            console.log('✅ Project assigned to collection');
+            console.log(JSON.stringify(response, null, 2));
+        } catch (error) {
+            console.error('❌ Error assigning project to collection:', error.message);
+            process.exit(1);
+        }
+    }
+
+    // ============================
+    // Nodes (JSON-based operations)
+    // ============================
+    async updateNodeJson(nodeId, filePath) {
+        try {
+            if (!nodeId || !filePath) {
+                console.error('❌ Usage: mindmap update-node-json <node-id> --file=<path>');
+                process.exit(1);
+            }
+            if (!fs.existsSync(filePath)) {
+                console.error(`❌ File not found: ${filePath}`);
+                process.exit(1);
+            }
+            const raw = fs.readFileSync(filePath, 'utf8');
+            let updates;
+            try {
+                updates = JSON.parse(raw);
+            } catch (e) {
+                console.error('❌ Invalid JSON:', e.message);
+                process.exit(1);
+            }
+            const response = await this.makeRequest(`/api/db/nodes/${nodeId}`, {
+                method: 'PUT',
+                body: JSON.stringify(updates)
+            });
+            console.log('✅ Node updated:');
+            console.log(JSON.stringify(response, null, 2));
+        } catch (error) {
+            console.error('❌ Error updating node:', error.message);
+            process.exit(1);
+        }
+    }
+
+    async createNodeJson(filePath, options = {}) {
+        try {
+            if (!filePath) {
+                console.error('❌ Usage: mindmap create-node-json --file=<path> --project-id=<id>');
+                process.exit(1);
+            }
+            if (!fs.existsSync(filePath)) {
+                console.error(`❌ File not found: ${filePath}`);
+                process.exit(1);
+            }
+            const raw = fs.readFileSync(filePath, 'utf8');
+            let node;
+            try {
+                node = JSON.parse(raw);
+            } catch (e) {
+                console.error('❌ Invalid JSON:', e.message);
+                process.exit(1);
+            }
+            if (!node.project_id) {
+                const pid = options.projectId;
+                if (!pid) {
+                    console.error('❌ project_id is required in JSON or via --project-id');
+                    process.exit(1);
+                }
+                node.project_id = pid;
+            }
+            const response = await this.makeRequest('/api/db/nodes', {
+                method: 'POST',
+                body: JSON.stringify(node)
+            });
+            console.log('✅ Node created:');
+            console.log(JSON.stringify(response, null, 2));
+        } catch (error) {
+            console.error('❌ Error creating node:', error.message);
+            process.exit(1);
+        }
+    }
+
     // Command: List all projects
     async listProjects() {
         try {
@@ -451,6 +668,10 @@ USAGE:
 
 COMMANDS:
   projects                        List all projects
+    collections                     List all collections
+    create-collection <name>        Create a new collection (use --description=...)
+    create-project <name>           Create a new project (use --collection-id=... --description=... [--from-file=<nodes.json>])
+    import-json <file>              Create project by importing JSON (auto-detects shape; uses --collection-id if provided)
   get-project <id>                Get project details with context
   get-node <id>                   Get node details with progress history
   list-tasks                      List pending tasks (AI task queue)
@@ -459,6 +680,9 @@ COMMANDS:
   lowest-priority-task <proj-id>  Get lowest priority task in project
   update-status <id> <status>     Update node status (pending|in-progress|completed)
   add-progress <id> <message>     Add progress message to node
+    update-node-json <id>           Update node using JSON file (--file=path)
+    create-node-json                Create node from JSON file (--file=path --project-id=<id>)
+    assign-project-collection <project-id>  Assign or remove project to/from a collection (--collection-id=<id> | --remove)
   search <query>                  Search for tasks/nodes
   config                          Configure CLI settings
   help                            Show this help message
@@ -468,8 +692,14 @@ OPTIONS:
   --status=<pending|in-progress|completed> Filter by status
   --limit=<number>                      Limit number of results
   --project-id=<id>                     Filter by project
+    --collection-id=<id>                  Target collection id
   --format=<json|human>                 Output format
   --show-nodes                          Show nodes in project details
+    --description=<text>                  Description for create commands
+    --from-file=<path>                    Load nodes from JSON when creating project
+    --nodes-file=<path>                   Alias of --from-file
+    --file=<path>                         JSON file path for node update/create
+    --remove                              Remove assignment (for assign-project-collection)
 
 CONFIGURATION:
   mindmap config --api-url=<url>     Set API endpoint
@@ -506,18 +736,50 @@ async function main() {
     const command = args[0];
     const options = {};
 
-    // Parse options
+    // Parse options (support hyphenated flags and camelCase access)
     args.slice(1).forEach(arg => {
-        if (arg.startsWith('--')) {
-            const [key, value] = arg.slice(2).split('=');
-            options[key.replace(/-/g, '')] = value || true;
-        }
+        if (!arg.startsWith('--')) return;
+        const [rawKey, valueRaw] = arg.slice(2).split('=');
+        const value = (typeof valueRaw === 'undefined') ? true : valueRaw;
+        const noHyphens = rawKey.replace(/-/g, '');
+        const camel = rawKey.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        options[noHyphens] = value;       // e.g., project-id -> projectid
+        options[camel] = value;           // e.g., project-id -> projectId
+        options[rawKey] = value;          // e.g., project-id -> 'project-id' (for completeness)
     });
 
     try {
         switch (command) {
             case 'projects':
                 await cli.listProjects();
+                break;
+
+            case 'collections':
+                await cli.listCollections();
+                break;
+
+            case 'create-collection':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Usage: mindmap create-collection <name> [--description=...]');
+                    process.exit(1);
+                }
+                await cli.createCollection(args[1], options);
+                break;
+
+            case 'create-project':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Usage: mindmap create-project <name> [--collection-id=<id>] [--description=...] [--from-file=<nodes.json>]');
+                    process.exit(1);
+                }
+                await cli.createProject(args[1], options);
+                break;
+
+            case 'import-json':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Usage: mindmap import-json <file> [--collection-id=<id>]');
+                    process.exit(1);
+                }
+                await cli.importJsonProject(args[1], options);
                 break;
 
             case 'get-project':
@@ -568,6 +830,30 @@ async function main() {
                     process.exit(1);
                 }
                 await cli.updateStatus(args[1], args[2]);
+                break;
+
+            case 'update-node-json':
+                if (!args[1]) {
+                    console.error('❌ Usage: mindmap update-node-json <node-id> --file=<path>');
+                    process.exit(1);
+                }
+                await cli.updateNodeJson(args[1], options.file);
+                break;
+
+            case 'create-node-json':
+                if (!options.file) {
+                    console.error('❌ Usage: mindmap create-node-json --file=<path> --project-id=<id>');
+                    process.exit(1);
+                }
+                await cli.createNodeJson(options.file, options);
+                break;
+
+            case 'assign-project-collection':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Usage: mindmap assign-project-collection <project-id> [--collection-id=<id>|--remove]');
+                    process.exit(1);
+                }
+                await cli.assignProjectToCollection(args[1], options);
                 break;
 
             case 'add-progress':
