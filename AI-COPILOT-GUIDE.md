@@ -96,12 +96,27 @@ mindmap get-project <project-id> --show-nodes
 
 # Get specific node details
 mindmap get-node <node-id>
+
+# Get highest priority task in a specific project
+mindmap highest-priority-task <project-id>
+
+# Get lowest priority task in a specific project
+mindmap lowest-priority-task <project-id>
 ```
 
 ### Task Discovery
 ```bash
 # List pending tasks (AI work queue)
 mindmap list-tasks [options]
+
+# List tasks for specific project
+mindmap list-tasks --project-id=<project-id>
+
+# Get highest priority task in project
+mindmap highest-priority-task <project-id>
+
+# Get lowest priority task in project
+mindmap lowest-priority-task <project-id>
 
 # Search for specific tasks
 mindmap search <query> [options]
@@ -298,6 +313,8 @@ node mindmap-cli.js update-status $TASK_ID in-progress
 |---------|---------|---------|
 | `projects` | List all projects | `mindmap projects` |
 | `list-tasks` | Find work to do | `mindmap list-tasks --priority=high` |
+| `highest-priority-task` | Get top priority task in project | `mindmap highest-priority-task abc123` |
+| `lowest-priority-task` | Get lowest priority task in project | `mindmap lowest-priority-task abc123` |
 | `get-node` | Get task details | `mindmap get-node abc123` |
 | `update-status` | Change task status | `mindmap update-status abc123 in-progress` |
 | `add-progress` | Track progress | `mindmap add-progress abc123 "Feature completed"` |

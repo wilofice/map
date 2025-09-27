@@ -173,6 +173,11 @@ class MindMapCLI {
 
             const response = await this.makeRequest(`/api/ai/tasks/queue?${queryParams}`);
 
+            // If _returnData option is set, return the response instead of printing
+            if (options._returnData) {
+                return response;
+            }
+
             if (response.tasks.length === 0) {
                 console.log('📋 No pending tasks found');
                 return;
@@ -268,6 +273,92 @@ class MindMapCLI {
         }
     }
 
+    // Command: Get highest priority task in a project
+    async getHighestPriorityTask(projectId, options = {}) {
+        try {
+            const response = await this.listTasks({
+                projectId,
+                limit: 1,
+                _returnData: true
+            });
+
+            if (!response || response.tasks.length === 0) {
+                if (options.format === 'json') {
+                    console.log(JSON.stringify({ task: null, message: 'No pending tasks found in project' }));
+                } else {
+                    console.log('📋 No pending tasks found in this project');
+                }
+                return;
+            }
+
+            const task = response.tasks[0]; // First task is highest priority due to sorting
+
+            if (options.format === 'json') {
+                console.log(JSON.stringify({ task }));
+            } else {
+                const priorityIcon = task.priority === 'high' ? '🔴' :
+                                   task.priority === 'medium' ? '🟡' : '🟢';
+                console.log(`🎯 Highest Priority Task in Project:`);
+                console.log(`  ${priorityIcon} ${task.title}`);
+                console.log(`     📁 Project: ${task.project_name}`);
+                console.log(`     🔗 ID: ${task.id}`);
+                console.log(`     ⚡ Priority: ${task.priority}`);
+                if (task.comment) {
+                    const truncated = task.comment.length > 100 ?
+                        task.comment.substring(0, 100) + '...' : task.comment;
+                    console.log(`     📄 ${truncated}`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error getting highest priority task:', error.message);
+            process.exit(1);
+        }
+    }
+
+    // Command: Get lowest priority task in a project
+    async getLowestPriorityTask(projectId, options = {}) {
+        try {
+            // Get all tasks for the project
+            const response = await this.listTasks({
+                projectId,
+                limit: 1000, // Get all tasks
+                _returnData: true
+            });
+
+            if (!response || response.tasks.length === 0) {
+                if (options.format === 'json') {
+                    console.log(JSON.stringify({ task: null, message: 'No pending tasks found in project' }));
+                } else {
+                    console.log('📋 No pending tasks found in this project');
+                }
+                return;
+            }
+
+            // Find the lowest priority task (since API sorts high->medium->low, last one is lowest)
+            const task = response.tasks[response.tasks.length - 1];
+
+            if (options.format === 'json') {
+                console.log(JSON.stringify({ task }));
+            } else {
+                const priorityIcon = task.priority === 'high' ? '🔴' :
+                                   task.priority === 'medium' ? '🟡' : '🟢';
+                console.log(`🎯 Lowest Priority Task in Project:`);
+                console.log(`  ${priorityIcon} ${task.title}`);
+                console.log(`     📁 Project: ${task.project_name}`);
+                console.log(`     🔗 ID: ${task.id}`);
+                console.log(`     ⚡ Priority: ${task.priority}`);
+                if (task.comment) {
+                    const truncated = task.comment.length > 100 ?
+                        task.comment.substring(0, 100) + '...' : task.comment;
+                    console.log(`     📄 ${truncated}`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error getting lowest priority task:', error.message);
+            process.exit(1);
+        }
+    }
+
     // Command: Configure CLI
     async configure(options = {}) {
         if (options.apiUrl) {
@@ -291,15 +382,17 @@ USAGE:
   mindmap <command> [options]
 
 COMMANDS:
-  projects                     List all projects
-  get-project <id>             Get project details with context
-  get-node <id>                Get node details with progress history
-  list-tasks                   List pending tasks (AI task queue)
-  update-status <id> <status>  Update node status (pending|in-progress|completed)
-  add-progress <id> <message>  Add progress message to node
-  search <query>               Search for tasks/nodes
-  config                       Configure CLI settings
-  help                         Show this help message
+  projects                        List all projects
+  get-project <id>                Get project details with context
+  get-node <id>                   Get node details with progress history
+  list-tasks                      List pending tasks (AI task queue)
+  highest-priority-task <proj-id> Get highest priority task in project
+  lowest-priority-task <proj-id>  Get lowest priority task in project
+  update-status <id> <status>     Update node status (pending|in-progress|completed)
+  add-progress <id> <message>     Add progress message to node
+  search <query>                  Search for tasks/nodes
+  config                          Configure CLI settings
+  help                            Show this help message
 
 OPTIONS:
   --priority=<high|medium|low>  Filter by priority
@@ -316,6 +409,9 @@ CONFIGURATION:
 EXAMPLES:
   mindmap projects
   mindmap list-tasks --priority=high --limit=5
+  mindmap list-tasks --project-id=abc123
+  mindmap highest-priority-task abc123
+  mindmap lowest-priority-task abc123 --format=json
   mindmap get-project abc123 --show-nodes
   mindmap update-status node123 in-progress
   mindmap add-progress node123 "Completed authentication logic"
@@ -371,6 +467,24 @@ async function main() {
 
             case 'list-tasks':
                 await cli.listTasks(options);
+                break;
+
+            case 'highest-priority-task':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Project ID is required');
+                    console.error('Usage: mindmap highest-priority-task <project-id> [--format=json]');
+                    process.exit(1);
+                }
+                await cli.getHighestPriorityTask(args[1], options);
+                break;
+
+            case 'lowest-priority-task':
+                if (!args[1] || args[1].startsWith('--')) {
+                    console.error('❌ Project ID is required');
+                    console.error('Usage: mindmap lowest-priority-task <project-id> [--format=json]');
+                    process.exit(1);
+                }
+                await cli.getLowestPriorityTask(args[1], options);
                 break;
 
             case 'update-status':
