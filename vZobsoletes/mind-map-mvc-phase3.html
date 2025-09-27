@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map - Complete MVC Architecture (Phase 3)</title>
+    
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    
+    <!-- CSS Module Imports -->
+    <link rel="stylesheet" href="css/main-styles.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/progress-styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 Project Files</h2>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">‹</button>
+            </div>
+            
+            <div class="sidebar-content" id="sidebarContent">
+                <!-- Working Root Directory -->
+                <div class="working-root-section">
+                    <div class="working-root-display">
+                        <span class="folder-icon">🏠</span>
+                        <span class="working-root-path" id="workingRootPath">Loading...</span>
+                    </div>
+                    <button class="folder-btn" id="changeRootBtn" title="Change working root directory">📂 Change Root</button>
+                </div>
+                
+                <!-- File List -->
+                <div id="fileListContainer">
+                    <div class="file-list-loading">Loading files...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <div class="container">
+                <h1>🧠 Mind Map MVC (Phase 3)</h1>
+                
+                <div class="controls" id="controls">
+                    <button class="btn btn-success" id="saveBtn">💾 <span class="btn-text">Save All Changes</span></button>
+                    <button class="btn btn-secondary" id="toggleComments">💬 <span class="btn-text">Show Comments</span></button>
+                    <button class="btn btn-secondary" id="toggleDates">📅 <span class="btn-text">Show Dates</span></button>
+                    <button class="btn btn-secondary" id="toggleAddButtons">➕ <span class="btn-text">Hide Add Buttons</span></button>
+                    <button class="btn btn-secondary" id="toggleAll">📂 <span class="btn-text">Toggle All</span></button>
+                    <button class="btn" id="toggleFlash">✨ <span class="btn-text">Start Flash</span></button>
+                    <button class="btn" id="toggleAnimateLines">〰️ <span class="btn-text">Animate Lines</span></button>
+                    <button class="btn btn-info" id="toggleBoardView">📋 <span class="btn-text">Board View</span></button>
+                    <button class="btn" id="cleanupBtn" style="background: #f59e0b; color: white;">🔧 <span class="btn-text">Clean up IDs</span></button>
+                    <button class="btn btn-primary" id="newFileBtn">📄 <span class="btn-text">New File</span></button>
+                </div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="progress-container" style="display: none;">
+                <div class="progress-header">
+                    <h3>Project Progress</h3>
+                    <div class="progress-stats">
+                        <span>✅ <span id="completedCount">0</span></span>
+                        <span>🟡 <span id="inProgressCount">0</span></span>
+                        <span>🔲 <span id="pendingCount">0</span></span>
+                        <span>📊 <span id="totalCount">0</span> total</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+                    <div id="progressPercentage" class="progress-percentage">0%</div>
+                </div>
+            </div>
+
+                <!-- Mind Map Container -->
+                <div id="mindMapContainer" class="mind-map-container">
+                    <div class="empty-state">
+                        <h2>🧠 Mind Map MVC (Phase 3)</h2>
+                        <p>Complete modular architecture with advanced components</p>
+                        <p>Select a file from the sidebar to get started</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Board View Container -->
+            <div id="boardContainer" class="board-container" style="display: none;">
+                <div class="board-columns">
+                    <div class="board-column" id="pendingColumn">
+                        <h3 class="column-header">🔲 Pending (<span id="pendingCount">0</span>)</h3>
+                        <div class="column-content"></div>
+                    </div>
+                    <div class="board-column" id="inProgressColumn">
+                        <h3 class="column-header">🟡 In Progress (<span id="inProgressCount">0</span>)</h3>
+                        <div class="column-content"></div>
+                    </div>
+                    <div class="board-column" id="completedColumn">
+                        <h3 class="column-header">✅ Completed (<span id="completedCount">0</span>)</h3>
+                        <div class="column-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" data-priority="high">🔴 High Priority</div>
+        <div class="context-menu-item" data-priority="medium">🟡 Medium Priority</div>
+        <div class="context-menu-item" data-priority="low">🟢 Low Priority</div>
+    </div>
+
+    <!-- Complete MVC Module Imports -->
+    <!-- Utilities -->
+    <script type="module" src="js/utils/ApiClient.js"></script>
+    <script type="module" src="js/utils/DOMUtils.js"></script>
+    
+    <!-- Models -->
+    <script type="module" src="js/models/DataModel.js"></script>
+    <script type="module" src="js/models/FileModel.js"></script>
+    <script type="module" src="js/models/SyncModel.js"></script>
+    
+    <!-- Views -->
+    <script type="module" src="js/views/UIRenderer.js"></script>
+    <script type="module" src="js/views/BoardView.js"></script>
+    <script type="module" src="js/views/SidebarView.js"></script>
+    <script type="module" src="js/views/AdvancedComponents.js"></script>
+    
+    <!-- Controllers -->
+    <script type="module" src="js/controllers/UIController.js"></script>
+    
+    <!-- Legacy Components (for backward compatibility) -->
+    <script type="module" src="js/progress-tracker.js"></script>
+    <script type="module" src="js/node-manager.js"></script>
+    
+    <!-- Main App Entry Point -->
+    <script type="module">
+        import { apiClient } from './js/utils/ApiClient.js';
+        import { dataModel } from './js/models/DataModel.js';
+        import { fileModel } from './js/models/FileModel.js';
+        import { syncModel } from './js/models/SyncModel.js';
+        import { uiRenderer } from './js/views/UIRenderer.js';
+        import { boardView } from './js/views/BoardView.js';
+        import { sidebarView } from './js/views/SidebarView.js';
+        import { advancedComponents } from './js/views/AdvancedComponents.js';
+        import { uiController } from './js/controllers/UIController.js';
+        import { DOMUtils } from './js/utils/DOMUtils.js';
+        
+        // Complete MVC Mind Map Application (Phase 3)
+        class MindMapApp {
+            constructor() {
+                this.initialized = false;
+                this.currentView = 'mindmap'; // 'mindmap' or 'board'
+                this.version = 'Phase 3 - Complete MVC';
+            }
+            
+            async init() {
+                try {
+                    console.log('🚀 Initializing Mind Map MVC App (Phase 3)...');
+                    console.log('📋 Version:', this.version);
+                    
+                    // Initialize API client
+                    await apiClient.initialize();
+                    console.log('✅ API client initialized');
+                    
+                    // Initialize all view components
+                    uiRenderer.initialize('mindMapContainer');
+                    boardView.initialize('boardContainer');
+                    sidebarView.initialize('sidebar');
+                    console.log('✅ View components initialized');
+                    
+                    // Initialize UI controller
+                    uiController.initialize();
+                    console.log('✅ UI controller initialized');
+                    
+                    // Load working root and files
+                    await sidebarView.loadWorkingRoot();
+                    await sidebarView.loadFileList();
+                    console.log('✅ File system loaded');
+                    
+                    // Setup comprehensive event listeners
+                    this.setupEventListeners();
+                    console.log('✅ Event system configured');
+                    
+                    this.initialized = true;
+                    console.log('🎉 Mind Map MVC App (Phase 3) initialized successfully!');
+                    console.log('🎯 Features: Complete MVC, Advanced Components, Full UI Control');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize app:', error);
+                }
+            }
+            
+            setupEventListeners() {
+                // File operations
+                document.getElementById('saveBtn')?.addEventListener('click', () => {
+                    syncModel.manualSave();
+                });
+                
+                document.getElementById('newFileBtn')?.addEventListener('click', () => {
+                    this.createNewFile();
+                });
+                
+                // View switching
+                document.getElementById('toggleBoardView')?.addEventListener('click', () => {
+                    this.toggleView();
+                });
+                
+                // UI controls
+                document.getElementById('toggleComments')?.addEventListener('click', () => {
+                    uiController.toggleAllComments();
+                });
+                
+                document.getElementById('toggleDates')?.addEventListener('click', () => {
+                    uiController.toggleAllDates();
+                });
+                
+                document.getElementById('toggleAddButtons')?.addEventListener('click', () => {
+                    uiController.toggleAllAddButtons();
+                });
+                
+                document.getElementById('toggleAll')?.addEventListener('click', () => {
+                    uiController.toggleAllNodes();
+                });
+                
+                document.getElementById('toggleFlash')?.addEventListener('click', () => {
+                    uiController.toggleFlash();
+                });
+                
+                document.getElementById('toggleAnimateLines')?.addEventListener('click', () => {
+                    uiController.toggleAnimateLines();
+                });
+                
+                // Utility functions
+                document.getElementById('cleanupBtn')?.addEventListener('click', async () => {
+                    const fixed = await DOMUtils.cleanupIds();
+                    if (fixed > 0) {
+                        alert(`Cleaned up ${fixed} node IDs`);
+                    } else {
+                        alert('No ID cleanup needed');
+                    }
+                });
+                
+                // File selection handler
+                sidebarView.setFileSelectHandler(async (filename, type) => {
+                    await this.loadFile(filename);
+                });
+                
+                // Global keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch (e.key) {
+                            case 's':
+                                e.preventDefault();
+                                syncModel.manualSave();
+                                break;
+                            case 'b':
+                                e.preventDefault();
+                                this.toggleView();
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            async loadFile(filename) {
+                try {
+                    console.log(`Loading file: ${filename}`);
+                    const fileData = await fileModel.loadFile(filename);
+                    
+                    // Render based on current view
+                    if (this.currentView === 'board') {
+                        boardView.populateBoard();
+                    } else {
+                        uiRenderer.renderMindMap();
+                    }
+                    
+                    // Apply syntax highlighting for any code blocks
+                    advancedComponents.initializePrismHighlighting();
+                    
+                    // Start sync monitoring
+                    syncModel.startSyncCheck();
+                    
+                    console.log(`✅ File loaded and rendered: ${filename}`);
+                    
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    uiRenderer.showErrorState(error);
+                }
+            }
+            
+            toggleView() {
+                const mindMap = document.getElementById('mindMapContainer');
+                const board = document.getElementById('boardContainer');
+                const btn = document.getElementById('toggleBoardView');
+                
+                if (this.currentView === 'mindmap') {
+                    // Switch to board view
+                    mindMap.style.display = 'none';
+                    board.style.display = 'block';
+                    btn.textContent = '🧠 Mind Map';
+                    this.currentView = 'board';
+                    
+                    // Refresh board if data is loaded
+                    if (dataModel.getCurrentFile()) {
+                        boardView.populateBoard();
+                    }
+                } else {
+                    // Switch to mind map view
+                    mindMap.style.display = 'block';
+                    board.style.display = 'none';
+                    btn.textContent = '📋 Board View';
+                    this.currentView = 'mindmap';
+                    
+                    // Refresh mind map if data is loaded
+                    if (dataModel.getCurrentFile()) {
+                        uiRenderer.renderMindMap();
+                        advancedComponents.initializePrismHighlighting();
+                    }
+                }
+            }
+            
+            async createNewFile() {
+                const filename = prompt('Enter filename (with .json extension):');
+                if (filename && filename.trim()) {
+                    try {
+                        const result = await fileModel.createFile(filename.trim());
+                        if (result.success) {
+                            await sidebarView.refreshFileList();
+                            await this.loadFile(filename.trim());
+                            console.log(`✅ New file created: ${filename}`);
+                        }
+                    } catch (error) {
+                        alert('Failed to create file: ' + error.message);
+                    }
+                }
+            }
+            
+            getCurrentView() {
+                return this.currentView;
+            }
+            
+            getVersion() {
+                return this.version;
+            }
+            
+            isInitialized() {
+                return this.initialized;
+            }
+        }
+        
+        // Initialize the complete MVC app
+        const app = new MindMapApp();
+        app.init();
+        
+        // Make app globally available for debugging
+        window.mindMapApp = app;
+        window.mvc = {
+            app,
+            models: { dataModel, fileModel, syncModel },
+            views: { uiRenderer, boardView, sidebarView, advancedComponents },
+            controllers: { uiController },
+            utils: { apiClient, DOMUtils }
+        };
+        
+        console.log('🎯 Global MVC object available at window.mvc');
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizontal Interactive Mind Map</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --color-bg: #1a202c; /* Deep Dark Blue Background */
+            --color-surface: #2d3748; /* Slightly Lighter Blue for the Map */
+            --color-text: #e2e8f0; /* Light Text for Contrast */
+            --color-text-muted: #a0aec0;
+            --color-border: #4a5568;
+            --color-primary: #4299e1; /* Brighter Blue for Buttons */
+            --color-primary-hover: #63b3ed;
+            --color-secondary: #718096;
+            --color-secondary-hover: #a0aec0;
+            --color-success: #48bb78;
+            --color-success-hover: #68d391;
+            --color-line: #718096; /* Lighter line color for visibility */
+            
+            /* -- VIBRANT Priority Colors -- */
+            --priority-high-bg: rgba(252, 129, 129, 0.2);
+            --priority-high-border: #fc8181;
+            --priority-medium-bg: rgba(252, 211, 77, 0.2);
+            --priority-medium-border: #fcd34d;
+            --priority-low-bg: rgba(56, 189, 248, 0.2);
+            --priority-low-border: #38bdf8;
+        }
+
+        @keyframes bounce-in-place {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-4px);
+            }
+        }
+
+        @keyframes color-flash {
+            0%, 100% { background-color: var(--original-bg); }
+            30% { background-color: var(--priority-high-bg); }
+            60% { background-color: var(--priority-medium-bg); }
+            90% { background-color: var(--priority-low-bg); }
+        }
+
+        @keyframes connector-color-cycle {
+            0%, 100% { border-color: var(--priority-high-border); }
+            33%  { border-color: var(--priority-medium-border); }
+            66% { border-color: var(--priority-low-border); }
+        }
+
+        html {
+            /* THE FIX: Apply the background to the root HTML element.
+               This ensures the color covers the entire scrollable area. */
+            background-color: var(--color-surface);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            /* Container is now just for layout, not appearance */
+            background: transparent;
+            padding: 0;
+            text-align: left; /* Reset alignment for content inside */
+        }
+
+        h1 {
+            color: var(--color-text);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--color-primary);
+            color: #1a202c; /* Dark text on bright buttons */
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: var(--color-primary-hover);
+            box-shadow: 0 4px 10px rgba(66, 153, 225, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-secondary-hover);
+            box-shadow: 0 4px 10px rgba(113, 128, 150, 0.2);
+        }
+        
+        .btn-success {
+            background-color: var(--color-success);
+        }
+        .btn-success:hover {
+            background-color: var(--color-success-hover);
+            box-shadow: 0 4px 10px rgba(72, 187, 120, 0.2);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* --- HORIZONTAL Mind Map Styling --- */
+        .mind-map-container {
+            padding-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .node {
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding: 1rem 0 1rem 3rem; /* Use padding for spacing and for the line */
+        }
+
+        /* Root Node Styling */
+        .mind-map-container > .node {
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .node-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .mind-map-container > .node::before,
+        .mind-map-container > .node::after {
+            display: none;
+        }
+        
+        .node-content {
+            border: 1px solid;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0; /* Prevent content from shrinking */
+        }
+        
+        .node-content:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .node-title {
+            outline: none;
+            white-space: nowrap; /* Prevent title from wrapping */
+        }
+        
+        .node-title[contenteditable="true"] {
+            background-color: var(--color-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+        }
+
+        .node-toggle {
+            font-weight: bold;
+            line-height: 1;
+            width: 1rem;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            color: var(--color-primary);
+            font-size: 1.2rem;
+        }
+
+        /* Priority Colors */
+        .priority-high > .node-wrapper > .node-content { background-color: var(--priority-high-bg); border-color: var(--priority-high-border); }
+        .priority-medium > .node-wrapper > .node-content { background-color: var(--priority-medium-bg); border-color: var(--priority-medium-border); }
+        .priority-low > .node-wrapper > .node-content { background-color: var(--priority-low-bg); border-color: var(--priority-low-border); }
+
+        /* Status Styling & Animations */
+        .status-in-progress > .node-wrapper {
+            animation: bounce-in-place 0.8s infinite;
+        }
+        .flash-active .status-in-progress .node-content {
+             animation: color-flash 2s infinite;
+        }
+        .status-completed > .node-wrapper > .node-content {
+            opacity: 0.6;
+        }
+        .status-completed .node-title {
+            text-decoration: line-through;
+        }
+
+        /* --- Corrected Connector Lines --- */
+        .node-parent {
+            position: relative;
+            padding-left: 3rem;
+        }
+        
+        .node-parent > .node {
+            padding: 1rem 0 1rem 3rem; /* Add padding to children for spacing */
+        }
+
+        /* Draws the horizontal line */
+        .node::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 1.5rem;
+            height: 0;
+            border-top: 3px solid var(--color-line);
+        }
+
+        /* Draws the vertical line segment */
+        .node::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 3px solid var(--color-line);
+        }
+        
+        /* Line Animation Setup */
+        .lines-animated .node::before, .lines-animated .node::after {
+            animation: connector-color-cycle 4s infinite linear;
+        }
+
+        /* Start the vertical line halfway down for the first child */
+        .node-parent > .node:first-child::before {
+            top: 50%;
+        }
+
+        /* End the vertical line halfway down for the last child */
+        .node-parent > .node:last-child::before {
+            bottom: 50%;
+        }
+
+        /* A single child only needs a horizontal line, no vertical part */
+        .node-parent > .node:only-child::before {
+            display: none;
+        }
+
+        .node-parent.collapsed {
+            display: none;
+        }
+        
+        /* Icons */
+        .node-icon {
+            cursor: pointer;
+            color: var(--color-text-muted);
+            font-size: 1rem;
+            transition: color 0.2s;
+        }
+        .node-icon:hover { color: var(--color-text); }
+        
+        .icon-status { font-size: 1.2rem; }
+        
+        /* Comment */
+        .node-comment {
+            background: var(--color-bg);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            display: none; /* Hidden by default */
+        }
+        .node-comment[contenteditable="true"] {
+             background: #1a202c;
+             box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+             outline: 2px solid var(--color-primary);
+        }
+        
+        .has-comment .icon-comment {
+            color: var(--color-primary);
+        }
+
+        /* Dates & Days Spent */
+        .node-dates {
+            display: none; /* Hidden by default */
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--color-bg);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            white-space: nowrap;
+        }
+        .date-value {
+            font-weight: 500;
+            color: var(--color-text);
+        }
+        .date-value[contenteditable="true"] {
+             background: var(--color-surface);
+             padding: 0.1rem 0.3rem;
+             border-radius: 4px;
+             box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+             outline: 2px solid var(--color-primary);
+        }
+        .has-dates .icon-date {
+            color: var(--color-primary);
+        }
+
+        .days-spent-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .days-spent-btn {
+            background-color: var(--color-border);
+            color: var(--color-text);
+            border: none;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: background-color 0.2s;
+        }
+        .days-spent-btn:hover {
+            background-color: var(--color-primary);
+            color: var(--color-bg);
+        }
+        .days-spent-value {
+            font-weight: 600;
+            min-width: 1rem;
+            text-align: center;
+        }
+
+        /* Hides the add button when toggled */
+        .add-hidden .icon-add {
+            display: none;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            z-index: 1000;
+        }
+        .context-menu-item {
+            padding: 0.5rem 1.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .context-menu-item:hover {
+            background-color: var(--color-bg);
+        }
+
+        /* Saving Indicator */
+        #saveIndicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: var(--color-success);
+            color: #1a202c;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Horizontal Mind Map</h1>
+        <div class="controls">
+            <button class="btn" id="newProjectBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+                New Project
+            </button>
+            <button class="btn btn-secondary" id="uploadBtn">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
+                Upload XML
+            </button>
+            <input type="file" id="xmlFile" accept=".xml">
+            <button class="btn btn-success" id="saveBtn">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                Save to File
+            </button>
+            <button class="btn btn-secondary" id="toggleCommentsBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/><path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/></svg>
+                <span class="btn-text">Show Comments</span>
+            </button>
+             <button class="btn btn-secondary" id="toggleDatesBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+                <span class="btn-text">Show Dates</span>
+            </button>
+            <button class="btn" id="toggleCollapseBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8zm7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0zM8 16a.5.5 0 0 1-.5-.5v-3.793l-1.146 1.147a.5.5 0 1 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-.5.5z"/></svg>
+                <span class="btn-text">Expand/Collapse All</span>
+            </button>
+            <button class="btn btn-secondary" id="toggleAddBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM11 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm-4.5.5A3.5 3.5 0 0 1 3.5 6h-1v1h1a2.5 2.5 0 0 0 0 5h-1v1h1a3.5 3.5 0 0 1 0-7h.5a3.5 3.5 0 0 1 0 7H6.5z"/><path d="M5 12.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5zm-2-5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/></svg>
+                <span class="btn-text">Hide Add Buttons</span>
+            </button>
+            <button class="btn btn-secondary" id="toggleFlashBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M6 .5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V1a.5.5 0 0 1 .5-.5zM6 8a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V8.5a.5.5 0 0 1 .5-.5zm4-6a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V2.5a.5.5 0 0 1 .5-.5zm4 8a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V10.5a.5.5 0 0 1 .5-.5zM2 4a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 2 4zm12 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0V4.5a.5.5 0 0 1 .5-.5z"/></svg>
+                <span class="btn-text">Start Flash</span>
+            </button>
+            <button class="btn btn-secondary" id="toggleAnimateLinesBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 13a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5zM2.873 3.863a.5.5 0 0 1 .707 0l2 2a.5.5 0 0 1-.707.707l-2-2a.5.5 0 0 1 0-.707zm10.254 0a.5.5 0 0 1 0 .707l-2 2a.5.5 0 0 1-.707-.707l2-2a.5.5 0 0 1 .707 0zM8 1.5A6.5 6.5 0 1 1 1.5 8 6.5 6.5 0 0 1 8 1.5zM8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0z"/></svg>
+                <span class="btn-text">Animate Lines</span>
+            </button>
+        </div>
+        <div id="mindMap" class="mind-map-container">
+            <p id="placeholderText">Start a <a href="#" id="newProjectLink">New Project</a> or upload an XML file to begin.</p>
+        </div>
+    </div>
+    <div id="saveIndicator">Saved!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('xmlFile');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const newProjectBtn = document.getElementById('newProjectBtn');
+            const newProjectLink = document.getElementById('newProjectLink');
+            const mindMapContainer = document.getElementById('mindMap');
+            const placeholderText = document.getElementById('placeholderText');
+            const saveIndicator = document.getElementById('saveIndicator');
+            const toggleCommentsBtn = document.getElementById('toggleCommentsBtn');
+            const toggleDatesBtn = document.getElementById('toggleDatesBtn');
+            const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
+            const toggleAddBtn = document.getElementById('toggleAddBtn');
+            const toggleFlashBtn = document.getElementById('toggleFlashBtn');
+            const toggleAnimateLinesBtn = document.getElementById('toggleAnimateLinesBtn');
+
+            let autoSaveTimeout;
+            let areCommentsVisible = false;
+            let areDatesVisible = false;
+            let areAddButtonsVisible = true;
+            let areFlashesVisible = false;
+            let areLinesAnimated = false;
+
+            // --- Initialization ---
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            saveBtn.addEventListener('click', exportXML);
+            newProjectBtn.addEventListener('click', createNewProject);
+            toggleCommentsBtn.addEventListener('click', toggleAllComments);
+            toggleDatesBtn.addEventListener('click', toggleAllDates);
+            toggleCollapseBtn.addEventListener('click', toggleAllNodes);
+            toggleAddBtn.addEventListener('click', toggleAllAddButtons);
+            toggleFlashBtn.addEventListener('click', toggleAllFlashes);
+            toggleAnimateLinesBtn.addEventListener('click', toggleAnimateLines);
+            newProjectLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                createNewProject();
+            });
+
+            loadFromLocalStorage();
+
+            // --- Core Functions ---
+            
+            function createNewProject() {
+                const mainTitle = document.querySelector('h1');
+                if (mainTitle) {
+                    mainTitle.textContent = 'My New Project';
+                }
+                const defaultXML = `<?xml version="1.0" encoding="UTF-8"?><project_plan><node title="My New Project" priority="medium" status="pending" id="${crypto.randomUUID()}" startDate="" endDate="" daysSpent="0"><comment>Start adding your ideas here!</comment></node></project_plan>`;
+                renderMindMap(defaultXML);
+                autoSave();
+            }
+
+            function loadFromLocalStorage() {
+                const savedTitle = localStorage.getItem('horizontalMindMapTitle');
+                const mainTitle = document.querySelector('h1');
+                if (savedTitle && mainTitle) {
+                    mainTitle.textContent = savedTitle;
+                }
+
+                const savedXML = localStorage.getItem('horizontalMindMapXML');
+                if (savedXML) {
+                    renderMindMap(savedXML);
+                    const savedCommentState = localStorage.getItem('horizontalMindMapCommentsVisible') === 'true';
+                    applyGlobalCommentState(savedCommentState);
+                    const savedDateState = localStorage.getItem('horizontalMindMapDatesVisible') === 'true';
+                    applyGlobalDateState(savedDateState);
+                    const savedAddState = localStorage.getItem('horizontalMindMapAddVisible') !== 'false'; // Default to true
+                    applyGlobalAddButtonState(savedAddState);
+                    const savedFlashState = localStorage.getItem('horizontalMindMapFlashVisible') === 'true';
+                    applyGlobalFlashState(savedFlashState);
+                    const savedAnimateLinesState = localStorage.getItem('horizontalMindMapLinesAnimated') === 'true';
+                    applyGlobalAnimateLinesState(savedAnimateLinesState);
+                }
+            }
+
+            function autoSave() {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(() => {
+                    const xmlString = generateXMLString();
+                    localStorage.setItem('horizontalMindMapXML', xmlString);
+
+                    const mainTitle = document.querySelector('h1').textContent;
+                    localStorage.setItem('horizontalMindMapTitle', mainTitle);
+                    
+                    saveIndicator.style.opacity = '1';
+                    setTimeout(() => saveIndicator.style.opacity = '0', 1500);
+                }, 1000);
+            }
+            
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const fileName = file.name.replace(/\.xml$/i, '');
+                const mainTitle = document.querySelector('h1');
+                if (mainTitle) {
+                    mainTitle.textContent = fileName;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    renderMindMap(e.target.result);
+                    autoSave();
+                };
+                reader.readAsText(file);
+            }
+
+            function toggleAllComments() {
+                const newState = !areCommentsVisible;
+                localStorage.setItem('horizontalMindMapCommentsVisible', newState);
+                applyGlobalCommentState(newState);
+            }
+
+            function toggleAllDates() {
+                const newState = !areDatesVisible;
+                localStorage.setItem('horizontalMindMapDatesVisible', newState);
+                applyGlobalDateState(newState);
+            }
+
+            function toggleAllAddButtons() {
+                const newState = !areAddButtonsVisible;
+                localStorage.setItem('horizontalMindMapAddVisible', newState);
+                applyGlobalAddButtonState(newState);
+            }
+
+            function toggleAllFlashes() {
+                const newState = !areFlashesVisible;
+                localStorage.setItem('horizontalMindMapFlashVisible', newState);
+                applyGlobalFlashState(newState);
+            }
+
+            function toggleAnimateLines() {
+                const newState = !areLinesAnimated;
+                localStorage.setItem('horizontalMindMapLinesAnimated', newState);
+                applyGlobalAnimateLinesState(newState);
+            }
+
+            function toggleAllNodes() {
+                const rootNode = mindMapContainer.querySelector('.node');
+                if (!rootNode) return;
+                
+                const rootChildrenContainer = rootNode.querySelector('.node-parent');
+                if (!rootChildrenContainer) return;
+
+                const isRootCollapsed = rootChildrenContainer.classList.contains('collapsed');
+
+                const allChildrenContainers = document.querySelectorAll('.node-parent');
+                const allToggles = document.querySelectorAll('.node-toggle');
+                
+                if (isRootCollapsed) {
+                    // Action: Expand All Recursively
+                    allChildrenContainers.forEach(container => container.classList.remove('collapsed'));
+                    allToggles.forEach(toggle => toggle.textContent = '–');
+                } else {
+                    // Action: Collapse All Recursively
+                    allChildrenContainers.forEach(container => container.classList.add('collapsed'));
+                    allToggles.forEach(toggle => toggle.textContent = '➕');
+                }
+                updateToggleAllButtonText(); // Update text after action
+            }
+
+            function applyGlobalCommentState(shouldBeVisible) {
+                areCommentsVisible = shouldBeVisible;
+                const allCommentDivs = document.querySelectorAll('.node-comment');
+                allCommentDivs.forEach(commentDiv => {
+                    const wrapper = commentDiv.closest('.node-wrapper');
+                    if (wrapper && wrapper.classList.contains('has-comment')) {
+                        commentDiv.style.display = areCommentsVisible ? 'block' : 'none';
+                    }
+                });
+                updateToggleCommentsButton();
+            }
+
+            function applyGlobalDateState(shouldBeVisible) {
+                areDatesVisible = shouldBeVisible;
+                const allDateDivs = document.querySelectorAll('.node-dates');
+                allDateDivs.forEach(dateDiv => {
+                    const wrapper = dateDiv.closest('.node-wrapper');
+                    if (wrapper && wrapper.classList.contains('has-dates')) {
+                        dateDiv.style.display = areDatesVisible ? 'flex' : 'none';
+                    }
+                });
+                updateToggleDatesButton();
+            }
+            
+            function applyGlobalAddButtonState(shouldBeVisible) {
+                areAddButtonsVisible = shouldBeVisible;
+                if (areAddButtonsVisible) {
+                    document.body.classList.remove('add-hidden');
+                } else {
+                    document.body.classList.add('add-hidden');
+                }
+                updateToggleAddButtonText();
+            }
+
+            function applyGlobalFlashState(shouldBeVisible) {
+                areFlashesVisible = shouldBeVisible;
+                if (areFlashesVisible) {
+                    document.body.classList.add('flash-active');
+                } else {
+                    document.body.classList.remove('flash-active');
+                }
+                updateToggleFlashButton();
+            }
+            
+            function applyGlobalAnimateLinesState(shouldBeVisible) {
+                areLinesAnimated = shouldBeVisible;
+                if (areLinesAnimated) {
+                    document.body.classList.add('lines-animated');
+                } else {
+                    document.body.classList.remove('lines-animated');
+                }
+                updateToggleAnimateLinesButton();
+            }
+
+            function updateToggleCommentsButton() {
+                const btnText = toggleCommentsBtn.querySelector('.btn-text');
+                if (areCommentsVisible) {
+                    btnText.textContent = 'Hide Comments';
+                } else {
+                    btnText.textContent = 'Show Comments';
+                }
+            }
+            
+             function updateToggleDatesButton() {
+                const btnText = toggleDatesBtn.querySelector('.btn-text');
+                if (areDatesVisible) {
+                    btnText.textContent = 'Hide Dates';
+                } else {
+                    btnText.textContent = 'Show Dates';
+                }
+            }
+
+            function updateToggleAddButtonText() {
+                const btnText = toggleAddBtn.querySelector('.btn-text');
+                if (areAddButtonsVisible) {
+                    btnText.textContent = 'Hide Add Buttons';
+                } else {
+                    btnText.textContent = 'Show Add Buttons';
+                }
+            }
+
+            function updateToggleFlashButton() {
+                const btnText = toggleFlashBtn.querySelector('.btn-text');
+                if (areFlashesVisible) {
+                    btnText.textContent = 'Stop Flash';
+                } else {
+                    btnText.textContent = 'Start Flash';
+                }
+            }
+            
+            function updateToggleAnimateLinesButton() {
+                const btnText = toggleAnimateLinesBtn.querySelector('.btn-text');
+                if (areLinesAnimated) {
+                    btnText.textContent = 'Stop Line Animation';
+                } else {
+                    btnText.textContent = 'Animate Lines';
+                }
+            }
+
+            function updateToggleAllButtonText() {
+                const rootNode = mindMapContainer.querySelector('.node');
+                const btnText = toggleCollapseBtn.querySelector('.btn-text');
+                if (rootNode) {
+                    const rootChildrenContainer = rootNode.querySelector('.node-parent');
+                    if (rootChildrenContainer && !rootChildrenContainer.classList.contains('collapsed')) {
+                        btnText.textContent = 'Collapse All';
+                    } else {
+                        btnText.textContent = 'Expand All';
+                    }
+                } else {
+                     btnText.textContent = 'Expand/Collapse All';
+                }
+            }
+
+            function renderMindMap(xmlString) {
+                try {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+                    
+                    if (xmlDoc.getElementsByTagName("parsererror").length) {
+                        throw new Error("Invalid XML format");
+                    }
+
+                    mindMapContainer.innerHTML = '';
+                    const rootElement = xmlDoc.documentElement;
+                    if (rootElement) {
+                         Array.from(rootElement.children).forEach(childNode => {
+                             if(childNode.tagName.toLowerCase() === 'node') {
+                                 renderNode(childNode, mindMapContainer);
+                             }
+                         });
+                    }
+                    updateToggleAllButtonText();
+
+                } catch (e) {
+                    console.error("Error parsing XML:", e);
+                    mindMapContainer.innerHTML = `<p style="color:red;">Could not load mind map. The XML file might be corrupted or invalid.</p>`;
+                }
+            }
+
+            function setNodeStatusRecursive(nodeDiv, newStatus) {
+                nodeDiv.dataset.status = newStatus;
+                
+                // Update class on the main .node element
+                nodeDiv.classList.remove('status-pending', 'status-in-progress', 'status-completed');
+                nodeDiv.classList.add(`status-${newStatus}`);
+
+                const statusIcon = nodeDiv.querySelector('.icon-status');
+                if (statusIcon) {
+                    if (newStatus === 'pending') statusIcon.innerHTML = '🔲';
+                    else if (newStatus === 'in-progress') statusIcon.innerHTML = '🟡';
+                    else if (newStatus === 'completed') statusIcon.innerHTML = '✅';
+                }
+
+                const childrenContainer = nodeDiv.querySelector('.node-parent');
+                if (childrenContainer) {
+                    const childNodes = childrenContainer.querySelectorAll(':scope > .node');
+                    childNodes.forEach(childNode => {
+                        setNodeStatusRecursive(childNode, newStatus);
+                    });
+                }
+            }
+
+            function renderNode(xmlNode, parentElement) {
+                if (xmlNode.nodeType !== Node.ELEMENT_NODE || xmlNode.tagName.toLowerCase() !== 'node') return;
+                
+                const nodeId = xmlNode.getAttribute('id') || crypto.randomUUID();
+                const startDate = xmlNode.getAttribute('startDate') || '';
+                const endDate = xmlNode.getAttribute('endDate') || '';
+                const daysSpent = xmlNode.getAttribute('daysSpent') || '0';
+                const status = xmlNode.getAttribute('status') || 'pending';
+
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node';
+                nodeDiv.dataset.id = nodeId;
+                nodeDiv.dataset.priority = xmlNode.getAttribute('priority') || 'low';
+                nodeDiv.dataset.status = status;
+                
+                nodeDiv.classList.add(`priority-${nodeDiv.dataset.priority}`);
+                nodeDiv.classList.add(`status-${status}`);
+                
+                const nodeWrapper = document.createElement('div');
+                nodeWrapper.className = 'node-wrapper';
+                nodeWrapper.dataset.id = nodeId; 
+                
+                const nodeContentDiv = document.createElement('div');
+                nodeContentDiv.className = 'node-content';
+                
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'node-toggle';
+                toggleSpan.textContent = '–';
+                
+                const statusIcon = document.createElement('span');
+                statusIcon.className = 'node-icon icon-status';
+                if (status === 'pending') statusIcon.innerHTML = '🔲';
+                else if (status === 'in-progress') statusIcon.innerHTML = '🟡';
+                else if (status === 'completed') statusIcon.innerHTML = '✅';
+                statusIcon.title = "Cycle Status";
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'node-title';
+                titleSpan.textContent = xmlNode.getAttribute('title') || 'Untitled';
+
+                const dateIcon = document.createElement('span');
+                dateIcon.className = 'node-icon icon-date';
+                dateIcon.innerHTML = '📅';
+                dateIcon.title = 'Toggle Dates';
+                
+                const commentIcon = document.createElement('span');
+                commentIcon.className = 'node-icon icon-comment';
+                commentIcon.innerHTML = '💬';
+                commentIcon.title = "Toggle Comment";
+
+                const addIcon = document.createElement('span');
+                addIcon.className = 'node-icon icon-add';
+                addIcon.innerHTML = '➕';
+                addIcon.title = "Add Child Node";
+                
+                const deleteIcon = document.createElement('span');
+                deleteIcon.className = 'node-icon icon-delete';
+                deleteIcon.innerHTML = '🗑️';
+                deleteIcon.title = "Delete Node";
+
+                nodeContentDiv.append(toggleSpan, statusIcon, titleSpan, dateIcon, commentIcon, addIcon, deleteIcon);
+                nodeWrapper.appendChild(nodeContentDiv);
+                
+                // Dates Div
+                const datesDiv = document.createElement('div');
+                datesDiv.className = 'node-dates';
+                
+                const dateRangeSpan = document.createElement('span');
+                const dateSeparator = startDate && endDate ? ' : ' : '';
+                dateRangeSpan.innerHTML = `<span class="date-value" data-type="startDate">${startDate}</span>${dateSeparator}<span class="date-value" data-type="endDate">${endDate}</span>`;
+                
+                const daysSpentControl = document.createElement('div');
+                daysSpentControl.className = 'days-spent-control';
+                daysSpentControl.innerHTML = `
+                    <button class="days-spent-btn minus">-</button>
+                    <span class="days-spent-value">${daysSpent}</span>
+                    <button class="days-spent-btn plus">+</button>
+                    <span>days</span>
+                `;
+                
+                datesDiv.append(dateRangeSpan, daysSpentControl);
+                if (startDate || endDate || parseInt(daysSpent, 10) > 0) {
+                    nodeWrapper.classList.add('has-dates');
+                }
+                nodeWrapper.appendChild(datesDiv);
+
+                // Comment Div
+                const commentElement = xmlNode.querySelector('comment');
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'node-comment';
+                commentDiv.textContent = commentElement ? commentElement.textContent : '';
+                if(commentElement && commentElement.textContent.trim()) {
+                    nodeWrapper.classList.add('has-comment');
+                }
+                nodeWrapper.appendChild(commentDiv);
+                
+                nodeDiv.appendChild(nodeWrapper);
+
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'node-parent';
+                nodeDiv.appendChild(childrenContainer);
+
+                parentElement.appendChild(nodeDiv);
+                
+                // Set the --original-bg for the flash animation *after* it's in the DOM
+                const originalBg = getComputedStyle(nodeContentDiv).getPropertyValue('background-color');
+                nodeContentDiv.style.setProperty('--original-bg', originalBg);
+
+
+                // --- Event Listeners ---
+                toggleSpan.addEventListener('click', (e) => {
+                     e.stopPropagation();
+                    if (!childrenContainer.classList.contains('collapsed')) {
+                        const descendantParents = childrenContainer.querySelectorAll('.node-parent');
+                        descendantParents.forEach(parent => parent.classList.add('collapsed'));
+                        
+                        const descendantToggles = childrenContainer.querySelectorAll('.node-toggle');
+                        descendantToggles.forEach(toggle => toggle.textContent = '➕');
+                    }
+                    childrenContainer.classList.toggle('collapsed');
+                    toggleSpan.textContent = childrenContainer.classList.contains('collapsed') ? '➕' : '–';
+                    updateToggleAllButtonText();
+                });
+
+                statusIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentStatus = nodeDiv.dataset.status;
+                    let newStatus;
+                    if (currentStatus === 'pending') newStatus = 'in-progress';
+                    else if (currentStatus === 'in-progress') newStatus = 'completed';
+                    else newStatus = 'pending'; // completed -> pending
+                    setNodeStatusRecursive(nodeDiv, newStatus);
+                    autoSave();
+                });
+
+                titleSpan.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    titleSpan.contentEditable = true;
+                    titleSpan.focus();
+                });
+                titleSpan.addEventListener('blur', () => {
+                    titleSpan.contentEditable = false;
+                    autoSave();
+                });
+                titleSpan.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        titleSpan.blur();
+                    }
+                });
+                
+                dateIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    datesDiv.style.display = datesDiv.style.display === 'flex' ? 'none' : 'flex';
+                    nodeWrapper.classList.toggle('has-dates', datesDiv.style.display === 'flex');
+                });
+                
+                dateRangeSpan.querySelectorAll('.date-value').forEach(dateEl => {
+                    dateEl.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        dateEl.contentEditable = true;
+                        dateEl.focus();
+                    });
+                    dateEl.addEventListener('blur', () => {
+                        dateEl.contentEditable = false;
+                        autoSave();
+                    });
+                    dateEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            dateEl.blur();
+                        }
+                    });
+                });
+
+                const daysSpentValue = daysSpentControl.querySelector('.days-spent-value');
+                daysSpentControl.querySelector('.plus').addEventListener('click', e => {
+                    e.stopPropagation();
+                    let current = parseInt(daysSpentValue.textContent, 10);
+                    daysSpentValue.textContent = current + 1;
+                    autoSave();
+                });
+                daysSpentControl.querySelector('.minus').addEventListener('click', e => {
+                    e.stopPropagation();
+                    let current = parseInt(daysSpentValue.textContent, 10);
+                    if (current > 0) {
+                        daysSpentValue.textContent = current - 1;
+                        autoSave();
+                    }
+                });
+
+                commentIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    commentDiv.style.display = commentDiv.style.display === 'block' ? 'none' : 'block';
+                });
+
+                commentDiv.addEventListener('dblclick', e => {
+                    e.stopPropagation();
+                    commentDiv.contentEditable = true;
+                    commentDiv.focus();
+                });
+                commentDiv.addEventListener('blur', () => {
+                    commentDiv.contentEditable = false;
+                    if(commentDiv.textContent.trim() === "") nodeWrapper.classList.remove('has-comment');
+                    else nodeWrapper.classList.add('has-comment');
+                    autoSave();
+                });
+
+                addIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const newNodeXml = new DOMParser().parseFromString(`<node title="New Idea" priority="low" status="pending" id="${crypto.randomUUID()}" startDate="" endDate="" daysSpent="0"/>`, "application/xml").documentElement;
+                    renderNode(newNodeXml, childrenContainer);
+                    if (childrenContainer.classList.contains('collapsed')) {
+                        toggleSpan.click();
+                    }
+                    autoSave();
+                });
+
+                deleteIcon.addEventListener('click', e => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to delete "${titleSpan.textContent}" and all its children?`)) {
+                        nodeDiv.remove();
+                        autoSave();
+                    }
+                });
+                
+                nodeContentDiv.addEventListener('contextmenu', e => {
+                    e.preventDefault();
+                    showPriorityMenu(e.clientX, e.clientY, nodeDiv);
+                });
+
+                const childNodes = Array.from(xmlNode.children).filter(n => n.tagName.toLowerCase() === 'node');
+                if (childNodes.length === 0) {
+                    toggleSpan.style.visibility = 'hidden';
+                }
+                childNodes.forEach(child => renderNode(child, childrenContainer));
+            }
+            
+            function showPriorityMenu(x, y, nodeDiv) {
+                document.querySelector('.context-menu')?.remove();
+                const menu = document.createElement('div');
+                menu.className = 'context-menu';
+                
+                const priorities = ['high', 'medium', 'low'];
+                priorities.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'context-menu-item';
+                    item.textContent = `Priority: ${p.charAt(0).toUpperCase() + p.slice(1)}`;
+                    item.onclick = () => {
+                        nodeDiv.dataset.priority = p;
+                        nodeDiv.className = nodeDiv.className.replace(/priority-\w+/, `priority-${p}`);
+                        
+                        // Update the --original-bg for the flash animation
+                        const nodeContent = nodeDiv.querySelector('.node-content');
+                        if (nodeContent) {
+                            setTimeout(() => {
+                                const newBg = getComputedStyle(nodeContent).getPropertyValue('background-color');
+                                nodeContent.style.setProperty('--original-bg', newBg);
+                            }, 0);
+                        }
+                        
+                        menu.remove();
+                        autoSave();
+};
+                    menu.appendChild(item);
+                });
+
+                document.body.appendChild(menu);
+                menu.style.top = `${y}px`;
+                menu.style.left = `${x}px`;
+                
+                setTimeout(() => {
+                    window.addEventListener('click', () => menu.remove(), { once: true });
+                }, 0);
+            }
+            
+            function generateXMLString() {
+                let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<project_plan>\n';
+                const rootNodes = Array.from(mindMapContainer.children).filter(el => el.classList.contains('node'));
+                rootNodes.forEach(nodeElement => {
+                    xml += buildNodeXML(nodeElement, '    ');
+                });
+                xml += '</project_plan>';
+                return xml;
+            }
+
+            function buildNodeXML(nodeElement, indent) {
+                const wrapper = nodeElement.querySelector('.node-wrapper');
+                const title = wrapper.querySelector('.node-title').textContent;
+                const comment = wrapper.querySelector('.node-comment').textContent;
+                const startDate = wrapper.querySelector('.date-value[data-type="startDate"]').textContent;
+                const endDate = wrapper.querySelector('.date-value[data-type="endDate"]').textContent;
+                const daysSpent = wrapper.querySelector('.days-spent-value').textContent;
+                const { id, priority, status } = nodeElement.dataset;
+
+                let xml = `${indent}<node title="${escapeXml(title)}" priority="${priority}" status="${status}" id="${id}" startDate="${escapeXml(startDate)}" endDate="${escapeXml(endDate)}" daysSpent="${escapeXml(daysSpent)}">\n`;
+                
+                if (comment.trim()) {
+                    xml += `${indent}    <comment>${escapeXml(comment)}</comment>\n`;
+                }
+
+                const childrenContainer = nodeElement.querySelector('.node-parent');
+                if (childrenContainer) {
+                    const childNodes = Array.from(childrenContainer.children).filter(el => el.classList.contains('node'));
+                    childNodes.forEach(child => {
+                        xml += buildNodeXML(child, indent + '    ');
+                    });
+                }
+
+                xml += `${indent}</node>\n`;
+                return xml;
+            }
+            
+            function exportXML() {
+                const xmlString = generateXMLString();
+                const blob = new Blob([xmlString], { type: 'application/xml' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'project_plan_horizontal.xml';
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+            
+            function escapeXml(unsafe) {
+                return unsafe.replace(/[<>&'"]/g, function (c) {
+                    switch (c) {
+                        case '<': return '&lt;';
+                        case '>': return '&gt;';
+                        case '&': return '&amp;';
+                        case '\'': return '&apos;';
+                        case '"': return '&quot;';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

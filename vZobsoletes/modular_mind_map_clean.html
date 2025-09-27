@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Vertical Mind Map</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --color-bg: #1a202c;
+            --color-surface: #2d3748;
+            --color-text: #e2e8f0;
+            --color-text-muted: #a0aec0;
+            --color-border: #4a5568;
+            --color-primary: #4299e1;
+            --color-primary-hover: #63b3ed;
+            --color-secondary: #718096;
+            --color-secondary-hover: #a0aec0;
+            --color-success: #48bb78;
+            --color-success-hover: #68d391;
+            --color-line: #718096;
+            
+            /* VIBRANT Priority Colors */
+            --priority-high-bg: rgba(252, 129, 129, 0.2);
+            --priority-high-border: #fc8181;
+            --priority-medium-bg: rgba(252, 211, 77, 0.2);
+            --priority-medium-border: #fcd34d;
+            --priority-low-bg: rgba(56, 189, 248, 0.2);
+            --priority-low-border: #38bdf8;
+            
+            --sidebar-width: 280px;
+        }
+
+        @keyframes bounce-in-place {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        @keyframes color-flash {
+            0%, 100% { background-color: var(--original-bg); }
+            30% { background-color: var(--priority-high-bg); }
+            60% { background-color: var(--priority-medium-bg); }
+            90% { background-color: var(--priority-low-bg); }
+        }
+
+        @keyframes connector-color-cycle {
+            0%, 100% { border-color: var(--priority-high-border); }
+            33% { border-color: var(--priority-medium-border); }
+            66% { border-color: var(--priority-low-border); }
+        }
+
+        html {
+            background-color: var(--color-surface);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--color-bg);
+            border-right: 1px solid var(--color-border);
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.2rem;
+            color: var(--color-text);
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            background: var(--color-surface);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-item:hover {
+            background: rgba(66, 153, 225, 0.1);
+        }
+
+        .file-item.active {
+            background: var(--color-primary);
+            color: var(--color-bg);
+        }
+
+        .file-icon {
+            font-size: 0.9rem;
+        }
+
+        .new-file-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--color-success);
+            color: var(--color-bg);
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.2s;
+        }
+
+        .new-file-btn:hover {
+            background: var(--color-success-hover);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow: auto;
+        }
+
+        .container {
+            background: transparent;
+            padding: 0;
+            text-align: left;
+        }
+
+        h1 {
+            color: var(--color-text);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--color-primary);
+            color: #1a202c;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background-color: var(--color-primary-hover);
+            box-shadow: 0 4px 10px rgba(66, 153, 225, 0.2);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-secondary-hover);
+            box-shadow: 0 4px 10px rgba(113, 128, 150, 0.2);
+        }
+        
+        .btn-success {
+            background-color: var(--color-success);
+        }
+        .btn-success:hover {
+            background-color: var(--color-success-hover);
+            box-shadow: 0 4px 10px rgba(72, 187, 120, 0.2);
+        }
+
+        /* VERTICAL Mind Map Styling - Clean Design */
+        .mind-map-container {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3rem;
+        }
+
+        .node {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            margin-bottom: 3rem;
+        }
+        
+        /* More space between sibling nodes */
+        .children > .node {
+            margin-bottom: 2.5rem;
+        }
+        
+        /* Extra space after the last child of each parent */
+        .children > .node:last-child {
+            margin-bottom: 4rem;
+        }
+
+        .node-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .node-content {
+            border: 1px solid;
+            border-radius: 10px;
+            padding: 1rem 1.4rem;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+            min-width: 280px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .node-content:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .node-title {
+            outline: none;
+            white-space: nowrap;
+        }
+        
+        .node-title[contenteditable="true"] {
+            background-color: var(--color-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+        }
+
+        .node-toggle {
+            font-weight: bold;
+            line-height: 1;
+            width: 1rem;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            color: var(--color-primary);
+            font-size: 1.2rem;
+        }
+
+        /* Priority Colors */
+        .priority-high > .node-wrapper > .node-content { background-color: var(--priority-high-bg); border-color: var(--priority-high-border); }
+        .priority-medium > .node-wrapper > .node-content { background-color: var(--priority-medium-bg); border-color: var(--priority-medium-border); }
+        .priority-low > .node-wrapper > .node-content { background-color: var(--priority-low-bg); border-color: var(--priority-low-border); }
+
+        /* Status Styling & Animations */
+        .status-in-progress > .node-wrapper {
+            animation: bounce-in-place 0.8s infinite;
+        }
+        .flash-active .status-in-progress .node-content {
+             animation: color-flash 2s infinite;
+        }
+        .status-completed > .node-wrapper > .node-content {
+            opacity: 0.6;
+        }
+        .status-completed .node-title {
+            text-decoration: line-through;
+        }
+        
+        /* Icons */
+        .node-icon {
+            cursor: pointer;
+            color: var(--color-text-muted);
+            font-size: 1rem;
+            transition: color 0.2s, opacity 0.2s;
+            opacity: 0;
+        }
+        .node-icon:hover { color: var(--color-text); }
+        
+        .icon-status { 
+            font-size: 1.2rem;
+            opacity: 1; /* Status icon always visible */
+        }
+        
+        /* Show icons on hover */
+        .node-content:hover .node-icon {
+            opacity: 1;
+        }
+        
+        .node-content:hover .icon-status {
+            opacity: 1;
+        }
+        
+        /* Comment */
+        .node-comment {
+            background: var(--color-bg);
+            border-radius: 6px;
+            padding: 0.9rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            display: none;
+            line-height: 1.5;
+        }
+        .node-comment[contenteditable="true"] {
+             background: #1a202c;
+             box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+             outline: 2px solid var(--color-primary);
+        }
+        
+        .has-comment .icon-comment {
+            color: var(--color-primary);
+        }
+
+        /* Dates & Days Spent */
+        .node-dates {
+            display: none;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.8rem 1rem;
+            background-color: var(--color-bg);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            white-space: nowrap;
+        }
+        .date-value {
+            font-weight: 500;
+            color: var(--color-text);
+        }
+        .date-value[contenteditable="true"] {
+             background: var(--color-surface);
+             padding: 0.1rem 0.3rem;
+             border-radius: 4px;
+             box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+             outline: 2px solid var(--color-primary);
+        }
+        .has-dates .icon-date {
+            color: var(--color-primary);
+        }
+
+        .days-spent-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .days-spent-btn {
+            background-color: var(--color-border);
+            color: var(--color-text);
+            border: none;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            transition: background-color 0.2s;
+        }
+        .days-spent-btn:hover {
+            background-color: var(--color-primary);
+            color: var(--color-bg);
+        }
+        .days-spent-value {
+            font-weight: 600;
+            min-width: 1rem;
+            text-align: center;
+        }
+
+        /* Hides the add button when toggled */
+        .add-hidden .icon-add {
+            display: none;
+        }
+
+        .import-indicator {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.4rem;
+            background: rgba(66, 153, 225, 0.2);
+            border-radius: 4px;
+            color: var(--color-primary);
+            margin-left: 0.5rem;
+        }
+
+        /* Children container for vertical layout */
+        .children {
+            margin-left: 4rem;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .children.collapsed {
+            display: none;
+        }
+
+        /* Simple tree connector system for vertical layout */
+        
+        /* Main vertical line from parent to children group */
+        .children::before {
+            content: '';
+            position: absolute;
+            left: -3rem;
+            top: -3rem;
+            bottom: 50%;
+            width: 2px;
+            background: var(--color-line);
+            z-index: 0;
+        }
+        
+        /* Horizontal line to each child */
+        .children > .node::before {
+            content: '';
+            position: absolute;
+            left: -3rem;
+            top: 50%;
+            width: 3rem;
+            height: 2px;
+            background: var(--color-line);
+            z-index: 0;
+        }
+        
+        /* Vertical connecting line between siblings */
+        .children > .node::after {
+            content: '';
+            position: absolute;
+            left: -3rem;
+            top: 50%;
+            bottom: -2.5rem;
+            width: 2px;
+            background: var(--color-line);
+            z-index: 0;
+        }
+        
+        /* Last child doesn't need vertical line extending down */
+        .children > .node:last-child::after {
+            display: none;
+        }
+        
+        /* Root nodes don't need parent connectors */
+        .mind-map-container > .node::before,
+        .mind-map-container > .node::after {
+            display: none;
+        }
+
+        /* Animated connector lines */
+        .children.animated::before,
+        .children.animated > .node::before,
+        .children.animated > .node::after {
+            animation: connector-color-cycle 4s ease-in-out infinite;
+        }
+
+        /* Context menu */
+        .context-menu {
+            position: fixed;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background: var(--color-surface);
+        }
+
+        /* Save indicator */
+        .save-indicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: var(--color-success);
+            color: #1a202c;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 2000;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--color-text-muted);
+        }
+
+        .empty-state h3 {
+            color: var(--color-text);
+            margin-bottom: 1rem;
+        }
+
+        .error {
+            color: #fc8181;
+            padding: 1rem;
+            background: rgba(252, 129, 129, 0.1);
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>📁 Project Files</h2>
+        <button class="new-file-btn" id="newFileBtn">+ New Mind Map</button>
+        <ul class="file-list" id="fileList">
+            <li class="loading">Loading files...</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h1>🧠 Modular Vertical Mind Map</h1>
+            
+            <div class="controls" id="controls" style="display: none;">
+                <button class="btn btn-success" id="saveBtn">💾 <span class="btn-text">Save All Changes</span></button>
+                <button class="btn btn-secondary" id="toggleCommentsBtn">💬 <span class="btn-text">Show Comments</span></button>
+                <button class="btn btn-secondary" id="toggleDatesBtn">📅 <span class="btn-text">Show Dates</span></button>
+                <button class="btn btn-secondary" id="toggleAddBtn">➕ <span class="btn-text">Hide Add Buttons</span></button>
+                <button class="btn btn-secondary" id="toggleAllBtn">📂 <span class="btn-text">Toggle All</span></button>
+                <button class="btn" id="toggleFlashBtn">✨ <span class="btn-text">Start Flash</span></button>
+                <button class="btn" id="toggleAnimateLinesBtn">〰️ <span class="btn-text">Animate Lines</span></button>
+            </div>
+
+            <div class="mind-map-container" id="mindMapContainer">
+                <div class="empty-state">
+                    <h3>Welcome to Modular Vertical Mind Map</h3>
+                    <p>Select a file from the sidebar to begin, or create a new mind map.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-indicator" id="saveIndicator">✓ Saved!</div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-priority="high">🔴 High Priority</div>
+        <div class="context-menu-item" data-priority="medium">🟡 Medium Priority</div>
+        <div class="context-menu-item" data-priority="low">🟢 Low Priority</div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        
+        let currentFile = null;
+        let xmlData = null;
+        let autoSaveTimeout = null;
+        
+        // UI state
+        let areCommentsVisible = false;
+        let areDatesVisible = false;
+        let areAddButtonsVisible = true;
+        let areFlashesVisible = false;
+        let areLinesAnimated = false;
+
+        // Initialize application
+        async function init() {
+            await loadFileList();
+            setupEventListeners();
+        }
+
+        // Load list of XML files
+        async function loadFileList() {
+            try {
+                const response = await fetch(`${API_BASE}/files`);
+                const files = await response.json();
+                
+                const fileList = document.getElementById('fileList');
+                if (files.length === 0) {
+                    fileList.innerHTML = '<li class="empty-state">No XML files found</li>';
+                } else {
+                    fileList.innerHTML = files.map(file => `
+                        <li class="file-item" data-file="${file}">
+                            <span class="file-icon">📄</span>
+                            <span>${file}</span>
+                        </li>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load files:', error);
+                document.getElementById('fileList').innerHTML = 
+                    '<li class="error">Failed to connect to server. Make sure the server is running.</li>';
+            }
+        }
+
+        // Load and display a mind map file
+        async function loadFile(filename) {
+            try {
+                const response = await fetch(`${API_BASE}/load/${filename}`);
+                const data = await response.json();
+                
+                currentFile = filename;
+                xmlData = data.data;
+                
+                // Update UI
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.file === filename);
+                });
+                
+                // Update title
+                const title = filename.replace(/\.xml$/i, '');
+                document.querySelector('h1').textContent = title;
+                
+                document.getElementById('controls').style.display = 'flex';
+                renderMindMap();
+            } catch (error) {
+                console.error('Failed to load file:', error);
+                document.getElementById('mindMapContainer').innerHTML = 
+                    '<div class="error">Failed to load file. Please try again.</div>';
+            }
+        }
+
+        // Render the mind map with vertical layout
+        function renderMindMap() {
+            const container = document.getElementById('mindMapContainer');
+            container.innerHTML = '';
+            
+            if (!xmlData || !xmlData.project_plan || !xmlData.project_plan.node) {
+                container.innerHTML = '<div class="empty-state">No data to display</div>';
+                return;
+            }
+            
+            // Ensure nodes is an array
+            const nodes = Array.isArray(xmlData.project_plan.node) 
+                ? xmlData.project_plan.node 
+                : [xmlData.project_plan.node];
+            
+            nodes.forEach(nodeData => {
+                renderNode(nodeData, container);
+            });
+        }
+
+        // Render a single node with clean vertical structure
+        function renderNode(nodeData, parentElement) {
+            const priority = nodeData.$ && nodeData.$.priority || 'medium';
+            const status = nodeData.$ && nodeData.$.status || 'pending';
+            const nodeId = nodeData.$ && nodeData.$.id || generateId();
+            const title = nodeData.$ && nodeData.$.title || 'New Node';
+            const startDate = nodeData.$ && nodeData.$.startDate || '';
+            const endDate = nodeData.$ && nodeData.$.endDate || '';
+            const daysSpent = nodeData.$ && nodeData.$.daysSpent || '0';
+            
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node';
+            nodeDiv.dataset.priority = priority;
+            nodeDiv.dataset.status = status;
+            
+            nodeDiv.classList.add(`priority-${priority}`);
+            nodeDiv.classList.add(`status-${status}`);
+            
+            const nodeWrapper = document.createElement('div');
+            nodeWrapper.className = 'node-wrapper';
+            nodeWrapper.dataset.id = nodeId;
+            
+            const nodeContentDiv = document.createElement('div');
+            nodeContentDiv.className = 'node-content';
+            
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'node-toggle';
+            toggleSpan.textContent = '–';
+            
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'node-icon icon-status';
+            if (status === 'pending') statusIcon.innerHTML = '🔲';
+            else if (status === 'in-progress') statusIcon.innerHTML = '🟡';
+            else if (status === 'completed') statusIcon.innerHTML = '✅';
+            statusIcon.title = "Cycle Status";
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'node-title';
+            titleSpan.textContent = title;
+            
+            // Import indicator
+            if (nodeData.$ && nodeData.$.dataImported === 'true') {
+                const indicator = document.createElement('span');
+                indicator.className = 'import-indicator';
+                indicator.textContent = '🔗 ' + nodeData.$.dataImportFrom;
+                indicator.title = 'Imported from: ' + nodeData.$.dataImportFrom;
+                titleSpan.appendChild(indicator);
+            }
+            
+            const dateIcon = document.createElement('span');
+            dateIcon.className = 'node-icon icon-date';
+            dateIcon.innerHTML = '📅';
+            dateIcon.title = 'Toggle Dates';
+            
+            const commentIcon = document.createElement('span');
+            commentIcon.className = 'node-icon icon-comment';
+            commentIcon.innerHTML = '💬';
+            commentIcon.title = "Toggle Comment";
+            
+            const addIcon = document.createElement('span');
+            addIcon.className = 'node-icon icon-add';
+            addIcon.innerHTML = '➕';
+            addIcon.title = "Add Child Node";
+            
+            const deleteIcon = document.createElement('span');
+            deleteIcon.className = 'node-icon icon-delete';
+            deleteIcon.innerHTML = '🗑️';
+            deleteIcon.title = "Delete Node";
+            
+            nodeContentDiv.append(toggleSpan, statusIcon, titleSpan, dateIcon, commentIcon, addIcon, deleteIcon);
+            nodeWrapper.appendChild(nodeContentDiv);
+            
+            // Dates Div
+            const datesDiv = document.createElement('div');
+            datesDiv.className = 'node-dates';
+            
+            const dateRangeSpan = document.createElement('span');
+            const dateSeparator = startDate && endDate ? ' : ' : '';
+            dateRangeSpan.innerHTML = `<span class="date-value" data-type="startDate">${startDate}</span>${dateSeparator}<span class="date-value" data-type="endDate">${endDate}</span>`;
+            
+            const daysSpentControl = document.createElement('div');
+            daysSpentControl.className = 'days-spent-control';
+            daysSpentControl.innerHTML = `
+                <button class="days-spent-btn minus">-</button>
+                <span class="days-spent-value">${daysSpent}</span>
+                <button class="days-spent-btn plus">+</button>
+                <span>days</span>
+            `;
+            
+            datesDiv.append(dateRangeSpan, daysSpentControl);
+            if (startDate || endDate || parseInt(daysSpent, 10) > 0) {
+                nodeWrapper.classList.add('has-dates');
+            }
+            nodeWrapper.appendChild(datesDiv);
+            
+            // Comment Div
+            let commentText = '';
+            if (nodeData.comment) {
+                if (typeof nodeData.comment === 'string') {
+                    commentText = nodeData.comment;
+                } else if (typeof nodeData.comment === 'object') {
+                    if (nodeData.comment._) {
+                        commentText = nodeData.comment._;
+                    } else if (Array.isArray(nodeData.comment) && nodeData.comment[0]) {
+                        commentText = typeof nodeData.comment[0] === 'string' 
+                            ? nodeData.comment[0] 
+                            : (nodeData.comment[0]._ || '');
+                    }
+                }
+            }
+            
+            const commentDiv = document.createElement('div');
+            commentDiv.className = 'node-comment';
+            commentDiv.textContent = commentText;
+            if(commentText && commentText.trim()) {
+                nodeWrapper.classList.add('has-comment');
+            }
+            nodeWrapper.appendChild(commentDiv);
+            
+            nodeDiv.appendChild(nodeWrapper);
+            
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children';
+            nodeDiv.appendChild(childrenContainer);
+            
+            parentElement.appendChild(nodeDiv);
+            
+            // Set the --original-bg for the flash animation *after* it's in the DOM
+            const originalBg = getComputedStyle(nodeContentDiv).getPropertyValue('background-color');
+            nodeContentDiv.style.setProperty('--original-bg', originalBg);
+            
+            // Add event listeners exactly like the horizontal version
+            toggleSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!childrenContainer.classList.contains('collapsed')) {
+                    const descendantChildren = childrenContainer.querySelectorAll('.children');
+                    descendantChildren.forEach(child => child.classList.add('collapsed'));
+                    
+                    const descendantToggles = childrenContainer.querySelectorAll('.node-toggle');
+                    descendantToggles.forEach(toggle => toggle.textContent = '➕');
+                }
+                childrenContainer.classList.toggle('collapsed');
+                toggleSpan.textContent = childrenContainer.classList.contains('collapsed') ? '➕' : '–';
+                updateToggleAllButton();
+            });
+            
+            statusIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const currentStatus = nodeDiv.dataset.status;
+                let newStatus;
+                if (currentStatus === 'pending') newStatus = 'in-progress';
+                else if (currentStatus === 'in-progress') newStatus = 'completed';
+                else newStatus = 'pending';
+                setNodeStatusRecursive(nodeDiv, newStatus);
+                autoSave();
+            });
+            
+            titleSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                titleSpan.contentEditable = true;
+                titleSpan.focus();
+            });
+            titleSpan.addEventListener('blur', () => {
+                titleSpan.contentEditable = false;
+                autoSave();
+            });
+            titleSpan.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    titleSpan.blur();
+                }
+            });
+            
+            dateIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                datesDiv.style.display = datesDiv.style.display === 'flex' ? 'none' : 'flex';
+                nodeWrapper.classList.toggle('has-dates', datesDiv.style.display === 'flex');
+            });
+            
+            dateRangeSpan.querySelectorAll('.date-value').forEach(dateEl => {
+                dateEl.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    dateEl.contentEditable = true;
+                    dateEl.focus();
+                });
+                dateEl.addEventListener('blur', () => {
+                    dateEl.contentEditable = false;
+                    autoSave();
+                });
+                dateEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        dateEl.blur();
+                    }
+                });
+            });
+            
+            const daysSpentValue = daysSpentControl.querySelector('.days-spent-value');
+            daysSpentControl.querySelector('.plus').addEventListener('click', e => {
+                e.stopPropagation();
+                let current = parseInt(daysSpentValue.textContent, 10);
+                daysSpentValue.textContent = current + 1;
+                autoSave();
+            });
+            daysSpentControl.querySelector('.minus').addEventListener('click', e => {
+                e.stopPropagation();
+                let current = parseInt(daysSpentValue.textContent, 10);
+                if (current > 0) {
+                    daysSpentValue.textContent = current - 1;
+                    autoSave();
+                }
+            });
+            
+            commentIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                commentDiv.style.display = commentDiv.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            commentDiv.addEventListener('dblclick', e => {
+                e.stopPropagation();
+                commentDiv.contentEditable = true;
+                commentDiv.focus();
+            });
+            commentDiv.addEventListener('blur', () => {
+                commentDiv.contentEditable = false;
+                if(commentDiv.textContent.trim() === "") nodeWrapper.classList.remove('has-comment');
+                else nodeWrapper.classList.add('has-comment');
+                autoSave();
+            });
+            
+            addIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                const newNodeData = {
+                    $: {
+                        title: "New Idea",
+                        priority: "medium",
+                        status: "pending",
+                        id: generateId(),
+                        startDate: "",
+                        endDate: "",
+                        daysSpent: "0"
+                    }
+                };
+                renderNode(newNodeData, childrenContainer);
+                if (childrenContainer.classList.contains('collapsed')) {
+                    childrenContainer.classList.remove('collapsed');
+                    toggleSpan.textContent = '–';
+                }
+                autoSave();
+            });
+            
+            deleteIcon.addEventListener('click', e => {
+                e.stopPropagation();
+                if (confirm('Delete this node and all its children?')) {
+                    nodeDiv.remove();
+                    autoSave();
+                }
+            });
+            
+            // Context menu
+            nodeDiv.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showContextMenu(e, nodeDiv);
+            });
+            
+            // Render children
+            if (nodeData.node) {
+                const childNodes = Array.isArray(nodeData.node) ? nodeData.node : [nodeData.node];
+                childNodes.forEach(childData => {
+                    renderNode(childData, childrenContainer);
+                });
+            }
+            
+            return nodeDiv;
+        }
+
+        // Helper functions - same as horizontal version
+        function generateId() {
+            return crypto.randomUUID();
+        }
+        
+        function setNodeStatusRecursive(node, newStatus) {
+            // Remove old status class and add new one
+            node.classList.remove(`status-${node.dataset.status}`);
+            node.dataset.status = newStatus;
+            node.classList.add(`status-${newStatus}`);
+            
+            // Update status icon
+            const statusIcon = node.querySelector('.icon-status');
+            if (newStatus === 'pending') statusIcon.innerHTML = '🔲';
+            else if (newStatus === 'in-progress') statusIcon.innerHTML = '🟡';
+            else if (newStatus === 'completed') statusIcon.innerHTML = '✅';
+            
+            // Update children recursively
+            const childrenContainer = node.querySelector('.children');
+            if (childrenContainer) {
+                const childNodes = childrenContainer.querySelectorAll(':scope > .node');
+                childNodes.forEach(childNode => {
+                    setNodeStatusRecursive(childNode, newStatus);
+                });
+            }
+        }
+
+        function showContextMenu(e, node) {
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.add('visible');
+            
+            menu.querySelectorAll('.context-menu-item').forEach(item => {
+                item.onclick = () => {
+                    node.dataset.priority = item.dataset.priority;
+                    // Remove old priority class and add new one
+                    node.classList.remove('priority-high', 'priority-medium', 'priority-low');
+                    node.classList.add(`priority-${item.dataset.priority}`);
+                    menu.classList.remove('visible');
+                    autoSave();
+                };
+            });
+        }
+
+        // Build XML from DOM - same structure as horizontal
+        function generateXMLString() {
+            const nodes = document.querySelectorAll('#mindMapContainer > .node');
+            const xmlNodes = Array.from(nodes).map(node => buildNodeXML(node));
+            
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<project_plan>
+${xmlNodes.join('\n')}
+</project_plan>`;
+        }
+
+        function buildNodeXML(node, indent = '    ') {
+            const wrapper = node.querySelector('.node-wrapper');
+            const title = wrapper.querySelector('.node-title').textContent;
+            const comment = wrapper.querySelector('.node-comment')?.textContent || '';
+            const startDateEl = wrapper.querySelector('.date-value[data-type="startDate"]');
+            const endDateEl = wrapper.querySelector('.date-value[data-type="endDate"]');
+            const daysSpentEl = wrapper.querySelector('.days-spent-value');
+            
+            const startDate = startDateEl ? startDateEl.textContent : '';
+            const endDate = endDateEl ? endDateEl.textContent : '';
+            const daysSpent = daysSpentEl ? daysSpentEl.textContent : '0';
+            
+            const attrs = [
+                `title="${escapeXML(title)}"`,
+                `priority="${node.dataset.priority}"`,
+                `status="${node.dataset.status}"`,
+                `id="${wrapper.dataset.id}"`
+            ];
+            
+            if (startDate) attrs.push(`startDate="${startDate}"`);
+            if (endDate) attrs.push(`endDate="${endDate}"`);
+            if (daysSpent !== '0') attrs.push(`daysSpent="${daysSpent}"`);
+            
+            const childContainer = node.querySelector('.children');
+            const childNodes = childContainer ? childContainer.querySelectorAll(':scope > .node') : [];
+            
+            if (childNodes.length === 0 && !comment) {
+                return `${indent}<node ${attrs.join(' ')}/>`;
+            }
+            
+            let xml = `${indent}<node ${attrs.join(' ')}>`;
+            
+            if (comment) {
+                xml += `\n${indent}    <comment>${escapeXML(comment)}</comment>`;
+            }
+            
+            if (childNodes.length > 0) {
+                xml += '\n' + Array.from(childNodes).map(child => 
+                    buildNodeXML(child, indent + '    ')
+                ).join('\n');
+            }
+            
+            xml += `\n${indent}</node>`;
+            
+            return xml;
+        }
+
+        function escapeXML(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        // Auto-save functionality
+        function autoSave() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                if (currentFile) {
+                    saveFile();
+                }
+            }, 1000);
+        }
+
+        async function saveFile() {
+            try {
+                const xml = generateXMLString();
+                const response = await fetch(`${API_BASE}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: currentFile,
+                        data: xml
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Save failed');
+                }
+                
+                // Show save indicator
+                const indicator = document.getElementById('saveIndicator');
+                indicator.style.opacity = '1';
+                setTimeout(() => indicator.style.opacity = '0', 1500);
+            } catch (error) {
+                console.error('Failed to save:', error);
+            }
+        }
+
+        // Global toggles - same logic as horizontal
+        function toggleAllComments() {
+            areCommentsVisible = !areCommentsVisible;
+            document.querySelectorAll('.node-comment').forEach(comment => {
+                const wrapper = comment.closest('.node-wrapper');
+                if (wrapper && wrapper.classList.contains('has-comment')) {
+                    comment.style.display = areCommentsVisible ? 'block' : 'none';
+                }
+            });
+            updateToggleCommentsButton();
+        }
+
+        function toggleAllDates() {
+            areDatesVisible = !areDatesVisible;
+            document.querySelectorAll('.node-dates').forEach(dates => {
+                const wrapper = dates.closest('.node-wrapper');
+                if (wrapper && wrapper.classList.contains('has-dates')) {
+                    dates.style.display = areDatesVisible ? 'flex' : 'none';
+                }
+            });
+            updateToggleDatesButton();
+        }
+
+        function toggleAllAddButtons() {
+            areAddButtonsVisible = !areAddButtonsVisible;
+            if (areAddButtonsVisible) {
+                document.body.classList.remove('add-hidden');
+            } else {
+                document.body.classList.add('add-hidden');
+            }
+            updateToggleAddButton();
+        }
+
+        function toggleAllNodes() {
+            const rootNode = document.querySelector('#mindMapContainer > .node');
+            if (!rootNode) return;
+            
+            const rootChildren = rootNode.querySelector('.children');
+            if (!rootChildren) return;
+            
+            const isCollapsed = rootChildren.classList.contains('collapsed');
+            
+            document.querySelectorAll('.children').forEach(children => {
+                if (isCollapsed) {
+                    children.classList.remove('collapsed');
+                } else {
+                    children.classList.add('collapsed');
+                }
+            });
+            
+            document.querySelectorAll('.node-toggle').forEach(toggle => {
+                toggle.textContent = isCollapsed ? '–' : '➕';
+            });
+            
+            updateToggleAllButton();
+        }
+
+        function toggleFlash() {
+            areFlashesVisible = !areFlashesVisible;
+            if (areFlashesVisible) {
+                document.body.classList.add('flash-active');
+            } else {
+                document.body.classList.remove('flash-active');
+            }
+            updateToggleFlashButton();
+        }
+
+        function toggleAnimateLines() {
+            areLinesAnimated = !areLinesAnimated;
+            document.querySelectorAll('.children').forEach(children => {
+                if (areLinesAnimated) {
+                    children.classList.add('animated');
+                } else {
+                    children.classList.remove('animated');
+                }
+            });
+            updateToggleAnimateLinesButton();
+        }
+
+        // Button text updates
+        function updateToggleCommentsButton() {
+            const btnText = document.querySelector('#toggleCommentsBtn .btn-text');
+            btnText.textContent = areCommentsVisible ? 'Hide Comments' : 'Show Comments';
+        }
+
+        function updateToggleDatesButton() {
+            const btnText = document.querySelector('#toggleDatesBtn .btn-text');
+            btnText.textContent = areDatesVisible ? 'Hide Dates' : 'Show Dates';
+        }
+
+        function updateToggleAddButton() {
+            const btnText = document.querySelector('#toggleAddBtn .btn-text');
+            btnText.textContent = areAddButtonsVisible ? 'Hide Add Buttons' : 'Show Add Buttons';
+        }
+
+        function updateToggleAllButton() {
+            const rootNode = document.querySelector('#mindMapContainer > .node');
+            if (!rootNode) return;
+            
+            const rootChildren = rootNode.querySelector('.children');
+            if (!rootChildren) return;
+            
+            const btnText = document.querySelector('#toggleAllBtn .btn-text');
+            if (btnText) {
+                btnText.textContent = rootChildren.classList.contains('collapsed') ? 'Expand All' : 'Collapse All';
+            }
+        }
+
+        function updateToggleFlashButton() {
+            const btnText = document.querySelector('#toggleFlashBtn .btn-text');
+            btnText.textContent = areFlashesVisible ? 'Stop Flash' : 'Start Flash';
+        }
+
+        function updateToggleAnimateLinesButton() {
+            const btnText = document.querySelector('#toggleAnimateLinesBtn .btn-text');
+            btnText.textContent = areLinesAnimated ? 'Stop Lines' : 'Animate Lines';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // File list
+            document.getElementById('fileList').addEventListener('click', (e) => {
+                const fileItem = e.target.closest('.file-item');
+                if (fileItem) {
+                    loadFile(fileItem.dataset.file);
+                }
+            });
+            
+            // New file button
+            document.getElementById('newFileBtn').onclick = async () => {
+                const filename = prompt('Enter filename (e.g., project.xml):');
+                if (filename && filename.endsWith('.xml')) {
+                    try {
+                        const response = await fetch(`${API_BASE}/create`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filename })
+                        });
+                        
+                        if (response.ok) {
+                            await loadFileList();
+                            loadFile(filename);
+                        } else {
+                            const error = await response.json();
+                            alert(error.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to create file');
+                    }
+                }
+            };
+            
+            // Control buttons
+            document.getElementById('saveBtn').onclick = () => {
+                if (currentFile) {
+                    saveFile();
+                }
+            };
+            
+            document.getElementById('toggleCommentsBtn').onclick = toggleAllComments;
+            document.getElementById('toggleDatesBtn').onclick = toggleAllDates;
+            document.getElementById('toggleAddBtn').onclick = toggleAllAddButtons;
+            document.getElementById('toggleAllBtn').onclick = toggleAllNodes;
+            document.getElementById('toggleFlashBtn').onclick = toggleFlash;
+            document.getElementById('toggleAnimateLinesBtn').onclick = toggleAnimateLines;
+            
+            // Hide context menu on click
+            document.addEventListener('click', () => {
+                document.getElementById('contextMenu').classList.remove('visible');
+            });
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
