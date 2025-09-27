@@ -428,27 +428,6 @@ class MindMapView {
             });
         });
 
-        // Export JSON
-        document.getElementById('exportBtn')?.addEventListener('click', () => {
-            this.exportToJSON();
-        });
-    }
-
-    exportToJSON() {
-        if (!this.currentData || !this.currentData.length) {
-            window.NotificationView?.warning('No data to export');
-            return;
-        }
-
-        const dataStr = JSON.stringify(this.currentData, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
-        
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = 'mind-map-export.json';
-        link.click();
-        
-        window.NotificationView?.success('Mind map exported successfully');
     }
 
     showControls() {
