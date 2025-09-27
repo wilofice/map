@@ -268,7 +268,16 @@ class StoryView {
     formatRelativeTime(dateString) {
         if (!dateString) return 'Unknown time';
 
-        const date = new Date(dateString);
+        // Handle database date format "YYYY-MM-DD HH:MM:SS" as UTC time
+        let date;
+        if (dateString.includes('T') || dateString.includes('Z')) {
+            // Already has timezone info or is ISO format
+            date = new Date(dateString);
+        } else {
+            // Database format without timezone - SQLite stores as UTC, so treat as UTC
+            date = new Date(dateString + 'Z');
+        }
+
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);
