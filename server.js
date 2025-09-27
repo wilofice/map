@@ -509,6 +509,9 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
             try {
                 const jsonData = JSON.parse(content);
 
+                // Expand JSON-native imports before wrapping
+                await expandJsonImports(jsonData, path.dirname(filePath));
+
                 // Convert JSON structure to XML-compatible format
                 if (jsonData.project_plan) {
                     result = jsonData;
@@ -517,6 +520,12 @@ async function loadAndMergeXML(filePath, processedFiles = new Set(), parentId = 
                     result = {
                         project_plan: {
                             node: jsonData.nodes
+                        }
+                    };
+                } else if (Array.isArray(jsonData)) {
+                    result = {
+                        project_plan: {
+                            node: jsonData
                         }
                     };
                 } else {
@@ -657,6 +666,99 @@ async function processImports(node, basePath, processedFiles) {
         // Process child nodes recursively
         await processImports(childNode, basePath, processedFiles);
     }
+}
+
+// ================= JSON-native import expansion =================
+// Expand JSON imports of the form { "type": "import", "src": "path.json" }
+async function expandJsonImports(jsonData, basePath, processed = new Set()) {
+    // If the data is an array of nodes
+    if (Array.isArray(jsonData)) {
+        await expandJsonImportsInArray(jsonData, basePath, processed);
+        return jsonData;
+    }
+
+    if (jsonData && typeof jsonData === 'object') {
+        // project_plan wrapper with nodes array
+        if (jsonData.project_plan && Array.isArray(jsonData.project_plan.nodes)) {
+            await expandJsonImportsInArray(jsonData.project_plan.nodes, basePath, processed);
+            return jsonData;
+        }
+
+        // XML-compatible structure we build in loadAndMergeXML
+        if (jsonData.project_plan && Array.isArray(jsonData.project_plan.node)) {
+            await expandJsonImportsInArray(jsonData.project_plan.node, basePath, processed);
+            return jsonData;
+        }
+
+        // standard { nodes: [...] }
+        if (Array.isArray(jsonData.nodes)) {
+            await expandJsonImportsInArray(jsonData.nodes, basePath, processed);
+        }
+    }
+    return jsonData;
+}
+
+async function expandJsonImportsInArray(nodesArray, basePath, processed) {
+    if (!Array.isArray(nodesArray)) return nodesArray;
+
+    const expanded = [];
+    for (const item of nodesArray) {
+        if (item && typeof item === 'object' && item.type === 'import' && typeof item.src === 'string') {
+            const importSrc = item.src.trim();
+            const importPath = path.resolve(basePath, importSrc);
+
+            if (processed.has(importPath)) {
+                console.warn(`Circular JSON import detected: ${importPath} — skipping`);
+                continue;
+            }
+
+            try {
+                processed.add(importPath);
+                const importedContent = await fs.readFile(importPath, 'utf8');
+                const importedJson = JSON.parse(importedContent);
+
+                // Recursively expand any imports inside the imported file
+                await expandJsonImports(importedJson, path.dirname(importPath), processed);
+
+                // Determine nodes to merge
+                let importedNodes = [];
+                if (importedJson && importedJson.project_plan && Array.isArray(importedJson.project_plan.nodes)) {
+                    importedNodes = importedJson.project_plan.nodes;
+                } else if (importedJson && Array.isArray(importedJson.nodes)) {
+                    importedNodes = importedJson.nodes;
+                } else if (Array.isArray(importedJson)) {
+                    importedNodes = importedJson;
+                } else if (importedJson && typeof importedJson === 'object') {
+                    // Single node file
+                    importedNodes = [importedJson];
+                }
+
+                // Tag provenance on imported nodes
+                for (const n of importedNodes) {
+                    if (n && typeof n === 'object') {
+                        n.dataImported = 'true';
+                        n.dataImportFrom = importSrc.replace(/^\.\//, '');
+                        n.sourceFile = importPath.replace(/^\.\//, '');
+                    }
+                }
+
+                expanded.push(...importedNodes);
+            } catch (e) {
+                console.error(`Failed to import JSON from ${importSrc}:`, e.message);
+            }
+            continue;
+        }
+
+        // Recurse into children if present
+        if (item && Array.isArray(item.children)) {
+            await expandJsonImportsInArray(item.children, basePath, processed);
+        }
+        expanded.push(item);
+    }
+
+    nodesArray.length = 0;
+    nodesArray.push(...expanded);
+    return nodesArray;
 }
 
 // Simple save that just saves to main file (bypassing complex XML processing for now)
@@ -848,18 +950,22 @@ app.get('/api/load-json/:filename(*)', async (req, res) => {
         
         const jsonContent = await fs.readFile(filePath, 'utf8');
         
-        // Validate JSON format
-        const validation = MindMapConverter.validateJson(jsonContent);
+        // Parse and expand JSON-native imports prior to validation/returning
+        let jsonData = JSON.parse(jsonContent);
+        await expandJsonImports(jsonData, path.dirname(filePath));
+
+        // Validate expanded JSON format
+        const validation = MindMapConverter.validateJson(JSON.stringify(jsonData));
         if (!validation.valid) {
             return res.status(400).json({ 
                 error: 'Invalid JSON format', 
                 details: validation.error 
             });
         }
-        
+
         if (format === 'xml') {
             // Convert JSON to XML format for existing UI
-            const xmlContent = MindMapConverter.jsonToXml(jsonContent);
+            const xmlContent = MindMapConverter.jsonToXml(JSON.stringify(jsonData));
             const parsedData = await parser.parseStringPromise(xmlContent);
             res.json({
                 data: parsedData,
@@ -868,7 +974,6 @@ app.get('/api/load-json/:filename(*)', async (req, res) => {
             });
         } else {
             // Return raw JSON
-            const jsonData = JSON.parse(jsonContent);
             res.json({
                 data: jsonData,
                 originalFormat: 'json',
@@ -1516,34 +1621,43 @@ app.post('/api/db/import-json', (req, res) => {
             projectDescription = 'Imported project with advanced features';
         }
 
-        const projectId = uuidv4();
-        const project = db.createProject(projectId, projectName, projectDescription, '', targetCollectionId);
+        // Expand JSON-native imports in nodes before importing to DB
+        const tempContainer = { nodes };
+        expandJsonImports(tempContainer, process.cwd()).then(() => {
+            nodes = tempContainer.nodes;
 
-        // Log project creation activity
-        db.logActivity(projectId, 'project_created', {
-            name: projectName,
-            description: projectDescription,
-            collection_id: targetCollectionId,
-            import_source: 'json'
-        }, null, req.get('User-Agent'), req.ip);
+            const projectId = uuidv4();
+            const project = db.createProject(projectId, projectName, projectDescription, '', targetCollectionId);
 
-        // Import nodes
-        if (nodes && nodes.length > 0) {
-            importNodesToProject(projectId, nodes);
-            // Log import activity
-            db.logActivity(projectId, 'nodes_imported', {
-                node_count: nodes.length,
-                source: 'json_import',
-                collection_id: targetCollectionId
+            // Log project creation activity
+            db.logActivity(projectId, 'project_created', {
+                name: projectName,
+                description: projectDescription,
+                collection_id: targetCollectionId,
+                import_source: 'json'
             }, null, req.get('User-Agent'), req.ip);
-        }
 
-        // Return complete project
-        const completeProject = db.getProjectWithNodes(projectId);
-        res.json({
-            success: true,
-            project: completeProject,
-            message: `Successfully imported ${nodes.length} nodes`
+            // Import nodes
+            if (nodes && nodes.length > 0) {
+                importNodesToProject(projectId, nodes);
+                // Log import activity
+                db.logActivity(projectId, 'nodes_imported', {
+                    node_count: nodes.length,
+                    source: 'json_import',
+                    collection_id: targetCollectionId
+                }, null, req.get('User-Agent'), req.ip);
+            }
+
+            // Return complete project
+            const completeProject = db.getProjectWithNodes(projectId);
+            res.json({
+                success: true,
+                project: completeProject,
+                message: `Successfully imported ${nodes.length} nodes`
+            });
+        }).catch(error => {
+            console.error('Error expanding JSON imports during DB import:', error);
+            res.status(500).json({ error: 'Failed to process JSON imports' });
         });
     } catch (error) {
         console.error('Error importing JSON:', error);

@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    {
+      "id": "root-modular",
+      "title": "Modular Project",
+      "children": [
+        { "type": "import", "src": "components/frontend.json" },
+        { "type": "import", "src": "components/backend.json" }
+      ]
+    }
+  ]
+}

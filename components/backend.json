@@ -1,0 +1,6 @@
+{
+  "nodes": [
+    { "id": "backend-api", "title": "API Layer", "priority": "high", "status": "pending" },
+    { "id": "backend-db", "title": "Database Schema", "priority": "medium", "status": "pending" }
+  ]
+}

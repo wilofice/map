@@ -228,26 +228,44 @@ project/
 - Include version for major changes: `project-v2.json`
 - Use descriptive prefixes: `test-`, `demo-`, `archive-`
 
-### Modular Organization
+### Modular Organization (JSON-native imports)
 
-For large projects, split into multiple files:
+For large projects, you can split content into multiple JSON files and include them using JSON-native import directives. Use a child with `{ "type": "import", "src": "relative/or/absolute.json" }`. The importer will inline the referenced file’s top-level nodes as children.
+
+Example root file (project.json):
 
 ```json
 {
   "nodes": [
     {
-      "id": "frontend-root",
-      "title": "Frontend Development",
-      "comment": "Imported from components/frontend.json",
-      "dataSource": "components/frontend.json",
-      "dataImported": "true",
-      "dataImportFrom": "components/frontend.json"
+      "id": "project-root",
+      "title": "Main Project",
+      "children": [
+        { "type": "import", "src": "components/frontend.json" },
+        { "type": "import", "src": "components/backend.json" }
+      ]
     }
   ]
 }
 ```
 
-Note: `dataSource`, `dataImported`, and `dataImportFrom` are optional provenance hints used for human context and organization. They are currently not interpreted by the importer/renderer logic beyond being preserved as part of the node data.
+Example imported file (components/frontend.json):
+
+```json
+{
+  "nodes": [
+    { "id": "ui", "title": "UI Components" },
+    { "id": "state", "title": "State Management" }
+  ]
+}
+```
+
+Behavior and rules:
+- Imports are expanded on load and during database JSON import.
+- Circular imports are detected and skipped with a warning.
+- Relative paths are resolved against the importer file location.
+- Provenance is tagged onto imported nodes: `dataImported: "true"`, `dataImportFrom: <src>`, and `sourceFile: <resolved path>`.
+- Supported file shapes for the imported file: `{ "nodes": [...] }`, `{ "project_plan": { "nodes": [...] } }`, a raw array of nodes, or a single node object.
 
 ## Complete Example
 

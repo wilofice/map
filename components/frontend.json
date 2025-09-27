@@ -1,0 +1,6 @@
+{
+  "nodes": [
+    { "id": "frontend-ui", "title": "UI Components", "priority": "medium", "status": "in-progress" },
+    { "id": "frontend-state", "title": "State Management", "priority": "high", "status": "pending" }
+  ]
+}
