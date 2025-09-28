@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Show success notification
         setTimeout(() => {
-            window.NotificationView?.success('Application initialized successfully', 3000);
+            window.NotificationView?.success('Application initialized successfully');
         }, 1000);
 
         // Force refresh collections after everything is loaded
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 try {
                     const restoredProject = await window.ProjectModel.restoreLastSelectedProject();
                     if (restoredProject) {
-                        window.NotificationView?.success(`Restored project: "${restoredProject.name}"`, 3000);
+                        window.NotificationView?.success(`Restored project: "${restoredProject.name}"`);
                     }
                 } catch (error) {
                     console.error('❌ Failed to restore last selected project:', error);

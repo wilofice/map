@@ -18,6 +18,79 @@ class MindMapCLI {
         this.loadConfig();
     }
 
+    // ============================
+    // Reset DB (Collections & Projects)
+    // ============================
+    async resetDatabase(options = {}) {
+        const defaultCollectionId = options.defaultCollectionId || 'default-collection';
+        try {
+            console.log('🧹 Resetting database: deleting all collections and projects (keeping default collection)...');
+
+            // Ensure server is reachable by calling collections
+            let collections = await this.makeRequest('/api/db/collections');
+
+            // Ensure default collection exists; if not, create it
+            let defaultCollection = collections.find(c => c.id === defaultCollectionId);
+            if (!defaultCollection) {
+                console.log('📦 Default collection not found. Creating...');
+                defaultCollection = await this.makeRequest('/api/db/collections', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: 'Default', description: 'Default collection' })
+                });
+            }
+
+            // Delete all non-default collections (projects under them will be cascade-deleted by server)
+            for (const col of collections) {
+                if (col.id !== defaultCollectionId) {
+                    await this.makeRequest(`/api/db/collections/${col.id}`, { method: 'DELETE' });
+                    console.log(`🗑️  Deleted collection: ${col.name}`);
+                }
+            }
+
+            // Delete all projects within the default collection as well
+            const defaultProjects = await this.makeRequest(`/api/db/collections/${defaultCollectionId}/projects`);
+            for (const proj of defaultProjects) {
+                await this.makeRequest(`/api/db/projects/${proj.id}`, { method: 'DELETE' });
+                console.log(`🗑️  Deleted project in default: ${proj.name}`);
+            }
+
+            // Create a fresh empty map (with minimal dummy nodes) in the default collection
+            const starterNodes = options.noDummy
+                ? []
+                : [
+                    {
+                        title: 'Getting Started',
+                        status: 'pending',
+                        priority: 'medium',
+                        comment: 'Add your first tasks under this node.',
+                        children: [
+                            { title: 'Create your first task', status: 'pending', priority: 'low' },
+                            { title: 'Explore Board and Mind Map views', status: 'pending', priority: 'low' }
+                        ]
+                    }
+                ];
+
+            const projectPayload = {
+                name: options.projectName || 'Empty Map',
+                description: options.description || 'Starter project created after database reset',
+                collection_id: defaultCollectionId,
+                nodes: starterNodes
+            };
+
+            const newProject = await this.makeRequest('/api/db/projects', {
+                method: 'POST',
+                body: JSON.stringify(projectPayload)
+            });
+
+            console.log('✅ Reset complete');
+            console.log(`📦 Default collection: ${defaultCollectionId}`);
+            console.log(`🆕 Created project: ${newProject.name} (${newProject.id})`);
+        } catch (error) {
+            console.error('❌ Error resetting database:', error.message);
+            process.exit(1);
+        }
+    }
+
     loadConfig() {
         try {
             if (fs.existsSync(this.configFile)) {
@@ -680,6 +753,7 @@ COMMANDS:
   filter-tasks                    Filter tasks by priority, status, and/or project
   highest-priority-task <proj-id> Get highest priority task in project
   lowest-priority-task <proj-id>  Get lowest priority task in project
+    reset-db                        Delete all collections and projects except the default; then create a fresh empty map in default
   update-status <id> <status>     Update node status (pending|in-progress|completed)
   add-progress <id> <message>     Add progress message to node
     update-node-json <id>           Update node using JSON file (--file=path)
@@ -824,6 +898,16 @@ async function main() {
                     process.exit(1);
                 }
                 await cli.getLowestPriorityTask(args[1], options);
+                break;
+
+            case 'reset-db':
+                // Options: --default-collection-id=<id> --project-name=<name> --description=<text> --no-dummy
+                await cli.resetDatabase({
+                    defaultCollectionId: options.defaultcollectionid || options.defaultCollectionId || 'default-collection',
+                    projectName: options.projectname || options.projectName,
+                    description: options.description,
+                    noDummy: !!(options.nodummy || options.noDummy)
+                });
                 break;
 
             case 'update-status':
