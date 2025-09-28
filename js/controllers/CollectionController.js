@@ -80,7 +80,7 @@ class CollectionController {
         const collection = await window.CollectionModel?.getCollection(collectionId);
         if (!collection) return;
 
-        const confirmed = confirm(`Are you sure you want to delete collection "${collection.name}"?\n\nProjects will not be deleted, just removed from the collection.`);
+    const confirmed = confirm(`Are you sure you want to delete collection "${collection.name}"?\n\nThis will permanently delete ALL projects in this collection and their tasks.`);
         if (!confirmed) return;
 
         try {

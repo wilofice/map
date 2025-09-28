@@ -340,8 +340,18 @@ class DatabaseManager {
 
     deleteCollection(id) {
         try {
-            this.stmts.deleteCollection.run(id);
-            return { success: true };
+            // Delete all projects in this collection (nodes are deleted via FK ON DELETE CASCADE)
+            const tx = this.db.transaction((collectionId) => {
+                const projects = this.stmts.getCollectionProjects.all(collectionId);
+                for (const project of projects) {
+                    this.stmts.deleteProject.run(project.id);
+                }
+                this.stmts.deleteCollection.run(collectionId);
+                return projects.length;
+            });
+
+            const projectsDeleted = tx(id);
+            return { success: true, projectsDeleted };
         } catch (error) {
             console.error('Error deleting collection:', error);
             throw error;

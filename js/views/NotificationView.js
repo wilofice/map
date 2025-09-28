@@ -6,7 +6,7 @@ class NotificationView {
         this.container = null;
         this.notifications = [];
         this.maxNotifications = 5;
-        this.defaultDuration = 4000; // 4 seconds
+        this.defaultDuration = 500; // 4 seconds
         this.bindEvents();
         this.initialize();
     }
