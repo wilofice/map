@@ -30,22 +30,31 @@ class MindMapCLI {
             // Ensure server is reachable by calling collections
             let collections = await this.makeRequest('/api/db/collections');
 
-            // Ensure built-in default exists; if not, create it (server assigns random id, so we rely on builtinDefaultId existing from DB init)
-            let builtinDefault = collections.find(c => c.id === builtinDefaultId);
+            // Try to find a default collection by id or by common name
+            let builtinDefault =
+                collections.find(c => c.id === builtinDefaultId) ||
+                collections.find(c => (c.name || '').toLowerCase() === 'default') ||
+                null;
+
+            // If none found, create one and use the returned id
             if (!builtinDefault) {
                 console.log('📦 Built-in default collection missing. Creating "Default"...');
-                await this.makeRequest('/api/db/collections', {
+                const created = await this.makeRequest('/api/db/collections', {
                     method: 'POST',
                     body: JSON.stringify({ name: 'Default', description: 'Default collection' })
                 });
-                // Refresh after creation
+                builtinDefault = created || null;
+                // Refresh collections to include the created one for subsequent lookups
                 collections = await this.makeRequest('/api/db/collections');
-                builtinDefault = collections.find(c => c.id === builtinDefaultId) || null;
             }
 
-            // Build preserve set: always keep built-in default; keep requested id only if it exists
-            const preserveIds = new Set([builtinDefaultId]);
-            const requestedExists = collections.some(c => c.id === requestedDefaultId);
+            // Determine which collection will be the target default for seeding
+            const requestedExists = requestedDefaultId && collections.some(c => c.id === requestedDefaultId);
+            const targetDefaultId = requestedExists ? requestedDefaultId : (builtinDefault ? builtinDefault.id : null);
+
+            // Build preserve set: keep builtinDefault (by actual id) and requested id if it exists
+            const preserveIds = new Set();
+            if (builtinDefault && builtinDefault.id) preserveIds.add(builtinDefault.id);
             if (requestedExists) preserveIds.add(requestedDefaultId);
 
             // Delete all collections not in preserve set (their projects will be cascade-deleted)
@@ -56,11 +65,27 @@ class MindMapCLI {
                 }
             }
 
-            // Delete all projects within the built-in default collection as well
-            const defaultProjects = await this.makeRequest(`/api/db/collections/${builtinDefaultId}/projects`);
-            for (const proj of defaultProjects) {
+            // Delete ALL projects (including those not in any collection)
+            const allProjects = await this.makeRequest('/api/db/projects');
+            for (const proj of allProjects) {
                 await this.makeRequest(`/api/db/projects/${proj.id}`, { method: 'DELETE' });
-                console.log(`🗑️  Deleted project in default: ${proj.name}`);
+                console.log(`🗑️  Deleted project: ${proj.name}`);
+            }
+
+            // Resolve final default collection id to use for seeding
+            let finalDefaultId = targetDefaultId;
+            if (!finalDefaultId) {
+                // As a fallback, re-fetch collections and pick the remaining one; if none, create new
+                const cols = await this.makeRequest('/api/db/collections');
+                if (cols && cols.length > 0) {
+                    finalDefaultId = cols[0].id;
+                } else {
+                    const created = await this.makeRequest('/api/db/collections', {
+                        method: 'POST',
+                        body: JSON.stringify({ name: 'Default', description: 'Default collection' })
+                    });
+                    finalDefaultId = created.id;
+                }
             }
 
             // Create a fresh empty map (with minimal dummy nodes) in the default collection
@@ -82,7 +107,7 @@ class MindMapCLI {
             const projectPayload = {
                 name: options.projectName || 'Empty Map',
                 description: options.description || 'Starter project created after database reset',
-                collection_id: builtinDefaultId,
+                collection_id: finalDefaultId,
                 nodes: starterNodes
             };
 
@@ -143,7 +168,15 @@ class MindMapCLI {
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
-            return await response.json();
+            // Some endpoints may return 204 No Content or empty body
+            const text = await response.text();
+            if (!text) return {};
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                // If response isn't JSON (unexpected), return raw text
+                return text;
+            }
         } catch (error) {
             if (error.code === 'ECONNREFUSED') {
                 throw new Error(`Cannot connect to MindMap server at ${this.baseUrl}. Make sure the server is running.`);

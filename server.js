@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const os = require('os');
 const XMLSanitizer = require('./xml-sanitizer');
 const { MindMapConverter } = require('./mindmap-models');
@@ -1577,14 +1578,31 @@ app.post('/api/db/projects', (req, res) => {
             return res.status(400).json({ error: 'Project name is required' });
         }
 
+        // Validate collection_id if provided
+        let validatedCollectionId = collection_id;
+        if (collection_id) {
+            const collection = db.getCollection(collection_id);
+            if (!collection) {
+                // Try to find default collection as fallback
+                const defaultCollection = db.getCollection('default-collection');
+                if (defaultCollection) {
+                    validatedCollectionId = 'default-collection';
+                    console.log(`Warning: Collection ${collection_id} not found, using default-collection`);
+                } else {
+                    validatedCollectionId = null;
+                    console.log(`Warning: Collection ${collection_id} not found and no default collection exists, creating project without collection`);
+                }
+            }
+        }
+
         const projectId = uuidv4();
-        const project = db.createProject(projectId, name, description, '', collection_id);
+        const project = db.createProject(projectId, name, description, '', validatedCollectionId);
 
         // Log activity
         db.logActivity(projectId, 'project_created', {
             name: name,
             description: description,
-            collection_id: collection_id
+            collection_id: validatedCollectionId
         }, null, req.get('User-Agent'), req.ip);
 
         // If nodes are provided, import them
@@ -1618,8 +1636,22 @@ app.post('/api/db/import-json', async (req, res) => {
         let projectDescription = 'Imported from JSON file';
         let nodes = [];
 
-        // Determine collection ID - use provided collection_id or default to 'default-collection'
-        const targetCollectionId = collection_id || 'default-collection';
+        // Determine and validate collection ID
+        let targetCollectionId = collection_id || 'default-collection';
+        if (targetCollectionId) {
+            const collection = db.getCollection(targetCollectionId);
+            if (!collection) {
+                // Try to find default collection as fallback
+                const defaultCollection = db.getCollection('default-collection');
+                if (defaultCollection) {
+                    targetCollectionId = 'default-collection';
+                    console.log(`Warning: Collection ${collection_id || 'default-collection'} not found, using default-collection`);
+                } else {
+                    targetCollectionId = null;
+                    console.log(`Warning: Collection ${collection_id || 'default-collection'} not found and no default collection exists, importing without collection`);
+                }
+            }
+        }
 
         // Handle different JSON formats
         if (jsonData.nodes) {
