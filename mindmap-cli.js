@@ -22,33 +22,42 @@ class MindMapCLI {
     // Reset DB (Collections & Projects)
     // ============================
     async resetDatabase(options = {}) {
-        const defaultCollectionId = options.defaultCollectionId || 'default-collection';
+        const requestedDefaultId = options.defaultCollectionId || 'default-collection';
+        const builtinDefaultId = 'default-collection';
         try {
             console.log('🧹 Resetting database: deleting all collections and projects (keeping default collection)...');
 
             // Ensure server is reachable by calling collections
             let collections = await this.makeRequest('/api/db/collections');
 
-            // Ensure default collection exists; if not, create it
-            let defaultCollection = collections.find(c => c.id === defaultCollectionId);
-            if (!defaultCollection) {
-                console.log('📦 Default collection not found. Creating...');
-                defaultCollection = await this.makeRequest('/api/db/collections', {
+            // Ensure built-in default exists; if not, create it (server assigns random id, so we rely on builtinDefaultId existing from DB init)
+            let builtinDefault = collections.find(c => c.id === builtinDefaultId);
+            if (!builtinDefault) {
+                console.log('📦 Built-in default collection missing. Creating "Default"...');
+                await this.makeRequest('/api/db/collections', {
                     method: 'POST',
                     body: JSON.stringify({ name: 'Default', description: 'Default collection' })
                 });
+                // Refresh after creation
+                collections = await this.makeRequest('/api/db/collections');
+                builtinDefault = collections.find(c => c.id === builtinDefaultId) || null;
             }
 
-            // Delete all non-default collections (projects under them will be cascade-deleted by server)
+            // Build preserve set: always keep built-in default; keep requested id only if it exists
+            const preserveIds = new Set([builtinDefaultId]);
+            const requestedExists = collections.some(c => c.id === requestedDefaultId);
+            if (requestedExists) preserveIds.add(requestedDefaultId);
+
+            // Delete all collections not in preserve set (their projects will be cascade-deleted)
             for (const col of collections) {
-                if (col.id !== defaultCollectionId) {
+                if (!preserveIds.has(col.id)) {
                     await this.makeRequest(`/api/db/collections/${col.id}`, { method: 'DELETE' });
                     console.log(`🗑️  Deleted collection: ${col.name}`);
                 }
             }
 
-            // Delete all projects within the default collection as well
-            const defaultProjects = await this.makeRequest(`/api/db/collections/${defaultCollectionId}/projects`);
+            // Delete all projects within the built-in default collection as well
+            const defaultProjects = await this.makeRequest(`/api/db/collections/${builtinDefaultId}/projects`);
             for (const proj of defaultProjects) {
                 await this.makeRequest(`/api/db/projects/${proj.id}`, { method: 'DELETE' });
                 console.log(`🗑️  Deleted project in default: ${proj.name}`);
@@ -73,7 +82,7 @@ class MindMapCLI {
             const projectPayload = {
                 name: options.projectName || 'Empty Map',
                 description: options.description || 'Starter project created after database reset',
-                collection_id: defaultCollectionId,
+                collection_id: builtinDefaultId,
                 nodes: starterNodes
             };
 
@@ -83,7 +92,7 @@ class MindMapCLI {
             });
 
             console.log('✅ Reset complete');
-            console.log(`📦 Default collection: ${defaultCollectionId}`);
+            console.log(`📦 Preserved collections: ${Array.from(preserveIds).join(', ')}`);
             console.log(`🆕 Created project: ${newProject.name} (${newProject.id})`);
         } catch (error) {
             console.error('❌ Error resetting database:', error.message);
