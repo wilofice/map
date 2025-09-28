@@ -1630,8 +1630,8 @@ app.post('/api/db/import-json', async (req, res) => {
             nodes = jsonData;
         } else if (jsonData.type === 'project_plan' && jsonData.nodes) {
             nodes = jsonData.nodes;
-            projectName = 'Advanced Features Test Project';
-            projectDescription = 'Imported project with advanced features';
+            projectName = jsonData.title || jsonData.name || 'Imported Project';
+            projectDescription = jsonData.description || 'Imported from JSON file';
         }
 
         // Expand JSON-native imports in nodes before importing to DB
@@ -1676,7 +1676,7 @@ app.post('/api/db/import-json', async (req, res) => {
 });
 
 // Helper function to import nodes recursively
-function importNodesToProject(projectId, nodes, parentId = null) {
+function importNodesToProject(projectId, nodes, parentId = null, depthLevel = 0) {
     for (const nodeData of nodes) {
         const nodeId = uuidv4();
 
@@ -1690,8 +1690,24 @@ function importNodesToProject(projectId, nodes, parentId = null) {
         const daysSpent = nodeData.daysSpent || 0;
 
         // Handle advanced features
-        const codeContent = nodeData.code ? JSON.stringify(nodeData.code) : null;
-        const taskPrompt = nodeData.taskPromptForLlm || nodeData.task_prompt || null;
+        let codeLanguage = null;
+        let codeContent = null;
+        // Accept multiple shapes for code
+        if (nodeData.code && typeof nodeData.code === 'object') {
+            codeLanguage = nodeData.code.language || nodeData.code.lang || null;
+            codeContent = nodeData.code.content || nodeData.code.text || null;
+        } else if (typeof nodeData.code === 'string') {
+            codeContent = nodeData.code;
+        }
+        // Also accept flattened fields if provided
+        if (!codeLanguage && (nodeData.code_language || nodeData.codeLanguage)) {
+            codeLanguage = nodeData.code_language || nodeData.codeLanguage;
+        }
+        if (!codeContent && (nodeData.code_content || nodeData.codeContent)) {
+            codeContent = nodeData.code_content || nodeData.codeContent;
+        }
+
+        const taskPrompt = nodeData.taskPromptForLlm || nodeData.task_prompt || nodeData.task_prompt_for_llm || null;
         const cliCommand = nodeData.cliCommand || nodeData.cli_command || null;
 
         // Create the node in database
@@ -1706,18 +1722,19 @@ function importNodesToProject(projectId, nodes, parentId = null) {
             start_date: startDate,
             end_date: endDate,
             days_spent: daysSpent,
+            code_language: codeLanguage,
             code_content: codeContent,
             task_prompt: taskPrompt,
             cli_command: cliCommand,
             sort_order: 0,
-            depth_level: parentId ? 1 : 0
+            depth_level: depthLevel
         };
 
         db.createNode(nodeDataForDB);
 
         // Import child nodes recursively
         if (nodeData.children && nodeData.children.length > 0) {
-            importNodesToProject(projectId, nodeData.children, nodeId);
+            importNodesToProject(projectId, nodeData.children, nodeId, depthLevel + 1);
         }
     }
 }

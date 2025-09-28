@@ -213,23 +213,34 @@ class XMLToJSONConverter {
             // Extract content from child elements
             if (xmlNode.$$ && xmlNode.$$.length > 0) {
                 for (const child of xmlNode.$$) {
-                    switch (child['#name']) {
-                        case 'comment':
+                    const tag = child['#name'];
+                    switch (tag) {
+                        case 'comment': {
                             if (child._) jsonNode.comment = child._;
                             break;
-                        case 'code':
-                            if (child._ && child.$) {
+                        }
+                        case 'code': {
+                            // Support either language or type attribute as language hint
+                            if (child._) {
+                                const lang = (child.$ && (child.$.language || child.$.type)) || 'text';
                                 jsonNode.code = {
-                                    language: child.$.language || 'text',
+                                    language: lang,
                                     content: child._
                                 };
                             }
                             break;
-                        case 'taskPromptForLlm':
+                        }
+                        case 'task_prompt_for_llm': // canonical snake_case
+                        case 'taskPromptForLlm': { // tolerate camelCase variant
                             if (child._) jsonNode.taskPromptForLlm = child._;
                             break;
-                        case 'cliCommand':
+                        }
+                        case 'cli_command': // canonical snake_case
+                        case 'cliCommand': { // tolerate camelCase variant
                             if (child._) jsonNode.cliCommand = child._;
+                            break;
+                        }
+                        default:
                             break;
                     }
                 }
