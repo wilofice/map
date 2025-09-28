@@ -24,7 +24,6 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const fetch = require('node-fetch');
 
 class BulkJSONImporter {
     constructor(options = {}) {
@@ -94,6 +93,7 @@ class BulkJSONImporter {
 
     async checkServerHealth() {
         try {
+            const { default: fetch } = await import('node-fetch');
             const response = await fetch(`${this.baseUrl}/api/health`);
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status}`);
@@ -102,12 +102,16 @@ class BulkJSONImporter {
                 console.log('✅ Server is running');
             }
         } catch (error) {
+            if (error.code === 'ECONNREFUSED') {
+                throw new Error(`Cannot connect to server at ${this.baseUrl}. Make sure the server is running.`);
+            }
             throw new Error(`Cannot connect to server at ${this.baseUrl}. Make sure the server is running.`);
         }
     }
 
     async verifyCollection() {
         try {
+            const { default: fetch } = await import('node-fetch');
             const response = await fetch(`${this.baseUrl}/api/db/collections`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch collections: ${response.status}`);
@@ -193,6 +197,7 @@ class BulkJSONImporter {
             };
 
             // Import via API
+            const { default: fetch } = await import('node-fetch');
             const response = await fetch(`${this.baseUrl}/api/db/import-json`, {
                 method: 'POST',
                 headers: {
