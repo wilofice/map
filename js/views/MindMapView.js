@@ -291,14 +291,11 @@ class MindMapView {
                 }
             }
 
-            // Copy functionality
+            // Copy functionality with fallback for insecure contexts
             if (e.target.classList.contains('copy-btn')) {
                 const content = e.target.getAttribute('data-content');
                 if (content) {
-                    navigator.clipboard.writeText(content).then(() => {
-                        e.target.textContent = 'Copied!';
-                        setTimeout(() => e.target.textContent = 'Copy', 2000);
-                    });
+                    this.copyToClipboard(content, e.target);
                 }
             }
         });
@@ -308,6 +305,74 @@ class MindMapView {
             this.attachControlListeners();
             this._controlsAttached = true;
         }
+    }
+
+    // Robust clipboard copy with fallback for insecure contexts
+    copyToClipboard(text, button) {
+        // Try modern Clipboard API first (works in secure contexts)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.showCopySuccess(button);
+            }).catch(() => {
+                // Fallback if clipboard API fails
+                this.fallbackCopyText(text, button);
+            });
+        } else {
+            // Fallback for insecure contexts (like LAN IP addresses)
+            this.fallbackCopyText(text, button);
+        }
+    }
+
+    // Fallback copy method using legacy document.execCommand
+    fallbackCopyText(text, button) {
+        try {
+            // Create temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+
+            // Select and copy
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            const success = document.execCommand('copy');
+
+            // Clean up
+            document.body.removeChild(textarea);
+
+            if (success) {
+                this.showCopySuccess(button);
+            } else {
+                this.showCopyError(button);
+            }
+        } catch (error) {
+            console.error('Copy failed:', error);
+            this.showCopyError(button);
+        }
+    }
+
+    // Show successful copy feedback
+    showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.style.background = '#28a745';
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.style.background = '';
+        }, 2000);
+    }
+
+    // Show copy error feedback
+    showCopyError(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copy failed';
+        button.style.background = '#dc3545';
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.style.background = '';
+        }, 2000);
     }
 
     cycleNodeStatus(statusIcon) {
