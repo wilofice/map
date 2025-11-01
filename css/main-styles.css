@@ -24,6 +24,21 @@
     
     --sidebar-width: 280px;
     --top-bar-height: 72px;
+
+    /* Smart Zoom System Variables */
+    --zoom-level: 1;                    /* Default zoom level (1 = 100%) */
+    --zoom-scale: calc(var(--zoom-level)); /* Applied to container transform */
+    --font-compensation: calc(1 / var(--zoom-level)); /* Compensate font size for zoom */
+
+    /* Base font sizes that scale with zoom compensation */
+    --base-font-size: calc(1rem * var(--font-compensation));
+    --large-font-size: calc(1.2rem * var(--font-compensation));
+    --small-font-size: calc(0.85rem * var(--font-compensation));
+    --tiny-font-size: calc(0.75rem * var(--font-compensation));
+
+    /* Progressive disclosure thresholds */
+    --show-details-threshold: 0.7;      /* Show details when zoom >= 70% */
+    --show-secondary-threshold: 0.5;    /* Show secondary info when zoom >= 50% */
 }
 
 html {
@@ -888,12 +903,21 @@ h1 {
     box-shadow: 0 4px 10px rgba(72, 187, 120, 0.2);
 }
 
-/* HORIZONTAL Mind Map Styling - Exact copy from original */
+/* HORIZONTAL Mind Map Styling with Smart Zoom */
 .mind-map-container {
     padding-top: 1rem;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+
+    /* Smart Zoom System */
+    transform: scale(var(--zoom-scale));
+    transform-origin: top left;
+    transition: transform 0.3s ease-out;
+
+    /* Ensure smooth zoom with proper container sizing */
+    width: max-content;
+    min-width: 100%;
 }
 
 .node {
@@ -943,9 +967,50 @@ h1 {
         0 0 40px rgba(59, 130, 246, 0.1);
 }
 
+/* Smart Zoom Font Sizing */
+.node-content {
+    font-size: var(--base-font-size);
+}
+
 .node-title {
     outline: none;
     white-space: nowrap;
+    font-size: var(--large-font-size);
+}
+
+.node-toggle {
+    font-size: var(--large-font-size);
+}
+
+/* Progressive Text Disclosure - Hide details at low zoom levels */
+.zoom-hide-details {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+
+.zoom-hide-secondary {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+/* Show details when zoom level is high enough */
+:root[data-zoom-level] {
+    /* This will be dynamically set by JavaScript */
+}
+
+/* Secondary elements use smaller font sizes */
+.node-comment,
+.node-date,
+.code-block-content,
+.llm-prompt-content {
+    font-size: var(--small-font-size);
+}
+
+.node-status-text,
+.priority-indicator {
+    font-size: var(--tiny-font-size);
 }
 
 .node-title[contenteditable="true"] {
@@ -963,7 +1028,7 @@ h1 {
     cursor: pointer;
     user-select: none;
     color: var(--color-primary);
-    font-size: 1.2rem;
+    font-size: var(--large-font-size);
 }
 
 /* Priority Colors with Gradients */

@@ -6,8 +6,16 @@ class MindMapView {
         this.container = null;
         this.currentData = null;
         this._controlsAttached = false;
+
+        // Smart Zoom System Properties
+        this.currentZoom = 1.0;
+        this.minZoom = 0.3;
+        this.maxZoom = 2.0;
+        this.zoomStep = 0.1;
+
         this.bindEvents();
         this.initialize();
+        this.initializeZoom();
     }
 
     bindEvents() {
@@ -16,6 +24,18 @@ class MindMapView {
 
     initialize() {
         this.container = document.getElementById('mindMapContainer');
+    }
+
+    initializeZoom() {
+        // Load saved zoom level from localStorage
+        const savedZoom = localStorage.getItem('mindmap-zoom-level');
+        if (savedZoom) {
+            this.currentZoom = parseFloat(savedZoom);
+            this.currentZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.currentZoom));
+        }
+
+        // Initialize zoom state
+        this.updateZoomLevel(this.currentZoom);
     }
 
     handleProjectSelected(data) {
@@ -518,6 +538,9 @@ class MindMapView {
             });
         });
 
+        // Zoom Controls Event Listeners
+        this.attachZoomListeners();
+
     }
 
     showControls() {
@@ -833,6 +856,164 @@ class MindMapView {
                 this.collectUpdatedNodes(childNode, newStatus, updatedNodes);
             });
         }
+    }
+
+    // ===========================
+    // Smart Zoom System Methods
+    // ===========================
+
+    attachZoomListeners() {
+        // Zoom In Button
+        document.getElementById('zoomInBtn')?.addEventListener('click', () => {
+            this.zoomIn();
+        });
+
+        // Zoom Out Button
+        document.getElementById('zoomOutBtn')?.addEventListener('click', () => {
+            this.zoomOut();
+        });
+
+        // Zoom Slider
+        document.getElementById('zoomSlider')?.addEventListener('input', (e) => {
+            const newZoom = parseFloat(e.target.value);
+            this.updateZoomLevel(newZoom);
+        });
+
+        // Fit to View Button
+        document.getElementById('fitToViewBtn')?.addEventListener('click', () => {
+            this.fitToView();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === '=' || e.key === '+') {
+                    e.preventDefault();
+                    this.zoomIn();
+                } else if (e.key === '-') {
+                    e.preventDefault();
+                    this.zoomOut();
+                } else if (e.key === '0') {
+                    e.preventDefault();
+                    this.resetZoom();
+                }
+            }
+        });
+
+        // Mouse wheel zoom (optional)
+        this.container?.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -this.zoomStep : this.zoomStep;
+                const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.currentZoom + delta));
+                this.updateZoomLevel(newZoom);
+            }
+        });
+    }
+
+    zoomIn() {
+        const newZoom = Math.min(this.maxZoom, this.currentZoom + this.zoomStep);
+        this.updateZoomLevel(newZoom);
+    }
+
+    zoomOut() {
+        const newZoom = Math.max(this.minZoom, this.currentZoom - this.zoomStep);
+        this.updateZoomLevel(newZoom);
+    }
+
+    resetZoom() {
+        this.updateZoomLevel(1.0);
+    }
+
+    updateZoomLevel(zoomLevel) {
+        this.currentZoom = Math.max(this.minZoom, Math.min(this.maxZoom, zoomLevel));
+
+        // Update CSS custom properties
+        document.documentElement.style.setProperty('--zoom-level', this.currentZoom);
+
+        // Update UI controls
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+
+        if (zoomSlider) zoomSlider.value = this.currentZoom;
+        if (zoomLevelDisplay) zoomLevelDisplay.textContent = `${Math.round(this.currentZoom * 100)}%`;
+
+        // Apply progressive disclosure
+        this.updateProgressiveDisclosure();
+
+        // Save to localStorage
+        localStorage.setItem('mindmap-zoom-level', this.currentZoom.toString());
+
+        // Emit zoom change event for other components
+        window.EventBus?.emit('zoom-changed', { level: this.currentZoom });
+    }
+
+    updateProgressiveDisclosure() {
+        if (!this.container) return;
+
+        // Define visibility thresholds
+        const showDetails = this.currentZoom >= 0.7;
+        const showSecondary = this.currentZoom >= 0.5;
+
+        // Elements to hide/show based on zoom level
+        const detailElements = this.container.querySelectorAll('.node-comment, .code-block, .llm-prompt-block');
+        const secondaryElements = this.container.querySelectorAll('.node-dates, .priority-indicator');
+
+        // Apply progressive disclosure
+        detailElements.forEach(element => {
+            if (showDetails) {
+                element.classList.remove('zoom-hide-details');
+                element.style.maxHeight = '';
+                element.style.opacity = '';
+            } else {
+                element.classList.add('zoom-hide-details');
+            }
+        });
+
+        secondaryElements.forEach(element => {
+            if (showSecondary) {
+                element.classList.remove('zoom-hide-secondary');
+                element.style.opacity = '';
+            } else {
+                element.classList.add('zoom-hide-secondary');
+            }
+        });
+    }
+
+    fitToView() {
+        if (!this.container) return;
+
+        const mindMapContainer = this.container.querySelector('.mind-map-container') || this.container;
+        const containerRect = this.container.getBoundingClientRect();
+        const contentRect = mindMapContainer.getBoundingClientRect();
+
+        if (contentRect.width === 0 || contentRect.height === 0) return;
+
+        // Calculate zoom to fit content with some padding
+        const paddingFactor = 0.9; // 10% padding
+        const zoomX = (containerRect.width * paddingFactor) / contentRect.width;
+        const zoomY = (containerRect.height * paddingFactor) / contentRect.height;
+
+        // Use the smaller zoom to ensure everything fits
+        const fitZoom = Math.min(zoomX, zoomY);
+        const finalZoom = Math.max(this.minZoom, Math.min(this.maxZoom, fitZoom));
+
+        this.updateZoomLevel(finalZoom);
+
+        // Scroll to top-left after fitting
+        setTimeout(() => {
+            this.container.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }, 300);
+    }
+
+    // Get current zoom level (useful for external components)
+    getCurrentZoom() {
+        return this.currentZoom;
+    }
+
+    // Set zoom level programmatically
+    setZoom(level) {
+        this.updateZoomLevel(level);
     }
 }
 
