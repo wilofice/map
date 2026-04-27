@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A modular mind map application with server-based file management",
   "main": "server.js",
+  "bin": {
+    "mindmap": "./mindmap-cli.js"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
