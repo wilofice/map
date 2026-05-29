@@ -13,3 +13,23 @@ html, body, #root {
   background: #0f1117;
   color: #e2e8f0;
 }
+
+/* Reusable toolbar button */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 3px 7px;
+  border-radius: 5px;
+  transition: color 0.1s, background 0.1s;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+.toolbar-btn:hover {
+  color: #e2e8f0;
+  background: rgba(100, 116, 139, 0.2);
+}

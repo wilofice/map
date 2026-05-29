@@ -1,3 +1,4 @@
+export type { DisplayMode } from '../config/nodeDimensions';
 export type NodeStatus = 'pending' | 'in-progress' | 'completed';
 export type NodePriority = 'low' | 'medium' | 'high';
 

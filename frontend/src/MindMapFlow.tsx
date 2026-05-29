@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -10,6 +10,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
   type NodeTypes,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -21,18 +22,24 @@ const nodeTypes: NodeTypes = {
 };
 
 function FlowCanvas() {
-  const { rfNodes: storeNodes, rfEdges: storeEdges } = useMindMapStore();
+  const { rfNodes: storeNodes, rfEdges: storeEdges, setSelectedNodeId } = useMindMapStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const { fitView } = useReactFlow();
 
-  // Sync layout from store into local RF state
   useEffect(() => {
     setNodes(storeNodes);
     setEdges(storeEdges);
-    // Fit view after layout changes
     setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
   }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
+
+  const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
+    setSelectedNodeId(node.id);
+  }, [setSelectedNodeId]);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, [setSelectedNodeId]);
 
   return (
     <ReactFlow
@@ -41,9 +48,11 @@ function FlowCanvas() {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
+      onNodeClick={handleNodeClick}
+      onPaneClick={handlePaneClick}
       fitView
       fitViewOptions={{ padding: 0.15 }}
-      minZoom={0.1}
+      minZoom={0.08}
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
       style={{ background: '#0f1117' }}
@@ -55,10 +64,11 @@ function FlowCanvas() {
           if (d.priority === 'medium') return '#facc15';
           return '#4ade80';
         }}
-        style={{ background: '#1e2433', border: '1px solid #334155' }}
+        style={{ background: '#13192a', border: '1px solid #2d3a52' }}
+        maskColor="rgba(15,17,23,0.7)"
       />
-      <Controls style={{ background: '#1e2433', border: '1px solid #334155' }} />
-      <Background variant={BackgroundVariant.Dots} color="#334155" gap={20} size={1} />
+      <Controls style={{ background: '#13192a', border: '1px solid #2d3a52' }} />
+      <Background variant={BackgroundVariant.Dots} color="#1e2a3a" gap={22} size={1} />
     </ReactFlow>
   );
 }
