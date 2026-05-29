@@ -2645,7 +2645,7 @@ app.get('/api/ai/search', (req, res) => {
     }
 });
 
-app.listen(PORT, HOST, () => {
+const serverInstance = app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
     console.log(`🚀 Mind Map Server started successfully!`);
     console.log(`📍 Server URL: http://${host}:${PORT}`);
@@ -2669,5 +2669,15 @@ app.listen(PORT, HOST, () => {
             console.log(`   Database projects: ${stats?.projects || 0}`);
             console.log(`   Database nodes: ${stats?.nodes || 0}`);
         }
+    }
+});
+
+serverInstance.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`\n❌  Port ${PORT} is already in use.`);
+        console.error(`    Stop the existing process or run:  npx kill-port ${PORT}\n`);
+        process.exit(1);
+    } else {
+        throw err;
     }
 });

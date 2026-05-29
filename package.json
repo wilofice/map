@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "predev:all": "npx kill-port 3000 --silent || true",
     "dev:all": "concurrently -n API,UI -c cyan,magenta \"npm run dev\" \"cd frontend && npm run dev\"",
     "build:ui": "cd frontend && npm run build"
   },

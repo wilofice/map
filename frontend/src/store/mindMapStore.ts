@@ -19,6 +19,8 @@ interface MindMapState {
   loadProjects: () => Promise<void>;
   loadProject: (id: string) => Promise<void>;
   toggleExpand: (id: string) => void;
+  expandAll: () => void;
+  collapseAll: () => void;
   cycleStatus: (id: string) => Promise<void>;
   addChild: (parentId: string) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
@@ -75,6 +77,22 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     }
     const { rfNodes, rfEdges } = reLayout(rawNodes, next);
     set({ expandedIds: next, rfNodes, rfEdges });
+  },
+
+  expandAll() {
+    const { rawNodes } = get();
+    // Every node that is someone's parent_id should be in expandedIds
+    const parentIds = new Set(
+      rawNodes.filter((n) => n.parent_id).map((n) => n.parent_id as string)
+    );
+    const { rfNodes, rfEdges } = reLayout(rawNodes, parentIds);
+    set({ expandedIds: parentIds, rfNodes, rfEdges });
+  },
+
+  collapseAll() {
+    const { rawNodes } = get();
+    const { rfNodes, rfEdges } = reLayout(rawNodes, new Set());
+    set({ expandedIds: new Set(), rfNodes, rfEdges });
   },
 
   async cycleStatus(id) {

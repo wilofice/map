@@ -40,17 +40,24 @@ export interface Collection {
 }
 
 // The server returns { ...projectFields, nodes } (flat object, not nested)
-export type ProjectWithNodes = Project & { nodes: MindMapNodeData[];
-}
+export type ProjectWithNodes = Project & { nodes: MindMapNodeData[] };
 
 export const STATUS_CYCLE: NodeStatus[] = ['pending', 'in-progress', 'completed'];
-export const STATUS_ICON: Record<NodeStatus, string> = {
-  pending: '⏳',
-  'in-progress': '🔄',
-  completed: '✅',
+
+export const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; pulse: boolean }> = {
+  pending:       { label: 'Pending',     color: '#64748b', pulse: false },
+  'in-progress': { label: 'In Progress', color: '#3b82f6', pulse: true  },
+  completed:     { label: 'Done',        color: '#22c55e', pulse: false  },
 };
+
 export const PRIORITY_COLOR: Record<NodePriority, string> = {
-  low: '#4ade80',
+  low:    '#4ade80',
   medium: '#facc15',
-  high: '#f87171',
+  high:   '#f87171',
+};
+
+export const PRIORITY_LABEL: Record<NodePriority, string> = {
+  low:    'Low',
+  medium: 'Medium',
+  high:   'High',
 };
