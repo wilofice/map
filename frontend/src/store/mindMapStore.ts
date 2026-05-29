@@ -51,7 +51,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   async loadProject(id) {
     set({ loading: true, error: null });
     try {
-      const { project, nodes } = await api.getProjectWithNodes(id);
+      // Server returns flat { id, name, description, ..., nodes: [] }
+      const { nodes, ...project } = await api.getProjectWithNodes(id);
       // Expand root nodes by default
       const expandedIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
       const { rfNodes, rfEdges } = reLayout(nodes, expandedIds);

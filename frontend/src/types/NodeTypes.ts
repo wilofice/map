@@ -39,9 +39,8 @@ export interface Collection {
   description?: string;
 }
 
-export interface ProjectWithNodes {
-  project: Project;
-  nodes: MindMapNodeData[];
+// The server returns { ...projectFields, nodes } (flat object, not nested)
+export type ProjectWithNodes = Project & { nodes: MindMapNodeData[];
 }
 
 export const STATUS_CYCLE: NodeStatus[] = ['pending', 'in-progress', 'completed'];
