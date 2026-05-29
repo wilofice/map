@@ -47,7 +47,6 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const neonShadow = isActive
     ? `0 0 0 1.5px #3b82f6, 0 0 18px rgba(59,130,246,0.5), 0 0 8px ${priorityColor}50`
     : `0 0 10px ${priorityColor}28, inset 0 1px 0 rgba(255,255,255,0.04)`;
-  const neonBorder = isActive ? '#3b82f6' : '#152035';
 
   // ── GLASS style ─────────────────────────────────────────────────────────────
   const glassBg     = isRoot
@@ -58,14 +57,16 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const glassShadow = isActive
     ? `0 0 0 1.5px rgba(255,255,255,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), 0 0 20px ${priorityColor}35`
     : `0 4px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0.5px rgba(255,255,255,0.05)`;
-  const glassBorder = isActive ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.10)';
 
   // ── Pick active style ────────────────────────────────────────────────────────
-  const isGlass     = nodeStyle === 'glass';
-  const nodeBg      = isGlass ? glassBg      : neonBg;
-  const nodeShadow  = isGlass ? glassShadow  : neonShadow;
-  const nodeBorder  = isGlass ? glassBorder  : neonBorder;
-  const nodeBlur    = isGlass ? 'blur(14px)' : undefined;
+  // NOTE: borderColor is intentionally fixed (never changes with selection) to avoid
+  // CSS transition-all overwriting borderLeftColor during animation.
+  // Selection is communicated solely through boxShadow.
+  const isGlass    = nodeStyle === 'glass';
+  const nodeBg     = isGlass ? glassBg     : neonBg;
+  const nodeShadow = isGlass ? glassShadow : neonShadow;
+  const nodeBorder = isGlass ? 'rgba(255,255,255,0.10)' : '#152035';
+  const nodeBlur   = isGlass ? 'blur(14px)' : undefined;
 
   return (
     <div className="relative group" style={{ width: nodeWidth }}>
@@ -76,7 +77,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       />
 
       <div
-        className="rounded-lg border transition-all duration-200"
+        className="rounded-lg border"
         style={{
           background: nodeBg,
           backdropFilter: nodeBlur,
@@ -85,6 +86,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           borderLeftWidth: isRoot ? 5 : 4,
           borderLeftColor: priorityColor,
           boxShadow: nodeShadow,
+          transition: 'box-shadow 0.2s ease, background 0.2s ease',
         }}
       >
         <div className={`flex items-center gap-1.5 ${px} ${py} ${minH}`}>
