@@ -1,24 +1,21 @@
 import dagre from '@dagrejs/dagre';
 import type { Node, Edge } from '@xyflow/react';
 import type { MindMapNodeData } from '../types/NodeTypes';
-import { NODE_DIMS, type DisplayMode } from '../config/nodeDimensions';
+import { NODE_DIMS, type DisplayMode, type LayoutDir } from '../config/nodeDimensions';
 
 export function buildDagreLayout(
   nodes: MindMapNodeData[],
   expandedIds: Set<string>,
-  mode: DisplayMode = 'compact'
+  mode: DisplayMode = 'comfortable',
+  layoutDir: LayoutDir = 'LR'
 ): { rfNodes: Node[]; rfEdges: Edge[] } {
   const dims = NODE_DIMS[mode];
+  const ranksep = layoutDir === 'LR' ? dims.lrRanksep : dims.tbRanksep;
+  const nodesep = layoutDir === 'LR' ? dims.lrNodesep : dims.tbNodesep;
 
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
-  graph.setGraph({
-    rankdir: 'LR',
-    ranksep: dims.ranksep,
-    nodesep: dims.nodesep,
-    marginx: 40,
-    marginy: 40,
-  });
+  graph.setGraph({ rankdir: layoutDir, ranksep, nodesep, marginx: 40, marginy: 40 });
 
   // Collect visible nodes: roots + children of expanded parents
   const visibleIds = new Set<string>();
@@ -67,6 +64,7 @@ export function buildDagreLayout(
         isExpanded: expandedIds.has(node.id),
         nodeWidth: dims.width,
         displayMode: mode,
+        layoutDir,
       },
     };
   });

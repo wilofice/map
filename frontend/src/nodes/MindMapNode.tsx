@@ -3,7 +3,7 @@ import { Handle, Position } from '@xyflow/react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { PRIORITY_COLOR, STATUS_CONFIG } from '../types/NodeTypes';
 import type { MindMapNodeData } from '../types/NodeTypes';
-import type { DisplayMode } from '../config/nodeDimensions';
+import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
 import { NODE_DIMS } from '../config/nodeDimensions';
 
 interface MindMapNodeProps {
@@ -12,6 +12,7 @@ interface MindMapNodeProps {
     isExpanded: boolean;
     nodeWidth: number;
     displayMode: DisplayMode;
+    layoutDir: LayoutDir;
   };
   selected: boolean;
 }
@@ -21,9 +22,14 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
 
   const depth      = data.depth_level ?? 0;
   const isRoot     = depth === 0;
-  const mode       = data.displayMode ?? 'compact';
+  const mode       = data.displayMode ?? 'comfortable';
+  const dir        = data.layoutDir ?? 'LR';
   const nodeWidth  = NODE_DIMS[mode].width;
   const isSelected = selectedNodeId === data.id;
+
+  // Handle positions depend on layout direction
+  const targetPos = dir === 'LR' ? Position.Left  : Position.Top;
+  const sourcePos = dir === 'LR' ? Position.Right : Position.Bottom;
 
   const priorityColor = PRIORITY_COLOR[data.priority];
   const status        = STATUS_CONFIG[data.status];
@@ -40,7 +46,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
     <div className="relative group" style={{ width: nodeWidth }}>
       <Handle
         type="target"
-        position={Position.Left}
+        position={targetPos}
         style={{ background: '#334155', width: 5, height: 5, border: 'none' }}
       />
 
@@ -110,7 +116,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
 
       <Handle
         type="source"
-        position={Position.Right}
+        position={sourcePos}
         style={{ background: '#334155', width: 5, height: 5, border: 'none' }}
       />
     </div>

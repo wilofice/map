@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMindMapStore } from './store/mindMapStore';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
+import ProgressBadge from './components/ProgressBadge';
 import type { Project } from './types/NodeTypes';
 
 export default function App() {
@@ -10,6 +11,7 @@ export default function App() {
     loadProjects, loadProject,
     expandAll, collapseAll,
     displayMode, setDisplayMode,
+    layoutDir, setLayoutDir,
     selectedNodeId,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -91,20 +93,39 @@ export default function App() {
               {/* Divider */}
               <span className="w-px h-4 bg-slate-700 mx-1" />
 
-              {/* Compact / Comfortable toggle */}
-              <button
-                onClick={() => setDisplayMode('compact')}
-                className={`toolbar-btn ${displayMode === 'compact' ? 'text-blue-400 bg-blue-500/15' : ''}`}
-                title="Compact mode — short nodes, truncated titles"
-              >
-                Compact
-              </button>
+              {/* Full text / Compact toggle */}
               <button
                 onClick={() => setDisplayMode('comfortable')}
                 className={`toolbar-btn ${displayMode === 'comfortable' ? 'text-blue-400 bg-blue-500/15' : ''}`}
-                title="Comfortable mode — wider nodes, full titles visible"
+                title="Full text — wider nodes, titles fully visible"
               >
                 Full text
+              </button>
+              <button
+                onClick={() => setDisplayMode('compact')}
+                className={`toolbar-btn ${displayMode === 'compact' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                title="Compact — smaller nodes, titles truncated"
+              >
+                Compact
+              </button>
+
+              {/* Divider */}
+              <span className="w-px h-4 bg-slate-700 mx-1" />
+
+              {/* Layout direction */}
+              <button
+                onClick={() => setLayoutDir('LR')}
+                className={`toolbar-btn ${layoutDir === 'LR' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                title="Horizontal — root left, children right"
+              >
+                ← → LR
+              </button>
+              <button
+                onClick={() => setLayoutDir('TB')}
+                className={`toolbar-btn ${layoutDir === 'TB' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                title="Vertical — root top, children below"
+              >
+                ↓ TB
               </button>
             </div>
           )}
@@ -135,6 +156,7 @@ export default function App() {
             ) : (
               <MindMapFlow />
             )}
+            {currentProject && !loading && <ProgressBadge />}
           </div>
 
           {/* Detail panel slides in when a node is selected */}
