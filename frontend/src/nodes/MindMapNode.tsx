@@ -27,8 +27,8 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const nodeWidth = NODE_DIMS[mode].width;
   const isActive  = selected || selectedNodeId === data.id;
 
-  const targetPos = dir === 'LR' ? Position.Left  : Position.Top;
-  const sourcePos = dir === 'LR' ? Position.Right : Position.Bottom;
+  const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
+  const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
 
   const priorityColor = PRIORITY_COLOR[data.priority];
 

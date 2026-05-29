@@ -10,8 +10,9 @@ export function buildDagreLayout(
   layoutDir: LayoutDir = 'LR'
 ): { rfNodes: Node[]; rfEdges: Edge[] } {
   const dims = NODE_DIMS[mode];
-  const ranksep = layoutDir === 'LR' ? dims.lrRanksep : dims.tbRanksep;
-  const nodesep = layoutDir === 'LR' ? dims.lrNodesep : dims.tbNodesep;
+  const isHorizontal = layoutDir === 'LR' || layoutDir === 'RL';
+  const ranksep = isHorizontal ? dims.lrRanksep : dims.tbRanksep;
+  const nodesep = isHorizontal ? dims.lrNodesep : dims.tbNodesep;
 
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));

@@ -1,5 +1,5 @@
 export type DisplayMode = 'compact' | 'comfortable';
-export type LayoutDir  = 'LR' | 'TB';
+export type LayoutDir  = 'LR' | 'RL' | 'TB';
 
 export const NODE_DIMS: Record<DisplayMode, {
   width: number;

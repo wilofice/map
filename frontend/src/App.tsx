@@ -118,7 +118,14 @@ export default function App() {
                 className={`toolbar-btn ${layoutDir === 'LR' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
                 title="Horizontal — root left, children right"
               >
-                ← → LR
+                → LR
+              </button>
+              <button
+                onClick={() => setLayoutDir('RL')}
+                className={`toolbar-btn ${layoutDir === 'RL' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
+                title="Reverse horizontal — leaves left, root right"
+              >
+                ← RL
               </button>
               <button
                 onClick={() => setLayoutDir('TB')}
