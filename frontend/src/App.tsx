@@ -12,6 +12,7 @@ export default function App() {
     expandAll, collapseAll,
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
+    nodeStyle, setNodeStyle,
     selectedNodeId,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -126,6 +127,25 @@ export default function App() {
                 title="Vertical — root top, children below"
               >
                 ↓ TB
+              </button>
+
+              {/* Divider */}
+              <span className="w-px h-4 bg-slate-700 mx-1" />
+
+              {/* Node style */}
+              <button
+                onClick={() => setNodeStyle('neon')}
+                className={`toolbar-btn ${nodeStyle === 'neon' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                title="Neon — dark pro with glowing borders"
+              >
+                ⚡ Neon
+              </button>
+              <button
+                onClick={() => setNodeStyle('glass')}
+                className={`toolbar-btn ${nodeStyle === 'glass' ? 'text-cyan-300 bg-cyan-500/10' : ''}`}
+                title="Glass — frosted glass morphism"
+              >
+                🪟 Glass
               </button>
             </div>
           )}

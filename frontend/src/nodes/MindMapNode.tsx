@@ -18,7 +18,7 @@ interface MindMapNodeProps {
 }
 
 const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
-  const { cycleStatus, toggleExpand, addChild, deleteNode, selectedNodeId } = useMindMapStore();
+  const { cycleStatus, toggleExpand, addChild, deleteNode, selectedNodeId, nodeStyle } = useMindMapStore();
 
   const depth      = data.depth_level ?? 0;
   const isRoot     = depth === 0;
@@ -34,21 +34,38 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const priorityColor = PRIORITY_COLOR[data.priority];
   const status        = STATUS_CONFIG[data.status];
 
-  // Depth-based dark backgrounds (neon pro — very dark blue-black)
-  const bgColor   = isRoot ? '#0d1829' : depth === 1 ? '#080e1a' : '#060b16';
   const titleSize = isRoot ? 'text-[14px] font-semibold' : depth === 1 ? 'text-[13px] font-medium' : 'text-[12px]';
   const titleWrap = mode === 'comfortable' ? 'whitespace-normal break-words leading-snug' : 'truncate leading-tight';
   const px        = isRoot ? 'px-3' : 'px-2';
   const py        = isRoot ? 'py-2.5' : 'py-2';
   const minH      = isRoot ? 'min-h-[44px]' : 'min-h-[40px]';
+  const isActive  = selected || isSelected;
 
-  // Neon glow: border shadow tinted by priority color
-  const nodeShadow = selected || isSelected
+  // ── NEON style ──────────────────────────────────────────────────────────────
+  const neonBgBase = isRoot ? '#0d1829' : depth === 1 ? '#080e1a' : '#060b16';
+  const neonBg     = `radial-gradient(ellipse 55% 100% at 0% 50%, ${priorityColor}14 0%, ${neonBgBase} 55%)`;
+  const neonShadow = isActive
     ? `0 0 0 1.5px #3b82f6, 0 0 18px rgba(59,130,246,0.5), 0 0 8px ${priorityColor}50`
     : `0 0 10px ${priorityColor}28, inset 0 1px 0 rgba(255,255,255,0.04)`;
+  const neonBorder = isActive ? '#3b82f6' : '#152035';
 
-  // Subtle priority-color bleed from the left edge
-  const nodeBg = `radial-gradient(ellipse 55% 100% at 0% 50%, ${priorityColor}14 0%, ${bgColor} 55%)`;
+  // ── GLASS style ─────────────────────────────────────────────────────────────
+  const glassBg     = isRoot
+    ? 'rgba(20, 40, 80, 0.55)'
+    : depth === 1
+      ? 'rgba(12, 24, 52, 0.45)'
+      : 'rgba(8, 16, 38, 0.40)';
+  const glassShadow = isActive
+    ? `0 0 0 1.5px rgba(255,255,255,0.4), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), 0 0 20px ${priorityColor}35`
+    : `0 4px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0.5px rgba(255,255,255,0.05)`;
+  const glassBorder = isActive ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.10)';
+
+  // ── Pick active style ────────────────────────────────────────────────────────
+  const isGlass     = nodeStyle === 'glass';
+  const nodeBg      = isGlass ? glassBg      : neonBg;
+  const nodeShadow  = isGlass ? glassShadow  : neonShadow;
+  const nodeBorder  = isGlass ? glassBorder  : neonBorder;
+  const nodeBlur    = isGlass ? 'blur(14px)' : undefined;
 
   return (
     <div className="relative group" style={{ width: nodeWidth }}>
@@ -62,7 +79,9 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
         className="rounded-lg border transition-all duration-200"
         style={{
           background: nodeBg,
-          borderColor: selected || isSelected ? '#3b82f6' : '#152035',
+          backdropFilter: nodeBlur,
+          WebkitBackdropFilter: nodeBlur,
+          borderColor: nodeBorder,
           borderLeftWidth: isRoot ? 5 : 4,
           borderLeftColor: priorityColor,
           boxShadow: nodeShadow,

@@ -4,7 +4,7 @@ import { api } from '../hooks/useApi';
 import { buildDagreLayout } from '../layout/dagreLayout';
 import { STATUS_CYCLE } from '../types/NodeTypes';
 import type { MindMapNodeData, NodeStatus, Project } from '../types/NodeTypes';
-import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
+import type { DisplayMode, LayoutDir, NodeStyle } from '../config/nodeDimensions';
 import { v4 as uuidv4 } from 'uuid';
 
 interface MindMapState {
@@ -18,6 +18,7 @@ interface MindMapState {
   error: string | null;
   displayMode: DisplayMode;
   layoutDir: LayoutDir;
+  nodeStyle: NodeStyle;
   selectedNodeId: string | null;
 
   loadProjects: () => Promise<void>;
@@ -31,6 +32,7 @@ interface MindMapState {
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
+  setNodeStyle: (style: NodeStyle) => void;
   setSelectedNodeId: (id: string | null) => void;
 }
 
@@ -52,8 +54,9 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   rfEdges: [],
   loading: false,
   error: null,
-  displayMode: 'comfortable',   // full text by default
+  displayMode: 'comfortable',
   layoutDir: 'LR',
+  nodeStyle: 'neon',
   selectedNodeId: null,
 
   async loadProjects() {
@@ -185,6 +188,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     const { rawNodes, expandedIds, displayMode } = get();
     const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, dir);
     set({ layoutDir: dir, rfNodes, rfEdges });
+  },
+
+  setNodeStyle(style) {
+    set({ nodeStyle: style });
   },
 
   setSelectedNodeId(id) {

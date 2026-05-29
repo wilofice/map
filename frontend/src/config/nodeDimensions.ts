@@ -1,5 +1,6 @@
 export type DisplayMode = 'compact' | 'comfortable';
 export type LayoutDir  = 'LR' | 'TB';
+export type NodeStyle  = 'neon' | 'glass';
 
 export const NODE_DIMS: Record<DisplayMode, {
   width: number;
