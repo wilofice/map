@@ -9,12 +9,12 @@ const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const os = require('os');
-const XMLSanitizer = require('./xml-sanitizer');
-const { MindMapConverter } = require('./mindmap-models');
-const { PureJSONHandler } = require('./pure-json-models');
+const XMLSanitizer = require('./backend/xml-sanitizer');
+const { MindMapConverter } = require('./backend/mindmap-models');
+const { PureJSONHandler } = require('./backend/pure-json-models');
 
 // SQLite Database Integration
-const DatabaseManager = require('./db-manager');
+const DatabaseManager = require('./backend/db-manager');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
