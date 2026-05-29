@@ -73,8 +73,9 @@ export function buildDagreLayout(
     .filter((n) => n.parent_id && visibleIds.has(n.parent_id))
     .map((n) => {
       const depth = n.depth_level ?? 1;
-      // Edge color fades from bright blue (depth 1) → teal (depth 2) → slate (deeper)
-      const edgeColor = depth <= 1 ? '#3b82f6' : depth === 2 ? '#0ea5e9' : '#475569';
+      // Depth-based color: blue → cyan → indigo — all neon
+      const edgeColor = depth <= 1 ? '#3b82f6' : depth === 2 ? '#22d3ee' : '#818cf8';
+      const glowSize  = depth <= 1 ? 5 : 3;
       return {
         id: `e-${n.parent_id}-${n.id}`,
         source: n.parent_id as string,
@@ -84,7 +85,7 @@ export function buildDagreLayout(
         style: {
           stroke: edgeColor,
           strokeWidth: depth <= 1 ? 2 : 1.5,
-          filter: `drop-shadow(0 0 4px ${edgeColor}66)`,
+          filter: `drop-shadow(0 0 ${glowSize}px ${edgeColor}99)`,
         },
       };
     });

@@ -26,15 +26,15 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0f1117] text-slate-200">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#060a14] text-slate-200">
 
       {/* Sidebar — project list */}
       <aside
-        className={`flex flex-col border-r border-slate-700/60 bg-[#13192a] transition-all duration-200 shrink-0 ${
+        className={`flex flex-col border-r border-[#1e3a5f]/60 bg-[#080e1a] transition-all duration-200 shrink-0 ${
           sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/60">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e3a5f]/60">
           <span className="font-semibold text-slate-100 text-sm tracking-wide">🧠 Mind Maps</span>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -68,7 +68,7 @@ export default function App() {
       <div className="flex flex-col flex-1 min-w-0">
 
         {/* Top bar */}
-        <header className="flex items-center gap-2 px-3 py-2 border-b border-slate-700/60 bg-[#13192a] shrink-0">
+        <header className="flex items-center gap-2 px-3 py-2 border-b border-[#1e3a5f]/60 bg-[#080e1a] shrink-0">
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}

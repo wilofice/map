@@ -54,10 +54,10 @@ function FlowCanvas() {
       minZoom={0.08}
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
-      style={{ background: '#0f1117' }}
+      style={{ background: '#060a14' }}
     >
-      <Controls style={{ background: '#13192a', border: '1px solid #2d3a52' }} />
-      <Background variant={BackgroundVariant.Dots} color="#1e2a3a" gap={22} size={1} />
+      <Controls style={{ background: '#080e1a', border: '1px solid #1e3a5f' }} />
+      <Background variant={BackgroundVariant.Dots} color="#0f2040" gap={24} size={1} />
     </ReactFlow>
   );
 }
