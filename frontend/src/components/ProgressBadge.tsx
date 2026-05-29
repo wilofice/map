@@ -33,7 +33,7 @@ export default function ProgressBadge() {
 
   return (
     <div
-      className="absolute bottom-16 left-3 z-10 select-none cursor-pointer"
+      className="absolute bottom-4 right-4 z-10 select-none cursor-pointer"
       onClick={() => setOpen(o => !o)}
       title={open ? 'Click to collapse' : 'Click for breakdown'}
     >

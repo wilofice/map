@@ -71,14 +71,23 @@ export function buildDagreLayout(
 
   const rfEdges: Edge[] = visibleNodes
     .filter((n) => n.parent_id && visibleIds.has(n.parent_id))
-    .map((n) => ({
-      id: `e-${n.parent_id}-${n.id}`,
-      source: n.parent_id as string,
-      target: n.id,
-      type: 'smoothstep',
-      style: { stroke: '#334155', strokeWidth: 1.5 },
-      animated: false,
-    }));
+    .map((n) => {
+      const depth = n.depth_level ?? 1;
+      // Edge color fades from bright blue (depth 1) → teal (depth 2) → slate (deeper)
+      const edgeColor = depth <= 1 ? '#3b82f6' : depth === 2 ? '#0ea5e9' : '#475569';
+      return {
+        id: `e-${n.parent_id}-${n.id}`,
+        source: n.parent_id as string,
+        target: n.id,
+        type: 'smoothstep',
+        animated: true,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: depth <= 1 ? 2 : 1.5,
+          filter: `drop-shadow(0 0 4px ${edgeColor}66)`,
+        },
+      };
+    });
 
   return { rfNodes, rfEdges };
 }

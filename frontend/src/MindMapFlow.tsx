@@ -1,7 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import {
   ReactFlow,
-  MiniMap,
   Controls,
   Background,
   BackgroundVariant,
@@ -57,16 +56,6 @@ function FlowCanvas() {
       proOptions={{ hideAttribution: true }}
       style={{ background: '#0f1117' }}
     >
-      <MiniMap
-        nodeColor={(node) => {
-          const d = node.data as { priority?: string };
-          if (d.priority === 'high') return '#f87171';
-          if (d.priority === 'medium') return '#facc15';
-          return '#4ade80';
-        }}
-        style={{ background: '#13192a', border: '1px solid #2d3a52' }}
-        maskColor="rgba(15,17,23,0.7)"
-      />
       <Controls style={{ background: '#13192a', border: '1px solid #2d3a52' }} />
       <Background variant={BackgroundVariant.Dots} color="#1e2a3a" gap={22} size={1} />
     </ReactFlow>
