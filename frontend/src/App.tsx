@@ -12,7 +12,6 @@ export default function App() {
     expandAll, collapseAll,
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
-    nodeStyle, setNodeStyle,
     selectedNodeId,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -27,38 +26,38 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#060a14] text-slate-200">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f4f4f4] text-[#161616]">
 
       {/* Sidebar — project list */}
       <aside
-        className={`flex flex-col border-r border-[#1e3a5f]/60 bg-[#080e1a] transition-all duration-200 shrink-0 ${
+        className={`flex flex-col border-r border-[#e0e0e0] bg-white transition-all duration-200 shrink-0 ${
           sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e3a5f]/60">
-          <span className="font-semibold text-slate-100 text-sm tracking-wide">🧠 Mind Maps</span>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#e0e0e0]">
+          <span className="font-semibold text-[#161616] text-sm tracking-wide">🧠 Mind Maps</span>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="text-slate-500 hover:text-white text-lg leading-none transition-colors"
+            className="text-[#8d8d8d] hover:text-[#161616] text-lg leading-none transition-colors"
           >×</button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {projects.length === 0 && (
-            <p className="text-xs text-slate-500 p-2">No projects. Make sure the server is running on :3000.</p>
+            <p className="text-xs text-[#a8a8a8] p-2">No projects. Make sure the server is running on :3000.</p>
           )}
           {projects.map((p: Project) => (
             <button
               key={p.id}
               onClick={() => handleSelectProject(p.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm mb-1 transition-colors ${
+              className={`w-full text-left px-3 py-2 rounded text-sm mb-1 transition-colors ${
                 currentProject?.id === p.id
-                  ? 'bg-blue-600/80 text-white'
-                  : 'text-slate-300 hover:bg-slate-700/50'
+                  ? 'bg-[#0f62fe] text-white'
+                  : 'text-[#525252] hover:bg-[#e8e8e8]'
               }`}
             >
               <div className="font-medium truncate">{p.name}</div>
               {p.description && (
-                <div className="text-xs text-slate-400 truncate mt-0.5">{p.description}</div>
+                <div className="text-xs text-[#6f6f6f] truncate mt-0.5">{p.description}</div>
               )}
             </button>
           ))}
@@ -69,21 +68,21 @@ export default function App() {
       <div className="flex flex-col flex-1 min-w-0">
 
         {/* Top bar */}
-        <header className="flex items-center gap-2 px-3 py-2 border-b border-[#1e3a5f]/60 bg-[#080e1a] shrink-0">
+        <header className="flex items-center gap-2 px-3 py-2 border-b border-[#e0e0e0] bg-white shrink-0">
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-700/50 transition-colors text-sm"
+              className="text-[#6f6f6f] hover:text-[#161616] px-2 py-1 rounded hover:bg-[#e8e8e8] transition-colors text-sm"
               title="Open project list"
             >☰</button>
           )}
 
-          <span className="text-sm font-semibold text-slate-100 truncate">
+          <span className="text-sm font-semibold text-[#161616] truncate">
             {currentProject ? currentProject.name : 'No project selected'}
           </span>
 
-          {loading && <span className="text-xs text-blue-400 animate-pulse">Loading…</span>}
-          {error && <span className="text-xs text-red-400 truncate max-w-xs" title={error}>⚠ {error}</span>}
+          {loading && <span className="text-xs text-[#0f62fe] animate-pulse">Loading…</span>}
+          {error && <span className="text-xs text-[#da1e28] truncate max-w-xs" title={error}>⚠ {error}</span>}
 
           {currentProject && (
             <div className="flex items-center gap-1 ml-2">
@@ -92,65 +91,46 @@ export default function App() {
               <button onClick={collapseAll} className="toolbar-btn" title="Collapse all">⊟</button>
 
               {/* Divider */}
-              <span className="w-px h-4 bg-slate-700 mx-1" />
+              <span className="w-px h-4 bg-[#e0e0e0] mx-1" />
 
               {/* Full text / Compact toggle */}
               <button
                 onClick={() => setDisplayMode('comfortable')}
-                className={`toolbar-btn ${displayMode === 'comfortable' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                className={`toolbar-btn ${displayMode === 'comfortable' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
                 title="Full text — wider nodes, titles fully visible"
               >
                 Full text
               </button>
               <button
                 onClick={() => setDisplayMode('compact')}
-                className={`toolbar-btn ${displayMode === 'compact' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                className={`toolbar-btn ${displayMode === 'compact' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
                 title="Compact — smaller nodes, titles truncated"
               >
                 Compact
               </button>
 
               {/* Divider */}
-              <span className="w-px h-4 bg-slate-700 mx-1" />
+              <span className="w-px h-4 bg-[#e0e0e0] mx-1" />
 
               {/* Layout direction */}
               <button
                 onClick={() => setLayoutDir('LR')}
-                className={`toolbar-btn ${layoutDir === 'LR' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                className={`toolbar-btn ${layoutDir === 'LR' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
                 title="Horizontal — root left, children right"
               >
                 ← → LR
               </button>
               <button
                 onClick={() => setLayoutDir('TB')}
-                className={`toolbar-btn ${layoutDir === 'TB' ? 'text-blue-400 bg-blue-500/15' : ''}`}
+                className={`toolbar-btn ${layoutDir === 'TB' ? 'text-[#0f62fe] bg-[#0f62fe]/10' : ''}`}
                 title="Vertical — root top, children below"
               >
                 ↓ TB
               </button>
-
-              {/* Divider */}
-              <span className="w-px h-4 bg-slate-700 mx-1" />
-
-              {/* Node style */}
-              <button
-                onClick={() => setNodeStyle('neon')}
-                className={`toolbar-btn ${nodeStyle === 'neon' ? 'text-blue-400 bg-blue-500/15' : ''}`}
-                title="Neon — dark pro with glowing borders"
-              >
-                ⚡ Neon
-              </button>
-              <button
-                onClick={() => setNodeStyle('glass')}
-                className={`toolbar-btn ${nodeStyle === 'glass' ? 'text-cyan-300 bg-cyan-500/10' : ''}`}
-                title="Glass — frosted glass morphism"
-              >
-                🪟 Glass
-              </button>
             </div>
           )}
 
-          <div className="ml-auto text-xs text-slate-600">React Flow</div>
+          <div className="ml-auto text-xs text-[#a8a8a8]">React Flow</div>
         </header>
 
         {/* Canvas + Detail Panel row */}
@@ -158,16 +138,16 @@ export default function App() {
           <div className="flex-1 relative min-w-0">
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-blue-400 animate-pulse text-sm">Loading project…</span>
+                <span className="text-[#0f62fe] animate-pulse text-sm">Loading project…</span>
               </div>
             ) : !currentProject ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                 <div className="text-5xl opacity-20">🧠</div>
-                <p className="text-slate-500 text-sm">Select a project from the sidebar.</p>
+                <p className="text-[#6f6f6f] text-sm">Select a project from the sidebar.</p>
                 {!sidebarOpen && (
                   <button
                     onClick={() => setSidebarOpen(true)}
-                    className="text-sm px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-white transition-colors"
+                    className="text-sm px-4 py-2 bg-[#0f62fe] hover:bg-[#0043ce] rounded text-white transition-colors"
                   >
                     Open project list
                   </button>
