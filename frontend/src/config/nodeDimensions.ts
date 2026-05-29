@@ -8,14 +8,14 @@ export const NODE_DIMS: Record<DisplayMode, {
 }> = {
   compact: {
     width:   220,
-    height:  52,
+    height:  44,   // header row only: min-h-[40px] + border
     ranksep: 50,
-    nodesep: 14,
+    nodesep: 16,
   },
   comfortable: {
     width:   320,
-    height:  88,   // generous to absorb 2-line wrapped titles
+    height:  68,   // header row with 2-line wrapped title
     ranksep: 64,
-    nodesep: 22,
+    nodesep: 20,
   },
 };
