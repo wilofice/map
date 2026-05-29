@@ -9,7 +9,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const text = await res.text();
     throw new Error(`API ${path} → ${res.status}: ${text}`);
   }
-  return res.json() as Promise<T>;
+  // Handle empty bodies (204 No Content, etc.)
+  const text = await res.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export const api = {

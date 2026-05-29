@@ -52,12 +52,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { project, nodes } = await api.getProjectWithNodes(id);
-      await api.selectProject(id);
-      // Expand the root node(s) by default
-      const rootIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
-      const expandedIds = rootIds;
+      // Expand root nodes by default
+      const expandedIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
       const { rfNodes, rfEdges } = reLayout(nodes, expandedIds);
+      // Set project data immediately so the canvas appears
       set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false });
+      // Persist selection fire-and-forget — never block or crash the UI for this
+      api.selectProject(id).catch(() => {});
     } catch (e) {
       set({ error: String(e), loading: false });
     }

@@ -87,7 +87,11 @@ export default function App() {
 
         {/* Canvas */}
         <div className="flex-1 relative">
-          {!currentProject && !loading ? (
+          {loading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-blue-400 animate-pulse text-sm">Loading project…</span>
+            </div>
+          ) : !currentProject ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="text-4xl">🧠</div>
               <p className="text-slate-400 text-sm">Select a project from the sidebar to view its mind map.</p>

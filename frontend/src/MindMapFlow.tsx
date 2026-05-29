@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -15,7 +15,6 @@ import '@xyflow/react/dist/style.css';
 
 import MindMapNode from './nodes/MindMapNode';
 import { useMindMapStore } from './store/mindMapStore';
-import { useEffect } from 'react';
 
 const nodeTypes: NodeTypes = {
   mindMapNode: MindMapNode as unknown as NodeTypes['mindMapNode'],
