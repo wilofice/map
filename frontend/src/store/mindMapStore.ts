@@ -105,9 +105,18 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     const node = rawNodes.find((n) => n.id === id);
     if (!node) return;
     const nextStatus: NodeStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(node.status) + 1) % STATUS_CYCLE.length];
+
+    // Collect node + all descendants recursively
+    const toUpdate = new Set<string>();
+    const collect = (nid: string) => {
+      toUpdate.add(nid);
+      rawNodes.filter((n) => n.parent_id === nid).forEach((c) => collect(c.id));
+    };
+    collect(id);
+
     try {
-      await api.updateNode(id, { status: nextStatus });
-      const updated = rawNodes.map((n) => (n.id === id ? { ...n, status: nextStatus } : n));
+      await Promise.all([...toUpdate].map((nid) => api.updateNode(nid, { status: nextStatus })));
+      const updated = rawNodes.map((n) => toUpdate.has(n.id) ? { ...n, status: nextStatus } : n);
       const { rfNodes, rfEdges } = reLayout(updated, expandedIds, displayMode, layoutDir);
       set({ rawNodes: updated, rfNodes, rfEdges });
     } catch (e) {
