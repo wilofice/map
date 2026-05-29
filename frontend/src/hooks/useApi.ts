@@ -46,6 +46,10 @@ export const api = {
     return request(`/api/db/nodes/${id}`, { method: 'DELETE' });
   },
 
+  deleteProject(id: string): Promise<void> {
+    return request(`/api/db/projects/${id}`, { method: 'DELETE' });
+  },
+
   selectProject(id: string): Promise<void> {
     return request(`/api/db/projects/${id}/select`, { method: 'POST' });
   },

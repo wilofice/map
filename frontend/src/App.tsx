@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useMindMapStore } from './store/mindMapStore';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
@@ -8,13 +8,45 @@ import type { Project } from './types/NodeTypes';
 export default function App() {
   const {
     projects, currentProject, loading, error,
-    loadProjects, loadProject,
+    loadProjects, loadProject, deleteProjects,
     expandAll, collapseAll,
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
     selectedNodeId,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [manageMode, setManageMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitManage = useCallback(() => {
+    setManageMode(false);
+    setSelected(new Set());
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selected.size === 0) return;
+    const names = projects
+      .filter(p => selected.has(p.id))
+      .map(p => `• ${p.name}`)
+      .join('\n');
+    if (!window.confirm(`Delete ${selected.size} map(s)?\n\n${names}`)) return;
+    await deleteProjects([...selected]);
+    exitManage();
+  }, [selected, projects, deleteProjects, exitManage]);
+
+  const handleDeleteOne = useCallback(async (id: string, name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${name}"?`)) return;
+    await deleteProjects([id]);
+  }, [deleteProjects]);
 
   useEffect(() => {
     loadProjects();
@@ -36,32 +68,97 @@ export default function App() {
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#e0e0e0]">
           <span className="font-semibold text-[#161616] text-sm tracking-wide">🧠 Mind Maps</span>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="text-[#8d8d8d] hover:text-[#161616] text-lg leading-none transition-colors"
-          >×</button>
+          <div className="flex items-center gap-1">
+            {manageMode ? (
+              <button
+                onClick={exitManage}
+                className="text-xs text-[#525252] hover:text-[#161616] px-2 py-0.5 rounded hover:bg-[#e8e8e8] transition-colors"
+              >Cancel</button>
+            ) : (
+              <button
+                onClick={() => setManageMode(true)}
+                className="text-[#8d8d8d] hover:text-[#161616] text-xs px-2 py-0.5 rounded hover:bg-[#e8e8e8] transition-colors"
+                title="Manage / delete maps"
+              >Manage</button>
+            )}
+            <button
+              onClick={() => { setSidebarOpen(false); exitManage(); }}
+              className="text-[#8d8d8d] hover:text-[#161616] text-lg leading-none transition-colors ml-1"
+            >×</button>
+          </div>
         </div>
+
         <div className="flex-1 overflow-y-auto p-2">
           {projects.length === 0 && (
             <p className="text-xs text-[#a8a8a8] p-2">No projects. Make sure the server is running on :3000.</p>
           )}
           {projects.map((p: Project) => (
-            <button
-              key={p.id}
-              onClick={() => handleSelectProject(p.id)}
-              className={`w-full text-left px-3 py-2 rounded text-sm mb-1 transition-colors ${
-                currentProject?.id === p.id
-                  ? 'bg-[#0f62fe] text-white'
-                  : 'text-[#525252] hover:bg-[#e8e8e8]'
-              }`}
-            >
-              <div className="font-medium truncate">{p.name}</div>
-              {p.description && (
-                <div className="text-xs text-[#6f6f6f] truncate mt-0.5">{p.description}</div>
+            <div key={p.id} className="relative group mb-1">
+              {manageMode ? (
+                /* ── Manage mode row ── */
+                <label className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer transition-colors ${
+                  selected.has(p.id) ? 'bg-[#fff1f1]' : 'hover:bg-[#e8e8e8]'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(p.id)}
+                    onChange={() => toggleSelect(p.id)}
+                    className="accent-[#da1e28] shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[#161616] truncate">{p.name}</div>
+                    {p.description && (
+                      <div className="text-xs text-[#6f6f6f] truncate">{p.description}</div>
+                    )}
+                  </div>
+                </label>
+              ) : (
+                /* ── Normal row ── */
+                <button
+                  onClick={() => handleSelectProject(p.id)}
+                  className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                    currentProject?.id === p.id
+                      ? 'bg-[#0f62fe] text-white'
+                      : 'text-[#525252] hover:bg-[#e8e8e8]'
+                  }`}
+                >
+                  <div className="font-medium truncate">{p.name}</div>
+                  {p.description && (
+                    <div className={`text-xs truncate mt-0.5 ${currentProject?.id === p.id ? 'text-blue-100' : 'text-[#6f6f6f]'}`}>
+                      {p.description}
+                    </div>
+                  )}
+                </button>
               )}
-            </button>
+
+              {/* Quick delete — hover trash icon (normal mode only) */}
+              {!manageMode && (
+                <button
+                  onClick={(e) => handleDeleteOne(p.id, p.name, e)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[#fff1f1] text-[#8d8d8d] hover:text-[#da1e28] text-xs"
+                  title={`Delete "${p.name}"`}
+                >🗑</button>
+              )}
+            </div>
           ))}
         </div>
+
+        {/* Manage mode footer */}
+        {manageMode && (
+          <div className="shrink-0 border-t border-[#e0e0e0] p-2">
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selected.size === 0}
+              className={`w-full py-1.5 rounded text-sm font-medium transition-colors ${
+                selected.size > 0
+                  ? 'bg-[#da1e28] text-white hover:bg-[#b81922]'
+                  : 'bg-[#f4f4f4] text-[#a8a8a8] cursor-not-allowed'
+              }`}
+            >
+              {selected.size > 0 ? `Delete ${selected.size} map${selected.size > 1 ? 's' : ''}` : 'Select maps to delete'}
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main area */}

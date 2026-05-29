@@ -29,6 +29,7 @@ interface MindMapState {
   addChild: (parentId: string) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
+  deleteProjects: (ids: string[]) => Promise<void>;
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -179,6 +180,21 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const updated = rawNodes.map((n) => (n.id === id ? { ...n, ...patch } : n));
       const { rfNodes, rfEdges } = reLayout(updated, expandedIds, displayMode, layoutDir);
       set({ rawNodes: updated, rfNodes, rfEdges });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  async deleteProjects(ids) {
+    try {
+      await Promise.all(ids.map((id) => api.deleteProject(id)));
+      const { projects, currentProject } = get();
+      const remaining = projects.filter((p) => !ids.includes(p.id));
+      const wasCurrent = currentProject && ids.includes(currentProject.id);
+      set({
+        projects: remaining,
+        ...(wasCurrent ? { currentProject: null, rawNodes: [], rfNodes: [], rfEdges: [], selectedNodeId: null } : {}),
+      });
     } catch (e) {
       set({ error: String(e) });
     }
