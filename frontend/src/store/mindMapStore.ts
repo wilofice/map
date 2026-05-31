@@ -19,6 +19,7 @@ interface MindMapState {
   displayMode: DisplayMode;
   layoutDir: LayoutDir;
   selectedNodeId: string | null;
+  detailPanelOpen: boolean;
 
   loadProjects: () => Promise<void>;
   loadProject: (id: string) => Promise<void>;
@@ -33,6 +34,8 @@ interface MindMapState {
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setDetailPanelOpen: (open: boolean) => void;
+  toggleDetailPanel: () => void;
 }
 
 function reLayout(
@@ -56,6 +59,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   displayMode: 'comfortable',
   layoutDir: 'LR',
   selectedNodeId: null,
+  detailPanelOpen: false,
 
   async loadProjects() {
     try {
@@ -67,7 +71,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   async loadProject(id) {
-    set({ loading: true, error: null, selectedNodeId: null });
+    set({ loading: true, error: null, selectedNodeId: null, detailPanelOpen: false });
     try {
       const { nodes, ...project } = await api.getProjectWithNodes(id);
       const expandedIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
@@ -214,5 +218,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setSelectedNodeId(id) {
     set({ selectedNodeId: id });
+  },
+
+  setDetailPanelOpen(open) {
+    set({ detailPanelOpen: open });
+  },
+
+  toggleDetailPanel() {
+    set((s) => ({ detailPanelOpen: !s.detailPanelOpen }));
   },
 }));

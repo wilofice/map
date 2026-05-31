@@ -6,6 +6,39 @@ import { api } from '../hooks/useApi';
 
 const PRIORITY_CYCLE: NodePriority[] = ['low', 'medium', 'high'];
 
+// ─── Collapsible section wrapper ────────────────────────────────────────────
+
+function CollapsibleSection({
+  title,
+  children,
+}: {
+  title: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-[#1e1e1e]">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2.5
+          text-left hover:bg-[rgba(244,244,244,0.03)] transition-colors group"
+      >
+        <span className="text-[10px] font-semibold text-[#6f6f6f] uppercase tracking-wide">
+          {title}
+        </span>
+        <span
+          className={`text-[#3d3d3d] group-hover:text-[#525252] transition-transform duration-150 text-sm leading-none
+            ${open ? 'rotate-90' : ''}`}
+        >›</span>
+      </button>
+      {open && <div className="px-4 pb-3">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Audio section ────────────────────────────────────────────────────────
+
 function AudioSection({ nodeId }: { nodeId: string }) {
   const [files, setFiles] = useState<NodeAudioFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -26,12 +59,10 @@ function AudioSection({ nodeId }: { nodeId: string }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Revoke previous object URL when it changes
   useEffect(() => {
     return () => { if (pendingUrl) URL.revokeObjectURL(pendingUrl); };
   }, [pendingUrl]);
 
-  // Clear timer on unmount
   useEffect(() => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
@@ -120,7 +151,6 @@ function AudioSection({ nodeId }: { nodeId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] font-semibold text-[#6f6f6f] uppercase tracking-wide">🎵 Audio</div>
         <div className="flex items-center gap-1.5">
           {!isRecording && !pendingBlob && (
             <>
@@ -157,7 +187,6 @@ function AudioSection({ nodeId }: { nodeId: string }) {
 
       {micError && <p className="text-[11px] text-[#fa4d56] mb-2">{micError}</p>}
 
-      {/* Pending recording: preview before saving */}
       {pendingBlob && pendingUrl && (
         <div className="bg-[#1a1a1a] border border-[#4589ff44] rounded p-2 mb-2">
           <div className="text-[10px] text-[#4589ff] font-medium mb-1.5">Preview recording</div>
@@ -202,10 +231,7 @@ function AudioSection({ nodeId }: { nodeId: string }) {
               <div className="flex items-center gap-1.5 text-[11px] text-[#f1c21b]">
                 <span>⚠</span>
                 <span className="flex-1">File not found on disk</span>
-                <button
-                  onClick={() => remove(f.id)}
-                  className="text-[10px] text-[#fa4d56] hover:underline"
-                >Remove</button>
+                <button onClick={() => remove(f.id)} className="text-[10px] text-[#fa4d56] hover:underline">Remove</button>
               </div>
             ) : (
               <audio controls className="w-full h-7" style={{ colorScheme: 'dark' }}>
@@ -219,13 +245,7 @@ function AudioSection({ nodeId }: { nodeId: string }) {
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10px] font-semibold text-[#6f6f6f] uppercase tracking-wide mb-1">
-      {children}
-    </div>
-  );
-}
+// ─── Shared field helpers ────────────────────────────────────────────────────
 
 function FieldInput({
   value, placeholder, onSave, multiline = false, monospace = false,
@@ -268,16 +288,18 @@ function FieldInput({
   );
 }
 
+// ─── Main panel ──────────────────────────────────────────────────────────────
+
 export default function DetailPanel() {
-  const { rawNodes, selectedNodeId, setSelectedNodeId, cycleStatus, updateNodeField } = useMindMapStore();
+  const { rawNodes, selectedNodeId, cycleStatus, updateNodeField, setDetailPanelOpen } = useMindMapStore();
 
   if (!selectedNodeId) return null;
   const node = rawNodes.find((n) => n.id === selectedNodeId);
   if (!node) return null;
 
-  const status     = STATUS_CONFIG[node.status];
-  const nextStatus: NodeStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(node.status) + 1) % STATUS_CYCLE.length];
-  const priorityColor = PRIORITY_COLOR[node.priority];
+  const status       = STATUS_CONFIG[node.status];
+  const nextStatus: NodeStatus   = STATUS_CYCLE[(STATUS_CYCLE.indexOf(node.status) + 1) % STATUS_CYCLE.length];
+  const priorityColor            = PRIORITY_COLOR[node.priority];
   const nextPriority: NodePriority = PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(node.priority) + 1) % PRIORITY_CYCLE.length];
 
   const save = (patch: Parameters<typeof updateNodeField>[1]) => updateNodeField(node.id, patch);
@@ -285,22 +307,22 @@ export default function DetailPanel() {
 
   return (
     <aside className="flex flex-col w-80 shrink-0 border-l border-[#2a2a2a] bg-[#161616] overflow-hidden">
-      {/* Header */}
+
+      {/* ── Header (always visible) ─────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a] shrink-0">
         <span className="text-xs font-semibold text-[#6f6f6f] uppercase tracking-wide">Node detail</span>
         <button
-          onClick={() => setSelectedNodeId(null)}
+          onClick={() => setDetailPanelOpen(false)}
           className="text-[#6f6f6f] hover:text-[#f4f4f4] text-lg leading-none transition-colors"
           title="Close (Esc)"
         >×</button>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+      {/* ── Sections ────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
 
         {/* Title */}
-        <div>
-          <Label>Title</Label>
+        <CollapsibleSection title="Title">
           <textarea
             key={node.id + '-title'}
             defaultValue={node.title}
@@ -311,40 +333,37 @@ export default function DetailPanel() {
             style={{ borderLeftColor: priorityColor, borderLeftWidth: 3, paddingLeft: 8 }}
             onBlur={(e) => { if (e.target.value.trim()) save({ title: e.target.value.trim() }); }}
           />
-        </div>
+        </CollapsibleSection>
 
-        {/* Status + Priority */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => cycleStatus(node.id)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:brightness-110"
-            style={{ color: status.color, borderColor: `${status.color}55`, background: `${status.color}18` }}
-            title={`Click → ${nextStatus}`}
-          >
-            <span className={`w-2 h-2 rounded-full ${status.pulse ? 'animate-pulse' : ''}`} style={{ background: status.color }} />
-            {status.label}
-          </button>
-
-          <button
-            onClick={() => save({ priority: nextPriority })}
-            className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:brightness-110"
-            style={{ color: priorityColor, borderColor: `${priorityColor}55`, background: `${priorityColor}18` }}
-            title={`Click → ${nextPriority}`}
-          >
-            {PRIORITY_LABEL[node.priority]}
-          </button>
-
-          {node.depth_level !== undefined && (
-            <span className="text-[10px] text-[#525252]">L{node.depth_level}</span>
-          )}
-        </div>
-
-        <hr className="border-[#2a2a2a]" />
+        {/* Status & Priority */}
+        <CollapsibleSection title="Status & Priority">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => cycleStatus(node.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:brightness-110"
+              style={{ color: status.color, borderColor: `${status.color}55`, background: `${status.color}18` }}
+              title={`Click → ${nextStatus}`}
+            >
+              <span className={`w-2 h-2 rounded-full ${status.pulse ? 'animate-pulse' : ''}`} style={{ background: status.color }} />
+              {status.label}
+            </button>
+            <button
+              onClick={() => save({ priority: nextPriority })}
+              className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:brightness-110"
+              style={{ color: priorityColor, borderColor: `${priorityColor}55`, background: `${priorityColor}18` }}
+              title={`Click → ${nextPriority}`}
+            >
+              {PRIORITY_LABEL[node.priority]}
+            </button>
+            {node.depth_level !== undefined && (
+              <span className="text-[10px] text-[#525252]">L{node.depth_level}</span>
+            )}
+          </div>
+        </CollapsibleSection>
 
         {/* Timeline */}
-        <div>
-          <Label>Timeline</Label>
-          <div className="grid grid-cols-2 gap-2">
+        <CollapsibleSection title="Timeline">
+          <div className="grid grid-cols-2 gap-2 mb-2">
             <div>
               <div className="text-[10px] text-[#525252] mb-0.5">Start</div>
               <input
@@ -352,8 +371,7 @@ export default function DetailPanel() {
                 type="date"
                 defaultValue={node.start_date ?? ''}
                 className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 h-7 text-xs
-                  text-[#c6c6c6] outline-none focus:border-[#4589ff] transition-colors
-                  [color-scheme:dark]"
+                  text-[#c6c6c6] outline-none focus:border-[#4589ff] transition-colors [color-scheme:dark]"
                 onBlur={(e) => save({ start_date: e.target.value || undefined })}
               />
             </div>
@@ -364,13 +382,12 @@ export default function DetailPanel() {
                 type="date"
                 defaultValue={node.end_date ?? ''}
                 className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 h-7 text-xs
-                  text-[#c6c6c6] outline-none focus:border-[#4589ff] transition-colors
-                  [color-scheme:dark]"
+                  text-[#c6c6c6] outline-none focus:border-[#4589ff] transition-colors [color-scheme:dark]"
                 onBlur={(e) => save({ end_date: e.target.value || undefined })}
               />
             </div>
           </div>
-          <div className="mt-2">
+          <div>
             <div className="text-[10px] text-[#525252] mb-0.5">Days spent</div>
             <input
               key={node.id + '-days'}
@@ -383,28 +400,26 @@ export default function DetailPanel() {
               onBlur={(e) => save({ days_spent: e.target.value ? Number(e.target.value) : undefined })}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        <hr className="border-[#2a2a2a]" />
-
-        {/* Comment */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label>💬 Comment</Label>
-            {node.content && <button onClick={() => copy(node.content!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff]">copy</button>}
+        {/* Comment — larger font, auto-resize */}
+        <CollapsibleSection title="💬 Comment">
+          <div className="flex items-center justify-between mb-1.5">
+            {node.content && (
+              <button onClick={() => copy(node.content!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff] ml-auto">
+                copy
+              </button>
+            )}
           </div>
-          <FieldInput
+          <CommentTextarea
             key={node.id + '-content'}
             value={node.content ?? ''}
-            placeholder="Add a note…"
-            multiline
             onSave={(v) => save({ content: v })}
           />
-        </div>
+        </CollapsibleSection>
 
         {/* Code */}
-        <div>
-          <Label>{'</>'} Code</Label>
+        <CollapsibleSection title="</> Code">
           <input
             key={node.id + '-lang'}
             type="text"
@@ -430,13 +445,16 @@ export default function DetailPanel() {
               onSave={(v) => save({ code_content: v })}
             />
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* AI Prompt */}
-        <div>
+        <CollapsibleSection title="🤖 AI Prompt">
           <div className="flex items-center justify-between mb-1">
-            <Label>🤖 AI Prompt</Label>
-            {node.task_prompt && <button onClick={() => copy(node.task_prompt!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff]">copy</button>}
+            {node.task_prompt && (
+              <button onClick={() => copy(node.task_prompt!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff] ml-auto">
+                copy
+              </button>
+            )}
           </div>
           <FieldInput
             key={node.id + '-prompt'}
@@ -445,13 +463,16 @@ export default function DetailPanel() {
             multiline
             onSave={(v) => save({ task_prompt: v })}
           />
-        </div>
+        </CollapsibleSection>
 
         {/* CLI */}
-        <div>
+        <CollapsibleSection title="$ CLI Command">
           <div className="flex items-center justify-between mb-1">
-            <Label>$ CLI Command</Label>
-            {node.cli_command && <button onClick={() => copy(node.cli_command!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff]">copy</button>}
+            {node.cli_command && (
+              <button onClick={() => copy(node.cli_command!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff] ml-auto">
+                copy
+              </button>
+            )}
           </div>
           <textarea
             key={node.id + '-cli'}
@@ -463,23 +484,75 @@ export default function DetailPanel() {
               focus:border-[#198038] transition-colors"
             onBlur={(e) => save({ cli_command: e.target.value || undefined })}
           />
-        </div>
+        </CollapsibleSection>
 
-        <hr className="border-[#2a2a2a]" />
+        {/* Audio */}
+        <CollapsibleSection title="🎵 Audio">
+          <AudioSection nodeId={node.id} />
+        </CollapsibleSection>
 
-        {/* Audio attachments */}
-        <AudioSection nodeId={node.id} />
+      </div>
 
-        {/* Node ID */}
-        <div className="pt-2 border-t border-[#2a2a2a]">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#525252]">ID</span>
-            <button onClick={() => copy(node.id)} className="text-[10px] text-[#525252] hover:text-[#8d8d8d] font-mono truncate max-w-[200px]">
-              {node.id}
-            </button>
-          </div>
+      {/* ── Footer: Node ID (always visible) ────────────────────────── */}
+      <div className="px-4 py-2 border-t border-[#1e1e1e] shrink-0">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-[#525252]">ID</span>
+          <button
+            onClick={() => copy(node.id)}
+            className="text-[10px] text-[#525252] hover:text-[#8d8d8d] font-mono truncate max-w-[200px]"
+          >
+            {node.id}
+          </button>
         </div>
       </div>
+
     </aside>
+  );
+}
+
+// ─── Comment textarea (separate component for auto-resize ref) ───────────────
+
+function CommentTextarea({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize on mount (fires when section opens)
+  const mountRef = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, []);
+
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  const handleBlur = () => {
+    const v = ref.current?.value ?? '';
+    if (v !== value) onSave(v);
+  };
+
+  return (
+    <textarea
+      ref={(el) => {
+        (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+        mountRef(el);
+      }}
+      defaultValue={value}
+      placeholder="Add a note…"
+      rows={3}
+      onInput={handleInput}
+      onBlur={handleBlur}
+      className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-3 py-2
+        text-[#d4d4d4] placeholder-[#525252] resize-none outline-none
+        focus:border-[#4589ff] focus:bg-[#222] transition-colors leading-relaxed"
+      style={{
+        fontSize: '15px',
+        maxHeight: '70vh',
+        overflowY: 'auto',
+      }}
+    />
   );
 }

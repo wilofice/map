@@ -23,18 +23,20 @@ const nodeTypes: NodeTypes = {
 function FlowCanvas() {
   const {
     rfNodes: storeNodes, rfEdges: storeEdges,
-    selectedNodeId, rawNodes,
-    setSelectedNodeId, toggleExpand,
+    selectedNodeId, rawNodes, detailPanelOpen,
+    setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
   } = useMindMapStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const { fitView, getViewport, setViewport } = useReactFlow();
 
   // Refs so the keydown handler never goes stale without re-registering
-  const selectedRef = useRef(selectedNodeId);
-  const rawNodesRef = useRef(rawNodes);
-  selectedRef.current  = selectedNodeId;
-  rawNodesRef.current  = rawNodes;
+  const selectedRef        = useRef(selectedNodeId);
+  const rawNodesRef        = useRef(rawNodes);
+  const detailPanelOpenRef = useRef(detailPanelOpen);
+  selectedRef.current        = selectedNodeId;
+  rawNodesRef.current        = rawNodes;
+  detailPanelOpenRef.current = detailPanelOpen;
 
   useEffect(() => {
     setNodes(storeNodes);
@@ -65,11 +67,26 @@ function FlowCanvas() {
       }
 
       if (e.key === 'Escape') {
-        setSelectedNodeId(null);
+        // Close panel first; if already closed, deselect node
+        if (detailPanelOpenRef.current) {
+          setDetailPanelOpen(false);
+        } else {
+          setSelectedNodeId(null);
+        }
         return;
       }
 
-      if (e.key === 'Enter' || e.key === ' ') {
+      // Enter — toggle the detail panel for the selected node
+      if (e.key === 'Enter') {
+        if (tag === 'BUTTON') return;
+        if (!selectedRef.current) return;
+        e.preventDefault();
+        toggleDetailPanel();
+        return;
+      }
+
+      // Space — expand/collapse children
+      if (e.key === ' ') {
         if (tag === 'BUTTON') return;
         const id = selectedRef.current;
         if (!id) return;
@@ -82,7 +99,7 @@ function FlowCanvas() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand, setSelectedNodeId, getViewport, setViewport]);
+  }, [toggleExpand, toggleDetailPanel, setDetailPanelOpen, setSelectedNodeId, getViewport, setViewport]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);

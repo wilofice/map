@@ -12,7 +12,7 @@ export default function App() {
     expandAll, collapseAll,
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
-    selectedNodeId,
+    selectedNodeId, detailPanelOpen,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [manageMode, setManageMode] = useState(false);
@@ -313,8 +313,8 @@ export default function App() {
             {currentProject && !loading && <ProgressBadge />}
           </div>
 
-          {/* Detail panel slides in when a node is selected */}
-          {selectedNodeId && currentProject && <DetailPanel />}
+          {/* Detail panel — only shown when explicitly opened via Enter */}
+          {detailPanelOpen && selectedNodeId && currentProject && <DetailPanel />}
         </div>
       </div>
     </div>
