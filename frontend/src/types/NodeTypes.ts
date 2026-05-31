@@ -45,6 +45,19 @@ export interface Collection {
 // The server returns { ...projectFields, nodes } (flat object, not nested)
 export type ProjectWithNodes = Project & { nodes: MindMapNodeData[] };
 
+export interface NodeAudioFile {
+  id: string;
+  node_id: string;
+  project_id: string;
+  original_filename: string;
+  stored_filename: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
+  created_at?: string;
+  missing?: boolean;
+}
+
 export const STATUS_CYCLE: NodeStatus[] = ['pending', 'in-progress', 'completed'];
 
 export const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; pulse: boolean }> = {

@@ -1,4 +1,4 @@
-import type { Collection, MindMapNodeData, Project, ProjectWithNodes } from '../types/NodeTypes';
+import type { Collection, MindMapNodeData, NodeAudioFile, Project, ProjectWithNodes } from '../types/NodeTypes';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -52,6 +52,25 @@ export const api = {
 
   selectProject(id: string): Promise<void> {
     return request(`/api/db/projects/${id}/select`, { method: 'POST' });
+  },
+
+  getNodeAudio(nodeId: string): Promise<NodeAudioFile[]> {
+    return request(`/api/db/nodes/${nodeId}/audio`);
+  },
+
+  async uploadNodeAudio(nodeId: string, file: File): Promise<NodeAudioFile> {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`/api/db/nodes/${nodeId}/audio`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Upload failed: ${text}`);
+    }
+    return res.json() as Promise<NodeAudioFile>;
+  },
+
+  deleteNodeAudio(audioId: string): Promise<void> {
+    return request(`/api/db/audio/${audioId}`, { method: 'DELETE' });
   },
 
   getLastProject(): Promise<{ project_id: string } | null> {

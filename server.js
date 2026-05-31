@@ -54,8 +54,24 @@ const log = (...args) => {
 
 const app = express();
 
+// Audio upload setup
+const multer = require('multer');
+const fsSync = require('fs');
+const uploadsDir = path.join(__dirname, 'uploads', 'audio');
+fs.mkdir(uploadsDir, { recursive: true }).catch(() => {});
+
+const audioUpload = multer({
+    storage: multer.diskStorage({
+        destination: (_, __, cb) => cb(null, uploadsDir),
+        filename:    (_, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
+    }),
+    limits: { fileSize: 200 * 1024 * 1024 },
+    fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('audio/'))
+});
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static('.'));
 
 const parser = new xml2js.Parser({ 
@@ -2098,6 +2114,68 @@ app.delete('/api/db/nodes/:id', (req, res) => {
     } catch (error) {
         console.error('Error deleting node:', error);
         res.status(500).json({ error: 'Failed to delete node' });
+    }
+});
+
+// ===== AUDIO FILE ENDPOINTS =====
+
+// List audio files for a node (with on-disk existence check)
+app.get('/api/db/nodes/:nodeId/audio', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const files = db.getNodeAudioFiles(req.params.nodeId);
+        const result = files.map(f => ({
+            ...f,
+            missing: !fsSync.existsSync(path.join(__dirname, f.file_path))
+        }));
+        res.json(result);
+    } catch (error) {
+        console.error('Error listing audio files:', error);
+        res.status(500).json({ error: 'Failed to list audio files' });
+    }
+});
+
+// Upload audio file to a node
+app.post('/api/db/nodes/:nodeId/audio', audioUpload.single('file'), (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
+
+    try {
+        const node = db.getNode(req.params.nodeId);
+        if (!node) return res.status(404).json({ error: 'Node not found' });
+
+        const record = db.createAudioFile({
+            id:                uuidv4(),
+            node_id:           req.params.nodeId,
+            project_id:        node.project_id,
+            original_filename: req.file.originalname,
+            stored_filename:   req.file.filename,
+            file_path:         `uploads/audio/${req.file.filename}`,
+            file_size:         req.file.size,
+            mime_type:         req.file.mimetype,
+        });
+        res.status(201).json(record);
+    } catch (error) {
+        console.error('Error uploading audio file:', error);
+        res.status(500).json({ error: 'Failed to save audio file' });
+    }
+});
+
+// Delete an audio file (DB record + file on disk)
+app.delete('/api/db/audio/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const record = db.getAudioFile(req.params.id);
+        if (!record) return res.status(404).json({ error: 'Audio file not found' });
+
+        const filePath = path.join(__dirname, record.file_path);
+        try { fsSync.unlinkSync(filePath); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+
+        db.deleteAudioFile(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting audio file:', error);
+        res.status(500).json({ error: 'Failed to delete audio file' });
     }
 });
 

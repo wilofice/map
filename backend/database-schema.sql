@@ -67,6 +67,23 @@ INSERT OR IGNORE INTO app_state (key, value) VALUES
     ('ui_add_buttons_visible', 'true'),
     ('working_directory', '.');
 
+-- Audio file attachments per node (files stored on disk, metadata here)
+CREATE TABLE IF NOT EXISTS node_audio_files (
+    id                TEXT PRIMARY KEY,
+    node_id           TEXT NOT NULL,
+    project_id        TEXT NOT NULL,
+    original_filename TEXT NOT NULL,
+    stored_filename   TEXT NOT NULL,
+    file_path         TEXT NOT NULL,
+    file_size         INTEGER,
+    mime_type         TEXT,
+    created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (node_id)    REFERENCES nodes(id)    ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_audio_files_node_id ON node_audio_files(node_id);
+
 -- Trigger to update updated_at timestamp
 CREATE TRIGGER IF NOT EXISTS update_projects_timestamp 
     AFTER UPDATE ON projects

@@ -1,9 +1,103 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { STATUS_CONFIG, STATUS_CYCLE, PRIORITY_COLOR, PRIORITY_LABEL } from '../types/NodeTypes';
-import type { NodeStatus, NodePriority } from '../types/NodeTypes';
+import type { NodeStatus, NodePriority, NodeAudioFile } from '../types/NodeTypes';
+import { api } from '../hooks/useApi';
 
 const PRIORITY_CYCLE: NodePriority[] = ['low', 'medium', 'high'];
+
+function AudioSection({ nodeId }: { nodeId: string }) {
+  const [files, setFiles] = useState<NodeAudioFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const load = useCallback(() => {
+    api.getNodeAudio(nodeId).then(setFiles).catch(() => {});
+  }, [nodeId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    if (!picked.length) return;
+    setUploading(true);
+    try {
+      const results = await Promise.all(picked.map(f => api.uploadNodeAudio(nodeId, f)));
+      setFiles(prev => [...prev, ...results]);
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const remove = async (id: string) => {
+    await api.deleteNodeAudio(id);
+    setFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  const fmtSize = (bytes?: number) =>
+    !bytes ? '' : bytes < 1024 * 1024
+      ? `${(bytes / 1024).toFixed(0)} KB`
+      : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-semibold text-[#6f6f6f] uppercase tracking-wide">🎵 Audio</div>
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="text-[10px] px-2 py-0.5 rounded border border-[#393939] text-[#8d8d8d]
+            hover:text-[#f4f4f4] hover:border-[#4589ff] transition-colors disabled:opacity-40"
+        >
+          {uploading ? 'Uploading…' : '+ Attach'}
+        </button>
+        <input ref={inputRef} type="file" accept="audio/*" multiple className="hidden" onChange={handleFiles} />
+      </div>
+
+      {files.length === 0 && (
+        <p className="text-[11px] text-[#525252] italic">No audio attached.</p>
+      )}
+
+      <div className="space-y-2">
+        {files.map(f => (
+          <div key={f.id} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded p-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] text-[#c6c6c6] truncate flex-1 mr-2" title={f.original_filename}>
+                {f.original_filename}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {f.file_size && <span className="text-[10px] text-[#525252]">{fmtSize(f.file_size)}</span>}
+                <button
+                  onClick={() => remove(f.id)}
+                  className="text-[#525252] hover:text-[#fa4d56] text-xs w-4 h-4 flex items-center justify-center transition-colors"
+                  title="Delete"
+                >×</button>
+              </div>
+            </div>
+            {f.missing ? (
+              <div className="flex items-center gap-1.5 text-[11px] text-[#f1c21b]">
+                <span>⚠</span>
+                <span className="flex-1">File not found on disk</span>
+                <button
+                  onClick={() => remove(f.id)}
+                  className="text-[10px] text-[#fa4d56] hover:underline"
+                >Remove</button>
+              </div>
+            ) : (
+              <audio
+                controls
+                src={`/${f.file_path}`}
+                className="w-full h-7"
+                style={{ colorScheme: 'dark' }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -250,6 +344,11 @@ export default function DetailPanel() {
             onBlur={(e) => save({ cli_command: e.target.value || undefined })}
           />
         </div>
+
+        <hr className="border-[#2a2a2a]" />
+
+        {/* Audio attachments */}
+        <AudioSection nodeId={node.id} />
 
         {/* Node ID */}
         <div className="pt-2 border-t border-[#2a2a2a]">

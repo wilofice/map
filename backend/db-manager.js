@@ -275,6 +275,21 @@ class DatabaseManager {
             `),
             deleteProjectActivity: this.db.prepare(`
                 DELETE FROM project_activity WHERE project_id = ?
+            `),
+
+            // Audio file attachments
+            getNodeAudio: this.db.prepare(`
+                SELECT * FROM node_audio_files WHERE node_id = ? ORDER BY created_at ASC
+            `),
+            getAudioById: this.db.prepare(`
+                SELECT * FROM node_audio_files WHERE id = ?
+            `),
+            insertAudio: this.db.prepare(`
+                INSERT INTO node_audio_files (id, node_id, project_id, original_filename, stored_filename, file_path, file_size, mime_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `),
+            deleteAudio: this.db.prepare(`
+                DELETE FROM node_audio_files WHERE id = ?
             `)
         };
     }
@@ -718,6 +733,49 @@ class DatabaseManager {
             return { success: true };
         } catch (error) {
             console.error('Error deleting project activity:', error);
+            throw error;
+        }
+    }
+
+    // Audio File Operations
+    getNodeAudioFiles(nodeId) {
+        try {
+            return this.stmts.getNodeAudio.all(nodeId);
+        } catch (error) {
+            console.error('Error getting node audio files:', error);
+            throw error;
+        }
+    }
+
+    getAudioFile(id) {
+        try {
+            return this.stmts.getAudioById.get(id);
+        } catch (error) {
+            console.error('Error getting audio file:', error);
+            throw error;
+        }
+    }
+
+    createAudioFile(data) {
+        try {
+            this.stmts.insertAudio.run(
+                data.id, data.node_id, data.project_id,
+                data.original_filename, data.stored_filename,
+                data.file_path, data.file_size ?? null, data.mime_type ?? null
+            );
+            return this.stmts.getAudioById.get(data.id);
+        } catch (error) {
+            console.error('Error creating audio file record:', error);
+            throw error;
+        }
+    }
+
+    deleteAudioFile(id) {
+        try {
+            this.stmts.deleteAudio.run(id);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting audio file record:', error);
             throw error;
         }
     }
