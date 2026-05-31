@@ -60,6 +60,28 @@ const fsSync = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads', 'audio');
 fs.mkdir(uploadsDir, { recursive: true }).catch(() => {});
 
+// HTTPS setup — self-signed cert, generated once and reused
+const https = require('https');
+const selfsigned = require('selfsigned');
+const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
+const certsDir = path.join(__dirname, 'certs');
+const certFile = path.join(certsDir, 'cert.pem');
+const keyFile  = path.join(certsDir, 'key.pem');
+
+let httpsOptions;
+if (fsSync.existsSync(certFile) && fsSync.existsSync(keyFile)) {
+    httpsOptions = { cert: fsSync.readFileSync(certFile), key: fsSync.readFileSync(keyFile) };
+} else {
+    fsSync.mkdirSync(certsDir, { recursive: true });
+    const pems = selfsigned.generate([{ name: 'commonName', value: 'mindmap-local' }], {
+        days: 3650, keySize: 2048,
+    });
+    fsSync.writeFileSync(certFile, pems.cert);
+    fsSync.writeFileSync(keyFile, pems.private);
+    httpsOptions = { cert: pems.cert, key: pems.private };
+    console.log('🔐 Generated new self-signed certificate (valid 10 years) → certs/');
+}
+
 const audioUpload = multer({
     storage: multer.diskStorage({
         destination: (_, __, cb) => cb(null, uploadsDir),
@@ -2743,10 +2765,22 @@ app.get('/api/ai/search', (req, res) => {
     }
 });
 
+// HTTPS server (for remote machines — required for microphone/MediaRecorder access)
+const httpsServer = https.createServer(httpsOptions, app);
+httpsServer.listen(HTTPS_PORT, HOST, () => {
+    const host = HOST || '0.0.0.0';
+    console.log(`🔒 HTTPS server: https://<your-ip>:${HTTPS_PORT}  (accept the browser warning once)`);
+});
+httpsServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`⚠️  HTTPS port ${HTTPS_PORT} is already in use — HTTPS disabled`);
+    }
+});
+
 const serverInstance = app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
     console.log(`🚀 Mind Map Server started successfully!`);
-    console.log(`📍 Server URL: http://${host}:${PORT}`);
+    console.log(`📍 HTTP  server: http://${host}:${PORT}`);
     console.log(`📂 Working Directory: ${workingRootDir}`);
     console.log(`💾 Database: ${db ? '✅ Connected' : '❌ Not available (file-only mode)'}`);
     console.log(`🔧 Debug Mode: ${DEBUG ? 'ON' : 'OFF'}`);

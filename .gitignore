@@ -6297,3 +6297,6 @@ mind_maps.db
 *.db
 *.db-shm
 *.db-wal
+
+# TLS certificates (auto-generated, never commit private keys)
+certs/
