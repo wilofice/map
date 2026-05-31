@@ -33,3 +33,25 @@ html, body, #root {
   color: #f4f4f4;
   background: rgba(244, 244, 244, 0.08);
 }
+
+/* React Flow dark controls override */
+.react-flow__controls {
+  background: #1e1e1e !important;
+  border: 1px solid #393939 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+.react-flow__controls-button {
+  background: #1e1e1e !important;
+  border-bottom: 1px solid #2a2a2a !important;
+  fill: #8d8d8d !important;
+  color: #8d8d8d !important;
+}
+.react-flow__controls-button:hover {
+  background: #2d2d2d !important;
+  fill: #f4f4f4 !important;
+  color: #f4f4f4 !important;
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}

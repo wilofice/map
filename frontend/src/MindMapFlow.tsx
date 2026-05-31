@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -21,16 +21,44 @@ const nodeTypes: NodeTypes = {
 };
 
 function FlowCanvas() {
-  const { rfNodes: storeNodes, rfEdges: storeEdges, setSelectedNodeId } = useMindMapStore();
+  const {
+    rfNodes: storeNodes, rfEdges: storeEdges,
+    selectedNodeId, rawNodes,
+    setSelectedNodeId, toggleExpand,
+  } = useMindMapStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const { fitView } = useReactFlow();
+
+  // Refs so the keydown handler never goes stale without re-registering
+  const selectedRef = useRef(selectedNodeId);
+  const rawNodesRef = useRef(rawNodes);
+  selectedRef.current  = selectedNodeId;
+  rawNodesRef.current  = rawNodes;
 
   useEffect(() => {
     setNodes(storeNodes);
     setEdges(storeEdges);
     setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
   }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
+
+  // Enter = expand / collapse selected node
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+      const id = selectedRef.current;
+      if (!id) return;
+      const hasChildren = rawNodesRef.current.some(n => n.parent_id === id);
+      if (hasChildren) {
+        e.preventDefault();
+        toggleExpand(id);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [toggleExpand]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
@@ -49,6 +77,7 @@ function FlowCanvas() {
       nodeTypes={nodeTypes}
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick}
+      colorMode="dark"
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.08}
@@ -56,7 +85,7 @@ function FlowCanvas() {
       proOptions={{ hideAttribution: true }}
       style={{ background: '#111111' }}
     >
-      <Controls style={{ background: '#1e1e1e', border: '1px solid #393939' }} />
+      <Controls />
       <Background variant={BackgroundVariant.Dots} color="#2d2d2d" gap={24} size={1} />
     </ReactFlow>
   );
