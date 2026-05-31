@@ -10,19 +10,19 @@ export const NODE_DIMS: Record<DisplayMode, {
   tbNodesep: number;  // horizontal gap between siblings (TB)
 }> = {
   compact: {
-    width:      220,
-    height:      52,
-    lrRanksep:   50,
-    lrNodesep:   16,
-    tbRanksep:   32,
-    tbNodesep:   20,
+    width:      240,
+    height:      60,
+    lrRanksep:   55,
+    lrNodesep:   18,
+    tbRanksep:   36,
+    tbNodesep:   22,
   },
   comfortable: {
-    width:      320,
-    height:     100,
-    lrRanksep:   64,
-    lrNodesep:   20,
-    tbRanksep:   40,
-    tbNodesep:   24,
+    width:      340,
+    height:     116,
+    lrRanksep:   72,
+    lrNodesep:   24,
+    tbRanksep:   48,
+    tbNodesep:   28,
   },
 };

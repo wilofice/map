@@ -32,11 +32,11 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
 
   const priorityColor = PRIORITY_COLOR[data.priority];
 
-  const titleSize = isRoot ? 'text-[15px] font-semibold' : depth === 1 ? 'text-[14px] font-medium' : 'text-[13px]';
+  const titleSize = isRoot ? 'text-[18px] font-semibold' : depth === 1 ? 'text-[18px] font-medium' : 'text-[18px]';
   const titleWrap = mode === 'comfortable' ? 'whitespace-normal break-words leading-snug' : 'truncate leading-tight';
   const px  = isRoot ? 'px-3' : 'px-2.5';
-  const py  = isRoot ? 'py-2.5' : 'py-2';
-  const minH = isRoot ? 'min-h-[48px]' : 'min-h-[40px]';
+  const py  = isRoot ? 'py-3' : 'py-2.5';
+  const minH = isRoot ? 'min-h-[56px]' : 'min-h-[48px]';
 
   const cardShadow = isActive
     ? `0 0 0 2px #4589ff, 0 2px 12px rgba(0,0,0,0.5)`
