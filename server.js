@@ -66,7 +66,7 @@ const audioUpload = multer({
         filename:    (_, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
     }),
     limits: { fileSize: 200 * 1024 * 1024 },
-    fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('audio/'))
+    fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('audio/') || file.mimetype === 'video/webm')
 });
 
 app.use(cors());

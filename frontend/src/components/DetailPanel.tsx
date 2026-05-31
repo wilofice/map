@@ -9,13 +9,32 @@ const PRIORITY_CYCLE: NodePriority[] = ['low', 'medium', 'high'];
 function AudioSection({ nodeId }: { nodeId: string }) {
   const [files, setFiles] = useState<NodeAudioFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
+
   const inputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(() => {
     api.getNodeAudio(nodeId).then(setFiles).catch(() => {});
   }, [nodeId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Revoke previous object URL when it changes
+  useEffect(() => {
+    return () => { if (pendingUrl) URL.revokeObjectURL(pendingUrl); };
+  }, [pendingUrl]);
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
 
   const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
@@ -30,6 +49,62 @@ function AudioSection({ nodeId }: { nodeId: string }) {
     }
   };
 
+  const startRecording = async () => {
+    setMicError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicError('Recording requires HTTPS. Use "+ Attach" to upload files instead.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' });
+        setPendingBlob(blob);
+        setPendingUrl(URL.createObjectURL(blob));
+        setIsRecording(false);
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+      setRecSeconds(0);
+      timerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
+    } catch {
+      setMicError('Microphone access denied.');
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+  };
+
+  const saveRecording = async () => {
+    if (!pendingBlob) return;
+    const mimeType = pendingBlob.type || 'audio/webm';
+    const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'mp4' : 'webm';
+    const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const file = new File([pendingBlob], `recording-${ts}.${ext}`, { type: mimeType });
+    setUploading(true);
+    try {
+      const result = await api.uploadNodeAudio(nodeId, file);
+      setFiles(prev => [...prev, result]);
+      setPendingBlob(null);
+      setPendingUrl(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const discardRecording = () => {
+    setPendingBlob(null);
+    setPendingUrl(null);
+  };
+
   const remove = async (id: string) => {
     await api.deleteNodeAudio(id);
     setFiles(prev => prev.filter(f => f.id !== id));
@@ -40,22 +115,70 @@ function AudioSection({ nodeId }: { nodeId: string }) {
       ? `${(bytes / 1024).toFixed(0)} KB`
       : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
+  const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="text-[10px] font-semibold text-[#6f6f6f] uppercase tracking-wide">🎵 Audio</div>
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="text-[10px] px-2 py-0.5 rounded border border-[#393939] text-[#8d8d8d]
-            hover:text-[#f4f4f4] hover:border-[#4589ff] transition-colors disabled:opacity-40"
-        >
-          {uploading ? 'Uploading…' : '+ Attach'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {!isRecording && !pendingBlob && (
+            <>
+              <button
+                onClick={startRecording}
+                disabled={uploading}
+                className="text-[10px] px-2 py-0.5 rounded border border-[#393939] text-[#8d8d8d]
+                  hover:text-[#fa4d56] hover:border-[#fa4d56] transition-colors disabled:opacity-40"
+                title="Record audio"
+              >🎙 Record</button>
+              <button
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="text-[10px] px-2 py-0.5 rounded border border-[#393939] text-[#8d8d8d]
+                  hover:text-[#f4f4f4] hover:border-[#4589ff] transition-colors disabled:opacity-40"
+              >
+                {uploading ? 'Uploading…' : '+ Attach'}
+              </button>
+            </>
+          )}
+          {isRecording && (
+            <button
+              onClick={stopRecording}
+              className="text-[10px] px-2 py-0.5 rounded border border-[#fa4d56] text-[#fa4d56]
+                hover:bg-[#fa4d5620] transition-colors flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#fa4d56] animate-pulse inline-block" />
+              {fmtTime(recSeconds)}  ■ Stop
+            </button>
+          )}
+        </div>
         <input ref={inputRef} type="file" accept="audio/*" multiple className="hidden" onChange={handleFiles} />
       </div>
 
-      {files.length === 0 && (
+      {micError && <p className="text-[11px] text-[#fa4d56] mb-2">{micError}</p>}
+
+      {/* Pending recording: preview before saving */}
+      {pendingBlob && pendingUrl && (
+        <div className="bg-[#1a1a1a] border border-[#4589ff44] rounded p-2 mb-2">
+          <div className="text-[10px] text-[#4589ff] font-medium mb-1.5">Preview recording</div>
+          <audio controls src={pendingUrl} className="w-full h-7 mb-2" style={{ colorScheme: 'dark' }} />
+          <div className="flex gap-2">
+            <button
+              onClick={saveRecording}
+              disabled={uploading}
+              className="text-[10px] px-3 py-1 rounded bg-[#4589ff] text-white
+                hover:bg-[#78a9ff] transition-colors disabled:opacity-40"
+            >{uploading ? 'Saving…' : 'Save'}</button>
+            <button
+              onClick={discardRecording}
+              className="text-[10px] px-3 py-1 rounded border border-[#393939] text-[#8d8d8d]
+                hover:text-[#f4f4f4] transition-colors"
+            >Discard</button>
+          </div>
+        </div>
+      )}
+
+      {files.length === 0 && !pendingBlob && (
         <p className="text-[11px] text-[#525252] italic">No audio attached.</p>
       )}
 
@@ -85,12 +208,9 @@ function AudioSection({ nodeId }: { nodeId: string }) {
                 >Remove</button>
               </div>
             ) : (
-              <audio
-                controls
-                src={`/${f.file_path}`}
-                className="w-full h-7"
-                style={{ colorScheme: 'dark' }}
-              />
+              <audio controls className="w-full h-7" style={{ colorScheme: 'dark' }}>
+                <source src={`/${f.file_path}`} type={f.mime_type || 'audio/webm'} />
+              </audio>
             )}
           </div>
         ))}

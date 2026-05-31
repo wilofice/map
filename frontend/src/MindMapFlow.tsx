@@ -69,7 +69,7 @@ function FlowCanvas() {
         return;
       }
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === ' ') {
         if (tag === 'BUTTON') return;
         const id = selectedRef.current;
         if (!id) return;
