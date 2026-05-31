@@ -46,9 +46,9 @@ export type ProjectWithNodes = Project & { nodes: MindMapNodeData[] };
 export const STATUS_CYCLE: NodeStatus[] = ['pending', 'in-progress', 'completed'];
 
 export const STATUS_CONFIG: Record<NodeStatus, { label: string; color: string; pulse: boolean }> = {
-  pending:       { label: 'Pending',     color: '#64748b', pulse: false },
-  'in-progress': { label: 'In Progress', color: '#3b82f6', pulse: true  },
-  completed:     { label: 'Done',        color: '#22c55e', pulse: false  },
+  pending:       { label: 'Pending',     color: '#a8a8a8', pulse: false },
+  'in-progress': { label: 'In Progress', color: '#0f62fe', pulse: true  },
+  completed:     { label: 'Done',        color: '#198038', pulse: false  },
 };
 
 export const PRIORITY_COLOR: Record<NodePriority, string> = {

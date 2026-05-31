@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useMindMapStore } from '../store/mindMapStore';
-import { PRIORITY_COLOR } from '../types/NodeTypes';
+import { PRIORITY_COLOR, STATUS_CONFIG } from '../types/NodeTypes';
 import type { MindMapNodeData } from '../types/NodeTypes';
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
 import { NODE_DIMS } from '../config/nodeDimensions';
@@ -77,6 +77,13 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           ) : (
             <span className="w-4 shrink-0" />
           )}
+
+          {/* Status dot */}
+          <span
+            className={`shrink-0 rounded-full${data.status === 'in-progress' ? ' animate-pulse' : ''}`}
+            style={{ width: 7, height: 7, background: STATUS_CONFIG[data.status].color }}
+            title={STATUS_CONFIG[data.status].label}
+          />
 
           {/* Title */}
           <span
