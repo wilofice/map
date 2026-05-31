@@ -7,7 +7,7 @@ import type { Project } from './types/NodeTypes';
 
 export default function App() {
   const {
-    projects, currentProject, loading, error,
+    projects, currentProject, rawNodes, loading, error,
     loadProjects, loadProject, deleteProjects,
     expandAll, collapseAll,
     displayMode, setDisplayMode,
@@ -251,6 +251,36 @@ export default function App() {
               >
                 ↓ TB
               </button>
+
+              {/* Divider */}
+              <span className="w-px h-4 bg-[#2a2a2a] mx-1" />
+
+              {/* Header progress bar */}
+              {(() => {
+                const total = rawNodes.length;
+                if (total === 0) return null;
+                const done  = rawNodes.filter(n => n.status === 'completed').length;
+                const inProg = rawNodes.filter(n => n.status === 'in-progress').length;
+                const pct   = Math.round((done / total) * 100);
+                const color = pct === 100 ? '#42be65' : '#4589ff';
+                return (
+                  <div className="flex items-center gap-2 ml-1">
+                    <div className="w-20 h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: color }}
+                      />
+                    </div>
+                    <span className="text-[11px] tabular-nums" style={{ color }}>
+                      {pct}%
+                    </span>
+                    <span className="text-[10px] text-[#525252] tabular-nums">
+                      {done}/{total}
+                      {inProg > 0 && <span className="text-[#4589ff]"> · {inProg} active</span>}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

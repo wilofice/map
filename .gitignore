@@ -6291,3 +6291,9 @@ node_modules/dotenv/lib/cli-options.js
 node_modules/dotenv/lib/env-options.js
 node_modules/dotenv/lib/main.d.ts
 node_modules/dotenv/lib/main.js
+
+# Database
+mind_maps.db
+*.db
+*.db-shm
+*.db-wal
