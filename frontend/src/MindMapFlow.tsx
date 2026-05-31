@@ -28,7 +28,7 @@ function FlowCanvas() {
   } = useMindMapStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
-  const { fitView, panBy } = useReactFlow();
+  const { fitView, getViewport, setViewport } = useReactFlow();
 
   // Refs so the keydown handler never goes stale without re-registering
   const selectedRef = useRef(selectedNodeId);
@@ -43,12 +43,12 @@ function FlowCanvas() {
   }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
 
   useEffect(() => {
-    const PAN_STEP = 120;
-    const PAN_MAP: Record<string, { x: number; y: number }> = {
-      ArrowRight: { x: -PAN_STEP, y: 0 },
-      ArrowLeft:  { x:  PAN_STEP, y: 0 },
-      ArrowDown:  { x: 0, y: -PAN_STEP },
-      ArrowUp:    { x: 0, y:  PAN_STEP },
+    const PAN_STEP = 150;
+    const PAN_DELTA: Record<string, [number, number]> = {
+      ArrowRight: [-PAN_STEP, 0],
+      ArrowLeft:  [ PAN_STEP, 0],
+      ArrowDown:  [0, -PAN_STEP],
+      ArrowUp:    [0,  PAN_STEP],
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -56,9 +56,11 @@ function FlowCanvas() {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
       // Arrow keys — pan the viewport
-      if (e.key in PAN_MAP) {
+      if (e.key in PAN_DELTA) {
         e.preventDefault();
-        panBy(PAN_MAP[e.key]);
+        const [dx, dy] = PAN_DELTA[e.key];
+        const { x, y, zoom } = getViewport();
+        setViewport({ x: x + dx, y: y + dy, zoom }, { duration: 120 });
         return;
       }
 
@@ -80,7 +82,7 @@ function FlowCanvas() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand, setSelectedNodeId, panBy]);
+  }, [toggleExpand, setSelectedNodeId, getViewport, setViewport]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
