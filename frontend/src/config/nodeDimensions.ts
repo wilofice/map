@@ -11,7 +11,7 @@ export const NODE_DIMS: Record<DisplayMode, {
 }> = {
   compact: {
     width:      220,
-    height:      44,
+    height:      52,
     lrRanksep:   50,
     lrNodesep:   16,
     tbRanksep:   32,
@@ -19,7 +19,7 @@ export const NODE_DIMS: Record<DisplayMode, {
   },
   comfortable: {
     width:      320,
-    height:      90,
+    height:     100,
     lrRanksep:   64,
     lrNodesep:   20,
     tbRanksep:   40,
