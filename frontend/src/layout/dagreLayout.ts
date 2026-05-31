@@ -74,7 +74,7 @@ export function buildDagreLayout(
     .filter((n) => n.parent_id && visibleIds.has(n.parent_id))
     .map((n) => {
       const depth = n.depth_level ?? 1;
-      const edgeColor = depth <= 1 ? '#8d8d8d' : '#c6c6c6';
+      const edgeColor = depth <= 1 ? '#525252' : '#393939';
       return {
         id: `e-${n.parent_id}-${n.id}`,
         source: n.parent_id as string,

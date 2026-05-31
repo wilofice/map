@@ -38,25 +38,25 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const py  = isRoot ? 'py-2' : 'py-1.5';
   const minH = isRoot ? 'min-h-[44px]' : 'min-h-[36px]';
 
-  // Carbon Light card
   const cardShadow = isActive
-    ? `0 0 0 2px #0f62fe, 0 2px 8px rgba(22,22,22,0.12)`
+    ? `0 0 0 2px #4589ff, 0 2px 12px rgba(0,0,0,0.5)`
     : isRoot
-      ? `0 2px 6px rgba(22,22,22,0.09)`
-      : `0 1px 3px rgba(22,22,22,0.07)`;
+      ? `0 2px 8px rgba(0,0,0,0.4)`
+      : `0 1px 4px rgba(0,0,0,0.3)`;
 
   return (
     <div className="relative group" style={{ width: nodeWidth }}>
       <Handle
         type="target"
         position={targetPos}
-        style={{ background: '#c6c6c6', width: 5, height: 5, border: 'none' }}
+        style={{ background: '#525252', width: 5, height: 5, border: 'none' }}
       />
 
       <div
-        className="rounded bg-white border"
+        className="rounded border"
         style={{
-          borderColor: '#e0e0e0',
+          background: '#1e1e1e',
+          borderColor: '#333333',
           borderLeftWidth: isRoot ? 4 : 3,
           borderLeftColor: priorityColor,
           boxShadow: cardShadow,
@@ -69,7 +69,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           {data.hasChildren ? (
             <button
               onClick={(e) => { e.stopPropagation(); toggleExpand(data.id); }}
-              className="text-[#a8a8a8] hover:text-[#161616] text-[10px] w-4 h-4 flex items-center justify-center shrink-0 transition-colors"
+              className="text-[#6f6f6f] hover:text-[#f4f4f4] text-[10px] w-4 h-4 flex items-center justify-center shrink-0 transition-colors"
               title={data.isExpanded ? 'Collapse' : 'Expand'}
             >
               {data.isExpanded ? '▾' : '▸'}
@@ -87,7 +87,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
 
           {/* Title */}
           <span
-            className={`${titleSize} ${titleWrap} text-[#161616] flex-1 select-none`}
+            className={`${titleSize} ${titleWrap} text-[#e8e8e8] flex-1 select-none`}
             title={data.title}
           >
             {data.title}
@@ -97,12 +97,12 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <button
               onClick={(e) => { e.stopPropagation(); addChild(data.id); }}
-              className="text-[11px] text-[#8d8d8d] hover:text-[#198038] w-5 h-5 flex items-center justify-center rounded hover:bg-[#defbe6] transition-colors"
+              className="text-[11px] text-[#6f6f6f] hover:text-[#42be65] w-5 h-5 flex items-center justify-center rounded hover:bg-[#042408] transition-colors"
               title="Add child"
             >+</button>
             <button
               onClick={(e) => { e.stopPropagation(); deleteNode(data.id); }}
-              className="text-[11px] text-[#8d8d8d] hover:text-[#da1e28] w-5 h-5 flex items-center justify-center rounded hover:bg-[#fff1f1] transition-colors"
+              className="text-[11px] text-[#6f6f6f] hover:text-[#fa4d56] w-5 h-5 flex items-center justify-center rounded hover:bg-[#2d0709] transition-colors"
               title="Delete"
             >×</button>
           </div>
@@ -112,7 +112,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       <Handle
         type="source"
         position={sourcePos}
-        style={{ background: '#c6c6c6', width: 5, height: 5, border: 'none' }}
+        style={{ background: '#525252', width: 5, height: 5, border: 'none' }}
       />
     </div>
   );
