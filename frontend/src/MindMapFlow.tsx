@@ -28,7 +28,7 @@ function FlowCanvas() {
   } = useMindMapStore();
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
-  const { fitView } = useReactFlow();
+  const { fitView, panBy } = useReactFlow();
 
   // Refs so the keydown handler never goes stale without re-registering
   const selectedRef = useRef(selectedNodeId);
@@ -42,11 +42,25 @@ function FlowCanvas() {
     setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
   }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
 
-  // Enter = expand / collapse selected node
   useEffect(() => {
+    const PAN_STEP = 120;
+    const PAN_MAP: Record<string, { x: number; y: number }> = {
+      ArrowRight: { x: -PAN_STEP, y: 0 },
+      ArrowLeft:  { x:  PAN_STEP, y: 0 },
+      ArrowDown:  { x: 0, y: -PAN_STEP },
+      ArrowUp:    { x: 0, y:  PAN_STEP },
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      // Arrow keys — pan the viewport
+      if (e.key in PAN_MAP) {
+        e.preventDefault();
+        panBy(PAN_MAP[e.key]);
+        return;
+      }
 
       if (e.key === 'Escape') {
         setSelectedNodeId(null);
@@ -66,7 +80,7 @@ function FlowCanvas() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand, setSelectedNodeId]);
+  }, [toggleExpand, setSelectedNodeId, panBy]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
