@@ -209,7 +209,7 @@ function AudioSection({ nodeId }: { nodeId: string }) {
               </div>
             ) : (
               <audio controls className="w-full h-7" style={{ colorScheme: 'dark' }}>
-                <source src={`/${f.file_path}`} type={f.mime_type || 'audio/webm'} />
+                <source src={`/api/db/audio/${f.id}/stream`} type={f.mime_type || 'audio/webm'} />
               </audio>
             )}
           </div>

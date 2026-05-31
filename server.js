@@ -2161,6 +2161,26 @@ app.post('/api/db/nodes/:nodeId/audio', audioUpload.single('file'), (req, res) =
     }
 });
 
+// Stream an audio file with correct Content-Type headers
+app.get('/api/db/audio/:id/stream', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const record = db.getAudioFile(req.params.id);
+        if (!record) return res.status(404).json({ error: 'Audio file not found' });
+
+        const filePath = path.join(__dirname, record.file_path);
+        if (!fsSync.existsSync(filePath)) return res.status(404).json({ error: 'File not found on disk' });
+
+        const mimeType = record.mime_type || 'audio/webm';
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.sendFile(filePath);
+    } catch (error) {
+        console.error('Error streaming audio file:', error);
+        res.status(500).json({ error: 'Failed to stream audio file' });
+    }
+});
+
 // Delete an audio file (DB record + file on disk)
 app.delete('/api/db/audio/:id', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
