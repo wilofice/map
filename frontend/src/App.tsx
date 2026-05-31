@@ -13,6 +13,8 @@ export default function App() {
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
     selectedNodeId, detailPanelOpen,
+    clickOpensPanel, setClickOpensPanel,
+    mapLocked, setMapLocked,
   } = useMindMapStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [manageMode, setManageMode] = useState(false);
@@ -250,6 +252,27 @@ export default function App() {
                 title="Vertical — root top, children below"
               >
                 ↓ TB
+              </button>
+
+              {/* Divider */}
+              <span className="w-px h-4 bg-[#2a2a2a] mx-1" />
+
+              {/* Map lock toggle */}
+              <button
+                onClick={() => setMapLocked(!mapLocked)}
+                className={`toolbar-btn ${mapLocked ? 'text-[#f4f4f4] bg-[rgba(244,244,244,0.08)]' : 'text-[#f1c21b] bg-[rgba(241,194,27,0.12)]'}`}
+                title={mapLocked ? 'Map locked — nodes cannot be dragged (click to unlock)' : 'Map unlocked — nodes can be dragged (click to lock)'}
+              >
+                {mapLocked ? '🔒 Locked' : '🔓 Unlocked'}
+              </button>
+
+              {/* Click-opens-panel toggle */}
+              <button
+                onClick={() => setClickOpensPanel(!clickOpensPanel)}
+                className={`toolbar-btn ${clickOpensPanel ? 'text-[#4589ff] bg-[rgba(69,137,255,0.12)]' : ''}`}
+                title={clickOpensPanel ? 'Click opens panel — click to disable' : 'Click on node opens panel (off) — click to enable'}
+              >
+                {clickOpensPanel ? '⊡ Panel on click' : '⊡ Panel on click'}
               </button>
 
               {/* Divider */}

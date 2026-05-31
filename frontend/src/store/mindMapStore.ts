@@ -20,6 +20,8 @@ interface MindMapState {
   layoutDir: LayoutDir;
   selectedNodeId: string | null;
   detailPanelOpen: boolean;
+  clickOpensPanel: boolean;
+  mapLocked: boolean;
 
   loadProjects: () => Promise<void>;
   loadProject: (id: string) => Promise<void>;
@@ -36,6 +38,8 @@ interface MindMapState {
   setSelectedNodeId: (id: string | null) => void;
   setDetailPanelOpen: (open: boolean) => void;
   toggleDetailPanel: () => void;
+  setClickOpensPanel: (v: boolean) => void;
+  setMapLocked: (v: boolean) => void;
 }
 
 function reLayout(
@@ -60,6 +64,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   layoutDir: 'LR',
   selectedNodeId: null,
   detailPanelOpen: false,
+  clickOpensPanel: false,
+  mapLocked: true,
 
   async loadProjects() {
     try {
@@ -227,4 +233,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   toggleDetailPanel() {
     set((s) => ({ detailPanelOpen: !s.detailPanelOpen }));
   },
+
+  setClickOpensPanel(v) { set({ clickOpensPanel: v }); },
+  setMapLocked(v) { set({ mapLocked: v }); },
 }));

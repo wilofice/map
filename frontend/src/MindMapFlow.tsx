@@ -24,8 +24,12 @@ function FlowCanvas() {
   const {
     rfNodes: storeNodes, rfEdges: storeEdges,
     selectedNodeId, rawNodes, detailPanelOpen,
+    clickOpensPanel, mapLocked,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
   } = useMindMapStore();
+
+  const clickOpensPanelRef = useRef(clickOpensPanel);
+  clickOpensPanelRef.current = clickOpensPanel;
   const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
   const { fitView, getViewport, setViewport } = useReactFlow();
@@ -103,7 +107,8 @@ function FlowCanvas() {
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
-  }, [setSelectedNodeId]);
+    if (clickOpensPanelRef.current) setDetailPanelOpen(true);
+  }, [setSelectedNodeId, setDetailPanelOpen]);
 
   const handlePaneClick = useCallback(() => {
     setSelectedNodeId(null);
@@ -119,7 +124,7 @@ function FlowCanvas() {
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick}
       colorMode="dark"
-      nodesDraggable={false}
+      nodesDraggable={!mapLocked}
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.08}

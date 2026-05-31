@@ -11,11 +11,13 @@ const PRIORITY_CYCLE: NodePriority[] = ['low', 'medium', 'high'];
 function CollapsibleSection({
   title,
   children,
+  defaultOpen = false,
 }: {
   title: React.ReactNode;
   children: React.ReactNode;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-[#1e1e1e]">
       <button
@@ -322,7 +324,7 @@ export default function DetailPanel() {
       <div className="flex-1 overflow-y-auto">
 
         {/* Title */}
-        <CollapsibleSection title="Title">
+        <CollapsibleSection title="Title" defaultOpen>
           <textarea
             key={node.id + '-title'}
             defaultValue={node.title}
@@ -336,7 +338,7 @@ export default function DetailPanel() {
         </CollapsibleSection>
 
         {/* Status & Priority */}
-        <CollapsibleSection title="Status & Priority">
+        <CollapsibleSection title="Status & Priority" defaultOpen>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => cycleStatus(node.id)}
@@ -403,7 +405,7 @@ export default function DetailPanel() {
         </CollapsibleSection>
 
         {/* Comment — larger font, auto-resize */}
-        <CollapsibleSection title="💬 Comment">
+        <CollapsibleSection title="💬 Comment" defaultOpen>
           <div className="flex items-center justify-between mb-1.5">
             {node.content && (
               <button onClick={() => copy(node.content!)} className="text-[10px] text-[#4589ff] hover:text-[#78a9ff] ml-auto">
