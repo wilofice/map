@@ -19,7 +19,7 @@ export const NODE_DIMS: Record<DisplayMode, {
   },
   comfortable: {
     width:      320,
-    height:      68,
+    height:      90,
     lrRanksep:   64,
     lrNodesep:   20,
     tbRanksep:   40,

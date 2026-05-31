@@ -45,20 +45,28 @@ function FlowCanvas() {
   // Enter = expand / collapse selected node
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Enter') return;
       const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
-      const id = selectedRef.current;
-      if (!id) return;
-      const hasChildren = rawNodesRef.current.some(n => n.parent_id === id);
-      if (hasChildren) {
-        e.preventDefault();
-        toggleExpand(id);
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      if (e.key === 'Escape') {
+        setSelectedNodeId(null);
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (tag === 'BUTTON') return;
+        const id = selectedRef.current;
+        if (!id) return;
+        const hasChildren = rawNodesRef.current.some(n => n.parent_id === id);
+        if (hasChildren) {
+          e.preventDefault();
+          toggleExpand(id);
+        }
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand]);
+  }, [toggleExpand, setSelectedNodeId]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
@@ -78,6 +86,7 @@ function FlowCanvas() {
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick}
       colorMode="dark"
+      nodesDraggable={false}
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.08}

@@ -128,6 +128,26 @@ export default function App() {
                       {p.description}
                     </div>
                   )}
+                  {(p.node_count ?? 0) > 0 && (() => {
+                    const pct = Math.round(((p.completed_count ?? 0) / (p.node_count ?? 1)) * 100);
+                    const isActive = currentProject?.id === p.id;
+                    return (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className={`flex-1 h-1 rounded-full overflow-hidden ${isActive ? 'bg-blue-300/30' : 'bg-[#2a2a2a]'}`}>
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${pct}%`,
+                              background: pct === 100 ? '#42be65' : isActive ? '#93bbff' : '#4589ff',
+                            }}
+                          />
+                        </div>
+                        <span className={`text-[10px] tabular-nums ${isActive ? 'text-blue-200' : 'text-[#525252]'}`}>
+                          {pct}%
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </button>
               )}
 

@@ -174,6 +174,7 @@ class DatabaseManager {
             getAllProjects: this.db.prepare(`
                 SELECT p.*,
                        COUNT(n.id) as node_count,
+                       SUM(CASE WHEN n.status = 'completed' THEN 1 ELSE 0 END) as completed_count,
                        c.name as collection_name
                 FROM projects p
                 LEFT JOIN nodes n ON p.id = n.project_id

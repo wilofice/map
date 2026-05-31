@@ -24,7 +24,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const isRoot    = depth === 0;
   const mode      = data.displayMode ?? 'comfortable';
   const dir       = data.layoutDir ?? 'LR';
-  const nodeWidth = NODE_DIMS[mode].width;
+  const nodeWidth = data.nodeWidth ?? NODE_DIMS[mode].width;
   const isActive  = selected || selectedNodeId === data.id;
 
   const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
