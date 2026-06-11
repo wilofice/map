@@ -55,3 +55,20 @@ html, body, #root {
 .react-flow__controls-button:last-child {
   border-bottom: none !important;
 }
+
+/* Dusk theme overrides for React Flow controls */
+.theme-dusk .react-flow__controls {
+  background: #282a40 !important;
+  border: 1px solid #383a5a !important;
+}
+.theme-dusk .react-flow__controls-button {
+  background: #282a40 !important;
+  border-bottom: 1px solid #383a5a !important;
+  fill: #7272a8 !important;
+  color: #7272a8 !important;
+}
+.theme-dusk .react-flow__controls-button:hover {
+  background: #343660 !important;
+  fill: #e0e2f8 !important;
+  color: #e0e2f8 !important;
+}

@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { PRIORITY_COLOR, STATUS_CONFIG } from '../types/NodeTypes';
+import { themes } from '../theme/themes';
 import type { MindMapNodeData } from '../types/NodeTypes';
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
 import { NODE_DIMS } from '../config/nodeDimensions';
@@ -18,7 +19,8 @@ interface MindMapNodeProps {
 }
 
 const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
-  const { toggleExpand, addChild, deleteNode, selectedNodeId } = useMindMapStore();
+  const { toggleExpand, addChild, deleteNode, selectedNodeId, theme } = useMindMapStore();
+  const t = themes[theme];
 
   const depth     = data.depth_level ?? 0;
   const isRoot    = depth === 0;
@@ -39,7 +41,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const minH = isRoot ? 'min-h-[56px]' : 'min-h-[48px]';
 
   const cardShadow = isActive
-    ? `0 0 0 2px #4589ff, 0 2px 12px rgba(0,0,0,0.5)`
+    ? `0 0 0 2px ${t.selectionRing}, 0 2px 12px rgba(0,0,0,0.5)`
     : isRoot
       ? `0 2px 8px rgba(0,0,0,0.4)`
       : `0 1px 4px rgba(0,0,0,0.3)`;
@@ -49,14 +51,14 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       <Handle
         type="target"
         position={targetPos}
-        style={{ background: '#525252', width: 5, height: 5, border: 'none' }}
+        style={{ background: t.handle, width: 5, height: 5, border: 'none' }}
       />
 
       <div
         className="rounded border"
         style={{
-          background: '#1e1e1e',
-          borderColor: '#333333',
+          background: t.card,
+          borderColor: t.cardBorder,
           borderLeftWidth: isRoot ? 4 : 3,
           borderLeftColor: priorityColor,
           borderRightWidth: isRoot ? 4 : 3,
@@ -71,7 +73,8 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           {data.hasChildren ? (
             <button
               onClick={(e) => { e.stopPropagation(); toggleExpand(data.id); }}
-              className="text-[#6f6f6f] hover:text-[#f4f4f4] text-[10px] w-4 h-4 flex items-center justify-center shrink-0 transition-colors"
+              className="text-[10px] w-4 h-4 flex items-center justify-center shrink-0 transition-colors hover:text-[#f4f4f4]"
+              style={{ color: t.textMuted }}
               title={data.isExpanded ? 'Collapse' : 'Expand'}
             >
               {data.isExpanded ? '▾' : '▸'}
@@ -83,7 +86,8 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
 
           {/* Title */}
           <span
-            className={`${titleSize} ${titleWrap} text-[#e8e8e8] flex-1 select-none`}
+            className={`${titleSize} ${titleWrap} flex-1 select-none`}
+            style={{ color: t.textPrimary }}
             title={data.title}
           >
             {data.title}
@@ -108,7 +112,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       <Handle
         type="source"
         position={sourcePos}
-        style={{ background: '#525252', width: 5, height: 5, border: 'none' }}
+        style={{ background: t.handle, width: 5, height: 5, border: 'none' }}
       />
     </div>
   );

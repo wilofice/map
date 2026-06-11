@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useMindMapStore } from './store/mindMapStore';
+import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
 import ProgressBadge from './components/ProgressBadge';
@@ -15,7 +16,9 @@ export default function App() {
     selectedNodeId, detailPanelOpen,
     clickOpensPanel, setClickOpensPanel,
     mapLocked, setMapLocked,
+    theme, setTheme,
   } = useMindMapStore();
+  const t = themes[theme];
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [manageMode, setManageMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -60,15 +63,16 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#111111] text-[#f4f4f4]">
+    <div className={`flex h-screen w-screen overflow-hidden text-[#f4f4f4] theme-${theme}`} style={{ background: t.shell }}>
 
       {/* Sidebar — project list */}
       <aside
-        className={`flex flex-col border-r border-[#2a2a2a] bg-[#161616] transition-all duration-200 shrink-0 ${
+        className={`flex flex-col border-r transition-all duration-200 shrink-0 ${
           sidebarOpen ? 'w-60' : 'w-0 overflow-hidden'
         }`}
+        style={{ background: t.surface, borderColor: t.border }}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: t.border }}>
           <span className="font-semibold text-[#e8e8e8] text-sm tracking-wide">🧠 Mind Maps</span>
           <div className="flex items-center gap-1">
             {manageMode ? (
@@ -187,7 +191,7 @@ export default function App() {
       <div className="flex flex-col flex-1 min-w-0">
 
         {/* Top bar */}
-        <header className="flex items-center gap-2 px-3 py-2 border-b border-[#2a2a2a] bg-[#161616] shrink-0">
+        <header className="flex items-center gap-2 px-3 py-2 border-b shrink-0" style={{ background: t.surface, borderColor: t.border }}>
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}
@@ -307,7 +311,16 @@ export default function App() {
             </div>
           )}
 
-          <div className="ml-auto text-xs text-[#525252]">React Flow</div>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setTheme(theme === 'ibm' ? 'dusk' : 'ibm')}
+              className="toolbar-btn"
+              title={theme === 'ibm' ? 'Switch to Dusk theme' : 'Switch to IBM theme'}
+            >
+              {theme === 'ibm' ? '🌙 Dusk' : '☀ IBM'}
+            </button>
+            <span className="text-xs text-[#525252]">React Flow</span>
+          </div>
         </header>
 
         {/* Canvas + Detail Panel row */}

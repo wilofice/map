@@ -15,6 +15,7 @@ import '@xyflow/react/dist/style.css';
 
 import MindMapNode from './nodes/MindMapNode';
 import { useMindMapStore } from './store/mindMapStore';
+import { themes } from './theme/themes';
 
 const nodeTypes: NodeTypes = {
   mindMapNode: MindMapNode as unknown as NodeTypes['mindMapNode'],
@@ -24,9 +25,11 @@ function FlowCanvas() {
   const {
     rfNodes: storeNodes, rfEdges: storeEdges,
     selectedNodeId, rawNodes, detailPanelOpen,
-    clickOpensPanel, mapLocked,
+    clickOpensPanel, mapLocked, theme,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
   } = useMindMapStore();
+
+  const t = themes[theme];
 
   const clickOpensPanelRef = useRef(clickOpensPanel);
   clickOpensPanelRef.current = clickOpensPanel;
@@ -130,10 +133,10 @@ function FlowCanvas() {
       minZoom={0.08}
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
-      style={{ background: '#111111' }}
+      style={{ background: t.canvas }}
     >
       <Controls />
-      <Background variant={BackgroundVariant.Dots} color="#2d2d2d" gap={24} size={1} />
+      <Background variant={BackgroundVariant.Dots} color={t.bgDots} gap={24} size={1} />
     </ReactFlow>
   );
 }

@@ -5,6 +5,7 @@ import { buildDagreLayout } from '../layout/dagreLayout';
 import { STATUS_CYCLE } from '../types/NodeTypes';
 import type { MindMapNodeData, NodeStatus, Project } from '../types/NodeTypes';
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
+import type { ThemeKey } from '../theme/themes';
 import { v4 as uuidv4 } from 'uuid';
 
 interface MindMapState {
@@ -22,6 +23,7 @@ interface MindMapState {
   detailPanelOpen: boolean;
   clickOpensPanel: boolean;
   mapLocked: boolean;
+  theme: ThemeKey;
 
   loadProjects: () => Promise<void>;
   loadProject: (id: string) => Promise<void>;
@@ -40,6 +42,7 @@ interface MindMapState {
   toggleDetailPanel: () => void;
   setClickOpensPanel: (v: boolean) => void;
   setMapLocked: (v: boolean) => void;
+  setTheme: (t: ThemeKey) => void;
 }
 
 function reLayout(
@@ -66,6 +69,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   detailPanelOpen: false,
   clickOpensPanel: false,
   mapLocked: true,
+  theme: 'ibm',
 
   async loadProjects() {
     try {
@@ -239,4 +243,5 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setClickOpensPanel(v) { set({ clickOpensPanel: v }); },
   setMapLocked(v) { set({ mapLocked: v }); },
+  setTheme(t) { set({ theme: t }); },
 }));
