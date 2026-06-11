@@ -23,6 +23,9 @@ class DatabaseManager {
             // Create tables if they don't exist
             this.createTables();
 
+            // Run incremental migrations (idempotent)
+            this.runMigrations();
+
             // Prepare statements for better performance
             this.prepareStatements();
 
@@ -128,6 +131,12 @@ class DatabaseManager {
         }
     }
 
+    runMigrations() {
+        const addCol = (sql) => { try { this.db.exec(sql); } catch (_) {} };
+        addCol("ALTER TABLE projects ADD COLUMN layout_dir TEXT DEFAULT 'LR'");
+        addCol("ALTER TABLE projects ADD COLUMN display_mode TEXT DEFAULT 'comfortable'");
+    }
+
     prepareStatements() {
         // Project operations
         this.stmts = {
@@ -186,11 +195,13 @@ class DatabaseManager {
                 UPDATE projects SET last_opened = CURRENT_TIMESTAMP WHERE id = ?
             `),
             updateProject: this.db.prepare(`
-                UPDATE projects SET 
-                    name = COALESCE(?, name), 
+                UPDATE projects SET
+                    name = COALESCE(?, name),
                     description = COALESCE(?, description),
                     collection_id = CASE WHEN ? IS NOT NULL THEN ? ELSE collection_id END,
-                    updated_at = CURRENT_TIMESTAMP 
+                    layout_dir = COALESCE(?, layout_dir),
+                    display_mode = COALESCE(?, display_mode),
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `),
             deleteProject: this.db.prepare(`
@@ -422,8 +433,8 @@ class DatabaseManager {
 
     updateProject(id, updates) {
         try {
-            const { name, description, collection_id } = updates;
-            this.stmts.updateProject.run(name, description, collection_id, collection_id, id);
+            const { name, description, collection_id, layout_dir, display_mode } = updates;
+            this.stmts.updateProject.run(name, description, collection_id, collection_id, layout_dir, display_mode, id);
 
             // Return the updated project
             return this.getProject(id);

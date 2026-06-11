@@ -30,7 +30,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
   const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
 
-  const priorityColor = PRIORITY_COLOR[data.priority];
+  const priorityColor = PRIORITY_COLOR[data.priority] ?? '#8d8d8d';
 
   const titleSize = isRoot ? 'text-[18px] font-semibold' : depth === 1 ? 'text-[18px] font-medium' : 'text-[18px]';
   const titleWrap = mode === 'comfortable' ? 'whitespace-normal break-words leading-snug' : 'truncate leading-tight';
@@ -59,6 +59,8 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
           borderColor: '#333333',
           borderLeftWidth: isRoot ? 4 : 3,
           borderLeftColor: priorityColor,
+          borderRightWidth: isRoot ? 4 : 3,
+          borderRightColor: (STATUS_CONFIG[data.status] ?? STATUS_CONFIG['pending']).color,
           boxShadow: cardShadow,
           transition: 'box-shadow 0.15s ease',
         }}
@@ -78,12 +80,6 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
             <span className="w-4 shrink-0" />
           )}
 
-          {/* Status dot */}
-          <span
-            className={`shrink-0 rounded-full${data.status === 'in-progress' ? ' animate-pulse' : ''}`}
-            style={{ width: 7, height: 7, background: STATUS_CONFIG[data.status].color }}
-            title={STATUS_CONFIG[data.status].label}
-          />
 
           {/* Title */}
           <span

@@ -81,9 +81,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     try {
       const { nodes, ...project } = await api.getProjectWithNodes(id);
       const expandedIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
-      const { displayMode, layoutDir } = get();
+      const displayMode = (project.display_mode as DisplayMode) ?? get().displayMode;
+      const layoutDir   = (project.layout_dir  as LayoutDir)   ?? get().layoutDir;
       const { rfNodes, rfEdges } = reLayout(nodes, expandedIds, displayMode, layoutDir);
-      set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false });
+      set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false, displayMode, layoutDir });
       api.selectProject(id).catch(() => {});
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -211,15 +212,17 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   setDisplayMode(mode) {
-    const { rawNodes, expandedIds, layoutDir } = get();
+    const { rawNodes, expandedIds, layoutDir, currentProject } = get();
     const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, mode, layoutDir);
     set({ displayMode: mode, rfNodes, rfEdges });
+    if (currentProject) api.updateProject(currentProject.id, { display_mode: mode }).catch(() => {});
   },
 
   setLayoutDir(dir) {
-    const { rawNodes, expandedIds, displayMode } = get();
+    const { rawNodes, expandedIds, displayMode, currentProject } = get();
     const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, dir);
     set({ layoutDir: dir, rfNodes, rfEdges });
+    if (currentProject) api.updateProject(currentProject.id, { layout_dir: dir }).catch(() => {});
   },
 
   setSelectedNodeId(id) {

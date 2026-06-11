@@ -516,6 +516,8 @@ export default function DetailPanel() {
 
 function CommentTextarea({ value, onSave }: { value: string; onSave: (v: string) => void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-resize on mount (fires when section opens)
   const mountRef = useCallback((el: HTMLTextAreaElement | null) => {
@@ -533,28 +535,38 @@ function CommentTextarea({ value, onSave }: { value: string; onSave: (v: string)
 
   const handleBlur = () => {
     const v = ref.current?.value ?? '';
-    if (v !== value) onSave(v);
+    if (v !== value) {
+      onSave(v);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      setSaved(true);
+      savedTimerRef.current = setTimeout(() => setSaved(false), 1500);
+    }
   };
 
   return (
-    <textarea
-      ref={(el) => {
-        (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
-        mountRef(el);
-      }}
-      defaultValue={value}
-      placeholder="Add a note…"
-      rows={3}
-      onInput={handleInput}
-      onBlur={handleBlur}
-      className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-3 py-2
-        text-[#d4d4d4] placeholder-[#525252] resize-none outline-none
-        focus:border-[#4589ff] focus:bg-[#222] transition-colors leading-relaxed"
-      style={{
-        fontSize: '15px',
-        maxHeight: '70vh',
-        overflowY: 'auto',
-      }}
-    />
+    <div>
+      <textarea
+        ref={(el) => {
+          (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+          mountRef(el);
+        }}
+        defaultValue={value}
+        placeholder="Add a note…"
+        rows={3}
+        onInput={handleInput}
+        onBlur={handleBlur}
+        className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-3 py-2
+          text-[#d4d4d4] placeholder-[#525252] resize-none outline-none
+          focus:border-[#4589ff] focus:bg-[#222] transition-colors leading-relaxed"
+        style={{
+          fontSize: '15px',
+          maxHeight: '70vh',
+          overflowY: 'auto',
+        }}
+      />
+      {saved && (
+        <span className="text-[11px] text-[#42be65] mt-1 block">✓ Saved</span>
+      )}
+    </div>
   );
 }

@@ -34,6 +34,8 @@ export interface Project {
   last_opened?: string;
   node_count?: number;
   completed_count?: number;
+  layout_dir?: string;
+  display_mode?: string;
 }
 
 export interface Collection {

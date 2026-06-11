@@ -46,6 +46,13 @@ export const api = {
     return request(`/api/db/nodes/${id}`, { method: 'DELETE' });
   },
 
+  updateProject(id: string, patch: Record<string, unknown>): Promise<Project> {
+    return request(`/api/db/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+  },
+
   deleteProject(id: string): Promise<void> {
     return request(`/api/db/projects/${id}`, { method: 'DELETE' });
   },
