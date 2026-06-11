@@ -15,7 +15,13 @@ import '@xyflow/react/dist/style.css';
 
 import MindMapNode from './nodes/MindMapNode';
 import { useMindMapStore } from './store/mindMapStore';
-import { themes } from './theme/themes';
+import { themes, type BgVariant } from './theme/themes';
+
+const BG_VARIANT_MAP: Record<BgVariant, BackgroundVariant> = {
+  dots:  BackgroundVariant.Dots,
+  lines: BackgroundVariant.Lines,
+  cross: BackgroundVariant.Cross,
+};
 
 const nodeTypes: NodeTypes = {
   mindMapNode: MindMapNode as unknown as NodeTypes['mindMapNode'],
@@ -136,7 +142,7 @@ function FlowCanvas() {
       style={{ background: t.canvas }}
     >
       <Controls />
-      <Background variant={BackgroundVariant.Dots} color={t.bgDots} gap={24} size={1} />
+      <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={24} size={1} />
     </ReactFlow>
   );
 }

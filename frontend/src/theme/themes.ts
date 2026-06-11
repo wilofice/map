@@ -1,8 +1,11 @@
 export type ThemeKey = 'ibm' | 'dusk';
 
+export type BgVariant = 'dots' | 'lines' | 'cross';
+
 export interface AppTheme {
   canvas: string;
   bgDots: string;
+  bgVariant: BgVariant;
   shell: string;
   surface: string;
   border: string;
@@ -18,6 +21,7 @@ export const themes: Record<ThemeKey, AppTheme> = {
   ibm: {
     canvas: '#111111',
     bgDots: '#2d2d2d',
+    bgVariant: 'dots',
     shell: '#111111',
     surface: '#161616',
     border: '#2a2a2a',
@@ -31,6 +35,7 @@ export const themes: Record<ThemeKey, AppTheme> = {
   dusk: {
     canvas: '#1a1b27',
     bgDots: '#252645',
+    bgVariant: 'lines',
     shell: '#13142a',
     surface: '#1e2038',
     border: '#30325a',
