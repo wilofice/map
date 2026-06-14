@@ -17,13 +17,15 @@ AI-based interactive mind mapping application. Commercial-grade architecture bui
 9. [State Management](#state-management)
 10. [Layout Engine](#layout-engine)
 11. [Node Rendering System](#node-rendering-system)
-12. [UI Features Reference](#ui-features-reference)
-13. [API Reference](#api-reference)
-14. [Network Access (LAN)](#network-access-lan)
-15. [CLI Tool](#cli-tool)
-16. [Critical Implementation Notes](#critical-implementation-notes)
-17. [Known Pitfalls](#known-pitfalls)
-18. [Roadmap](#roadmap)
+12. [Theme System](#theme-system)
+13. [UI Features Reference](#ui-features-reference)
+14. [Keyboard Shortcuts](#keyboard-shortcuts)
+15. [API Reference](#api-reference)
+16. [Network Access (LAN)](#network-access-lan)
+17. [CLI Tool](#cli-tool)
+18. [Critical Implementation Notes](#critical-implementation-notes)
+19. [Known Pitfalls](#known-pitfalls)
+20. [Roadmap](#roadmap)
 
 ---
 
@@ -33,12 +35,13 @@ A mind-mapping tool intended for commercial release. Data is stored in SQLite (p
 
 **Key capabilities:**
 - Hierarchical mind maps with unlimited depth
-- Per-node: status, priority, dates, comments, code blocks, AI prompts, CLI commands
+- Per-node: status, priority, dates, comments, code blocks, AI prompts, CLI commands, audio recordings
 - Expand / collapse tree branches
-- Automatic Dagre layout (horizontal LR or vertical TB)
-- Detail panel for full node inspection
-- Progress badge (completion %)
-- Two visual themes: Neon Dark and Glassmorphism
+- Automatic Dagre layout (LR, RL, or TB direction — persisted per project)
+- Detail panel for full node inspection (keyboard-driven: Enter to open, Escape to close)
+- Map locking: nodes cannot be dragged when locked (default: locked)
+- Progress badge (completion %) and header progress bar
+- Two visual themes: IBM Carbon dark and Dusk (navy/blue-gray node-editor style)
 - Accessible over LAN for multi-device use
 
 ---
@@ -100,27 +103,30 @@ map/
         ├── App.tsx            # Root layout: sidebar | canvas | detail panel
         ├── MindMapFlow.tsx    # ReactFlowProvider + canvas component
         │
+        ├── theme/
+        │   └── themes.ts          # Theme config (IBM, Dusk) — all color tokens
+        │
         ├── config/
-        │   └── nodeDimensions.ts   # NODE_DIMS, DisplayMode, LayoutDir, NodeStyle
+        │   └── nodeDimensions.ts  # NODE_DIMS, DisplayMode, LayoutDir
         │
         ├── store/
-        │   └── mindMapStore.ts     # Zustand store — single source of truth
+        │   └── mindMapStore.ts    # Zustand store — single source of truth
         │
         ├── layout/
-        │   └── dagreLayout.ts      # Dagre layout builder
+        │   └── dagreLayout.ts     # Dagre layout builder
         │
         ├── nodes/
-        │   └── MindMapNode.tsx     # Custom React Flow node component
+        │   └── MindMapNode.tsx    # Custom React Flow node component
         │
         ├── components/
-        │   ├── DetailPanel.tsx     # Right-side node detail panel
-        │   └── ProgressBadge.tsx   # Floating completion % badge
+        │   ├── DetailPanel.tsx    # Right-side node detail panel
+        │   └── ProgressBadge.tsx  # Floating completion % badge
         │
         ├── hooks/
-        │   └── useApi.ts           # Typed API client (fetch wrapper)
+        │   └── useApi.ts          # Typed API client (fetch wrapper)
         │
         └── types/
-            └── NodeTypes.ts        # All shared TypeScript types + constants
+            └── NodeTypes.ts       # All shared TypeScript types + constants
 ```
 
 ---
@@ -224,6 +230,8 @@ The `predev:all` npm script also auto-kills port 3000 before every `dev:all` sta
 
 SQLite via `better-sqlite3` (synchronous — no async/await needed in DB layer).
 
+`db-manager.js` runs `runMigrations()` on every startup — idempotent `ALTER TABLE` statements wrapped in try/catch so existing databases are upgraded without data loss.
+
 ### Tables
 
 **`projects`**
@@ -234,6 +242,8 @@ SQLite via `better-sqlite3` (synchronous — no async/await needed in DB layer).
 | description | TEXT | |
 | file_path | TEXT | Original import path |
 | collection_id | TEXT | FK → collections |
+| layout_dir | TEXT | `'LR'` \| `'RL'` \| `'TB'` — persisted per project |
+| display_mode | TEXT | `'comfortable'` \| `'compact'` — persisted per project |
 | created_at | DATETIME | Auto |
 | updated_at | DATETIME | Auto (trigger) |
 | last_opened | DATETIME | Updated on select |
@@ -260,6 +270,17 @@ SQLite via `better-sqlite3` (synchronous — no async/await needed in DB layer).
 | created_at | DATETIME | Auto |
 | updated_at | DATETIME | Auto (trigger) |
 
+**`node_audio_files`** — Audio recordings attached to nodes
+| Column | Type | Notes |
+|--------|------|-------|
+| id | TEXT PK | UUID |
+| node_id | TEXT | FK → nodes (CASCADE) |
+| filename | TEXT | Stored filename on disk |
+| original_name | TEXT | Original upload name |
+| file_size | INTEGER | Bytes |
+| duration | REAL | Seconds (if known) |
+| created_at | DATETIME | Auto |
+
 **`app_state`** — Key/value store for UI persistence (`last_opened_project`, UI toggles).
 
 ### Indexes
@@ -281,6 +302,8 @@ idx_projects_last_opened -- Sidebar ordering
   "id": "...",
   "name": "...",
   "description": "...",
+  "layout_dir": "LR",
+  "display_mode": "comfortable",
   "nodes": [ ... ]
 }
 ```
@@ -318,21 +341,6 @@ const { project, nodes } = await api.getProjectWithNodes(id);
 - No CORS configuration needed
 - Works transparently in both dev and production (in prod, Express serves the frontend-dist directly)
 
-### LAN access
-
-`host: true` in `vite.config.ts` binds Vite to `0.0.0.0`. After `npm run dev:all`, Vite prints:
-
-```
-➜  Local:   http://localhost:5173/
-➜  Network: http://192.168.x.x:5173/
-```
-
-Use the Network URL from any machine on the same Wi-Fi. If blocked, add a Windows Firewall rule:
-
-```powershell
-New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -Protocol TCP -LocalPort 5173 -Action Allow
-```
-
 ---
 
 ## State Management
@@ -353,10 +361,13 @@ Single Zustand store. No React context, no prop drilling.
   rfEdges: Edge[]               // React Flow edges (computed)
   loading: boolean
   error: string | null
-  displayMode: 'compact' | 'comfortable'   // default: 'comfortable'
-  layoutDir: 'LR' | 'TB'                  // default: 'LR'
-  nodeStyle: 'neon' | 'glass'             // default: 'neon'
+  displayMode: 'compact' | 'comfortable'    // default: 'comfortable'
+  layoutDir: 'LR' | 'RL' | 'TB'           // default: 'LR' (persisted per project)
+  theme: 'ibm' | 'dusk'                   // default: 'ibm'
   selectedNodeId: string | null
+  detailPanelOpen: boolean                 // default: false
+  clickOpensPanel: boolean                 // default: false
+  mapLocked: boolean                       // default: true
 }
 ```
 
@@ -365,18 +376,23 @@ Single Zustand store. No React context, no prop drilling.
 | Action | Effect |
 |--------|--------|
 | `loadProjects()` | Fetches all projects for sidebar |
-| `loadProject(id)` | Loads project + nodes, computes layout |
+| `loadProject(id)` | Loads project + nodes, restores saved layout_dir/display_mode |
 | `toggleExpand(id)` | Expand/collapse one node, relayouts |
 | `expandAll()` | Expands entire tree |
 | `collapseAll()` | Collapses to root only |
-| `cycleStatus(id)` | Cycles pending → in-progress → completed → pending |
+| `cycleStatus(id)` | Cycles pending → in-progress → completed → pending (cascades to children) |
 | `addChild(parentId)` | Creates child node via API, relayouts |
 | `deleteNode(id)` | Deletes node + all descendants, relayouts |
 | `updateNodeField(id, patch)` | Partial update to any node field |
-| `setDisplayMode(mode)` | Switches compact/comfortable, relayouts |
-| `setLayoutDir(dir)` | Switches LR/TB, relayouts |
-| `setNodeStyle(style)` | Switches neon/glass (no relayout needed) |
-| `setSelectedNodeId(id)` | Opens detail panel |
+| `deleteProjects(ids)` | Bulk delete projects |
+| `setDisplayMode(mode)` | Switches compact/comfortable, relayouts, persists to DB |
+| `setLayoutDir(dir)` | Switches LR/RL/TB, relayouts, persists to DB |
+| `setSelectedNodeId(id)` | Sets the selected node (does not open panel) |
+| `setDetailPanelOpen(open)` | Explicitly open/close the detail panel |
+| `toggleDetailPanel()` | Toggle detail panel open/closed |
+| `setClickOpensPanel(v)` | Toggle whether clicking a node auto-opens the panel |
+| `setMapLocked(v)` | Toggle node dragging on/off |
+| `setTheme(t)` | Switch between `'ibm'` and `'dusk'` themes |
 
 ### Layout trigger pattern
 
@@ -388,6 +404,15 @@ set({ rfNodes, rfEdges });
 ```
 
 `rfNodes` and `rfEdges` are never mutated directly — always recomputed from `rawNodes`.
+
+### Stale closure refs pattern
+
+Event handlers registered once in `useEffect` (keyboard, click) read mutable state via refs to avoid stale closures without re-registering the handler:
+
+```ts
+const clickOpensPanelRef = useRef(clickOpensPanel);
+clickOpensPanelRef.current = clickOpensPanel;  // updated every render
+```
 
 ---
 
@@ -413,8 +438,8 @@ Uses Dagre to compute x/y positions for a tree layout.
 export const NODE_DIMS: Record<DisplayMode, {
   width: number;       // node box width
   height: number;      // node box height (must match rendered height exactly)
-  lrRanksep: number;   // horizontal gap between levels (LR mode)
-  lrNodesep: number;   // vertical gap between siblings (LR mode)
+  lrRanksep: number;   // horizontal gap between levels (LR/RL mode)
+  lrNodesep: number;   // vertical gap between siblings (LR/RL mode)
   tbRanksep: number;   // vertical gap between levels (TB mode)
   tbNodesep: number;   // horizontal gap between siblings (TB mode)
 }> = {
@@ -427,13 +452,13 @@ export const NODE_DIMS: Record<DisplayMode, {
 
 ### Edge style
 
-Edges are colored by depth and animated (flowing dash effect):
+Edges are colored by depth:
 
-| Depth | Color | Glow |
-|-------|-------|------|
-| 1 (direct children of root) | `#3b82f6` blue | 5px |
-| 2 | `#22d3ee` cyan | 3px |
-| 3+ | `#818cf8` indigo | 3px |
+| Depth | Color |
+|-------|-------|
+| 1 (direct children of root) | `#3b82f6` blue |
+| 2 | `#22d3ee` cyan |
+| 3+ | `#818cf8` indigo |
 
 ---
 
@@ -441,7 +466,7 @@ Edges are colored by depth and animated (flowing dash effect):
 
 **File:** `frontend/src/nodes/MindMapNode.tsx`
 
-Custom React Flow node. Registered as `type: 'mindMapNode'` in `MindMapFlow.tsx`.
+Custom React Flow node. Registered as `type: 'mindMapNode'` in `MindMapFlow.tsx`. All colors are driven by the active theme — see [Theme System](#theme-system).
 
 ### Props injected by `dagreLayout.ts`
 
@@ -457,50 +482,13 @@ Each node's `data` object receives:
 Handles (connection points) switch position based on `layoutDir`:
 
 ```ts
-const targetPos = dir === 'LR' ? Position.Left  : Position.Top;
-const sourcePos = dir === 'LR' ? Position.Right : Position.Bottom;
+const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
+const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
 ```
-
-### Visual hierarchy by depth
-
-| Depth | Background | Font size |
-|-------|-----------|-----------|
-| 0 (root) | `#0d1829` | 14px semibold |
-| 1 | `#080e1a` | 13px medium |
-| 2+ | `#060b16` | 12px regular |
-
-### Node styles (Neon vs Glass)
-
-The `nodeStyle` state drives two completely different visual treatments:
-
-**Neon:**
-- Solid dark background + radial gradient bleed from priority color on left
-- Priority-tinted `box-shadow` glow
-- Selection = blue ring + strong glow
-
-**Glass:**
-- Semi-transparent background (`rgba`)
-- `backdropFilter: blur(14px)` — blurs canvas dots/edges behind the node
-- Subtle white glass border
-- Selection = white frosted ring
-
-> **CSS pitfall:** Never use `transition: all` on the node `div`. It causes `border-color` shorthand transitions to override `border-left-color` (the priority indicator), making the priority color disappear on deselect. Use specific transitions only:
->
-> ```ts
-> transition: 'box-shadow 0.2s ease, background 0.2s ease'
-> ```
 
 ### Priority left border
 
-Always visible regardless of selection state. Set via separate inline properties:
-
-```ts
-borderColor: nodeBorder,       // sets top/right/bottom
-borderLeftWidth: isRoot ? 5 : 4,
-borderLeftColor: priorityColor, // always priority color — never changes
-```
-
-### Priority colors
+Always visible regardless of selection state. Communicates priority through color:
 
 | Priority | Color |
 |----------|-------|
@@ -508,15 +496,68 @@ borderLeftColor: priorityColor, // always priority color — never changes
 | medium | `#facc15` yellow |
 | low | `#4ade80` green |
 
-### Status dots
+### Status right border
 
-| Status | Color | Animation |
-|--------|-------|-----------|
-| pending | `#64748b` slate | none |
-| in-progress | `#3b82f6` blue | pulse |
-| completed | `#22c55e` green | none |
+Communicates node status through color on the right edge, mirroring the priority left border. Nodes are visually "bookended" — priority color left, status color right.
 
-Click a status dot to cycle through statuses. The change is persisted to the API immediately.
+| Status | Color |
+|--------|-------|
+| pending | `#64748b` slate |
+| in-progress | `#3b82f6` blue |
+| completed | `#22c55e` green |
+
+Status is cycled in the Detail Panel (click the badge) or via `cycleStatus()` in the store.
+
+### Selection ring
+
+When a node is selected, a colored outline appears using `t.selectionRing` from the active theme.
+
+---
+
+## Theme System
+
+**File:** `frontend/src/theme/themes.ts`
+
+All color tokens are defined in a central config. Components read the active theme via `useMindMapStore()` and compute `t = themes[theme]`.
+
+```ts
+export type ThemeKey = 'ibm' | 'dusk';
+export type BgVariant = 'dots' | 'lines' | 'cross';
+
+export interface AppTheme {
+  canvas: string;       // ReactFlow canvas background
+  bgDots: string;       // Background pattern color
+  bgVariant: BgVariant; // Background pattern type
+  shell: string;        // App root background
+  surface: string;      // Sidebar + header background
+  border: string;       // Sidebar + header borders
+  card: string;         // Node card background
+  cardBorder: string;   // Node card border
+  handle: string;       // Connection handle color
+  selectionRing: string;// Active node selection outline
+  textPrimary: string;  // Node title color
+  textMuted: string;    // Secondary text / expand button
+}
+```
+
+| Token | IBM Carbon dark | Dusk (navy/blue-gray) |
+|-------|----------------|----------------------|
+| canvas | `#111111` | `#1a1b27` |
+| bgDots | `#2d2d2d` | `#252645` |
+| bgVariant | `dots` | `lines` (grid) |
+| shell | `#111111` | `#13142a` |
+| surface | `#161616` | `#1e2038` |
+| border | `#2a2a2a` | `#30325a` |
+| card | `#1e1e1e` | `#282a40` |
+| cardBorder | `#333333` | `#383a5a` |
+| handle | `#525252` | `#39c759` |
+| selectionRing | `#4589ff` | `#6c5fff` |
+| textPrimary | `#e8e8e8` | `#e0e2f8` |
+| textMuted | `#6f6f6f` | `#7272a8` |
+
+ReactFlow controls are themed via CSS class `.theme-${theme}` on the root div (see `index.css`).
+
+The theme is session-only (not persisted) and defaults to `'ibm'`.
 
 ---
 
@@ -530,25 +571,30 @@ Click a status dot to cycle through statuses. The change is persisted to the API
 | ⊟ | Collapse to root only |
 | Full text | Comfortable mode (no title truncation, 320px nodes) |
 | Compact | Compact mode (truncated titles, 220px nodes) |
-| ← → LR | Horizontal layout (root left, children right) |
+| → LR | Horizontal layout (root left, children right) |
+| ← RL | Reverse horizontal layout (root right, children left) |
 | ↓ TB | Vertical layout (root top, children below) |
-| ⚡ Neon | Neon Dark visual theme |
-| 🪟 Glass | Glassmorphism visual theme |
+| 🔒 Locked / 🔓 Unlocked | Toggle node dragging on canvas |
+| ⊡ Panel on click | Toggle whether clicking a node opens the detail panel |
+| 🌙 Dusk / ☀ IBM | Switch visual theme |
 
 ### Detail Panel
 
-Opens when clicking any node. Shows:
-- Status badge (click to cycle)
-- Priority badge
+Opens with the **Enter** key when a node is selected, or automatically on node click when "Panel on click" is enabled.
+
+Shows:
+- Title (editable, open by default)
+- Status badge (click to cycle) + Priority badge (click to cycle) — open by default
 - Start / end dates
 - Days spent
-- Comment / notes
+- Comment / notes (editable, auto-saved on blur with "✓ Saved" indicator — open by default)
 - Code block with language + content
 - AI prompt
 - CLI command
 - Copy buttons for code, prompt, command
+- Audio section: record directly in the browser or upload a file; playback via `<audio>` element
 
-Close by clicking on the empty canvas.
+Close with **Escape** or the × button.
 
 ### Progress Badge
 
@@ -556,6 +602,23 @@ Floating badge at bottom-right of canvas. Shows:
 - SVG circular progress arc (blue → green at 100%)
 - Percentage + `done/total` count
 - Click to expand: shows Completed / In progress / Pending breakdown
+
+### Header progress bar
+
+Thin horizontal bar in the toolbar showing overall completion % for the current project.
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Enter | Open/close detail panel for the selected node |
+| Escape | Close detail panel (if open); deselect node (if panel already closed) |
+| Space | Expand/collapse children of the selected node |
+| Arrow keys | Pan the canvas (150px per press) |
+
+Keyboard shortcuts are disabled when focus is inside an `<input>` or `<textarea>`.
 
 ---
 
@@ -570,7 +633,7 @@ All endpoints are prefixed `/api`. The frontend uses `/api/db/*` (SQLite-backed)
 | GET | `/api/db/projects` | List all projects |
 | GET | `/api/db/projects/:id` | Get project + nodes (flat response) |
 | POST | `/api/db/projects` | Create project |
-| PUT | `/api/db/projects/:id` | Update project metadata |
+| PUT | `/api/db/projects/:id` | Update project metadata (including `layout_dir`, `display_mode`) |
 | DELETE | `/api/db/projects/:id` | Delete project + all nodes |
 | POST | `/api/db/projects/:id/select` | Mark as last opened |
 | GET | `/api/db/projects/search?q=` | Search projects by name |
@@ -582,6 +645,15 @@ All endpoints are prefixed `/api`. The frontend uses `/api/db/*` (SQLite-backed)
 | POST | `/api/db/nodes` | Create node |
 | PUT | `/api/db/nodes/:id` | Update node fields |
 | DELETE | `/api/db/nodes/:id` | Delete node (cascades to children) |
+
+### Audio
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/db/nodes/:id/audio` | List audio files for a node |
+| POST | `/api/db/nodes/:id/audio` | Upload audio file (multipart/form-data) |
+| GET | `/api/db/audio/:id/stream` | Stream audio file for playback |
+| DELETE | `/api/db/audio/:id` | Delete audio file |
 
 ### Import
 
@@ -596,8 +668,7 @@ All endpoints are prefixed `/api`. The frontend uses `/api/db/*` (SQLite-backed)
 | GET | `/api/health` | Health check + DB status |
 | GET | `/api/db/stats` | DB statistics |
 | POST | `/api/db/backup` | Create timestamped DB backup |
-| GET | `/api/db/app-state` | Get persisted UI state |
-| POST | `/api/db/app-state` | Save UI state key/value |
+| GET | `/api/db/last-project` | Get last opened project id |
 
 ### Frontend API client
 
@@ -613,6 +684,10 @@ await api.getProjectWithNodes(id);
 await api.updateNode(id, { status: 'completed' });
 await api.createNode({ project_id, title: 'New node', ... });
 await api.deleteNode(id);
+await api.updateProject(id, { layout_dir: 'TB', display_mode: 'compact' });
+await api.getNodeAudio(nodeId);
+await api.uploadNodeAudio(nodeId, file);
+await api.deleteNodeAudio(audioId);
 ```
 
 ---
@@ -681,11 +756,11 @@ set({ currentProject: project, ... });
 
 ### 3. Never use `transition: all` on nodes
 
-CSS `transition: all` animates `border-color` shorthand, which overrides `border-left-color` (priority indicator) during the transition. Result: priority color disappears for 200ms when deselecting a node. Always specify individual properties:
+CSS `transition: all` animates `border-color` shorthand, which overrides both `border-left-color` (priority) and `border-right-color` (status) during transitions. Both indicators disappear momentarily on selection change. Always specify individual properties:
 
 ```ts
 // CORRECT
-transition: 'box-shadow 0.2s ease, background 0.2s ease'
+transition: 'box-shadow 0.15s ease'
 
 // WRONG
 className="transition-all duration-200"
@@ -698,11 +773,19 @@ Dagre allocates space based on `NODE_DIMS[mode].height`. If the rendered node is
 ### 5. Handle positions switch with layout direction
 
 ```ts
-const targetPos = layoutDir === 'LR' ? Position.Left  : Position.Top;
-const sourcePos = layoutDir === 'LR' ? Position.Right : Position.Bottom;
+const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
+const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
 ```
 
-Forgetting this makes edges attach to wrong sides in TB mode.
+Forgetting this makes edges attach to wrong sides when switching layout direction.
+
+### 6. Layout and display mode are persisted per project
+
+`setLayoutDir` and `setDisplayMode` fire `api.updateProject()` as a background side-effect. On `loadProject`, these values are read back from the API response and restored. The store's global default only applies until the first project is loaded.
+
+### 7. Uploads directory is gitignored
+
+Audio files are saved to `uploads/audio/`. The `uploads/` directory, `certs/`, and `*.db` are all in `.gitignore` and must never be committed.
 
 ---
 
@@ -711,11 +794,12 @@ Forgetting this makes edges attach to wrong sides in TB mode.
 | Symptom | Root cause | Fix |
 |---------|-----------|-----|
 | Map shows then disappears | `selectProject` awaited before setting state | Fire-and-forget with `.catch(() => {})` |
-| Priority border disappears on deselect | `transition: all` overrides `border-left-color` | Use specific CSS transitions |
+| Priority/status border disappears on deselect | `transition: all` overrides `border-left-color` / `border-right-color` | Use specific CSS transitions |
 | Nodes overlap | `NODE_DIMS.height` doesn't match rendered height | Calibrate height to actual node height |
 | Port 3000 EADDRINUSE | Nodemon restart when port not freed | `predev:all` kills port; server catches error |
 | `project` is `undefined` after load | Destructured as `{ project, nodes }` instead of `{ nodes, ...project }` | Use flat destructure |
 | Empty body 204 crashes `res.json()` | `JSON.parse('')` throws | Read as text first, return `undefined` if empty |
+| Layout direction resets on project reload | `layout_dir` column missing from DB | Run server once to trigger `runMigrations()` |
 
 ---
 
@@ -730,4 +814,83 @@ Potential next steps (not yet implemented):
 - **Export** — PDF / PNG screenshot of the canvas
 - **AI integration** — generate child nodes from a prompt
 - **Collections UI** — group projects in the sidebar
-- **Keyboard shortcuts** — N (new child), Del (delete), E (expand), C (collapse)
+- **Theme persistence** — save selected theme per session or globally
+
+---
+
+## Technology Decision: Why ReactFlow
+
+This section documents a deliberate evaluation of graph/node-editor libraries in the context of this project.
+
+### Candidates considered
+
+| Library | Used by | Renderer | Language |
+|---------|---------|----------|----------|
+| **@xyflow/react (ReactFlow)** | LangFlow, Stripe workflows | DOM + SVG | React / TypeScript |
+| **LiteGraph.js** | ComfyUI | HTML Canvas 2D | Vanilla JS |
+| **@n8n/canvas** | N8N | Custom Vue canvas | Vue 3 |
+| **Blender node editor** | Blender (desktop) | OpenGL/GPU (C) | C/C++ |
+
+---
+
+### LiteGraph.js
+
+LiteGraph.js is the library that powers **ComfyUI** (the AI image generation workflow UI). It was the direct inspiration for the Dusk theme aesthetic — ComfyUI's dark navy node-editor look closely resembles Blender's node editor because it deliberately imitates it.
+
+**Strengths:**
+- Canvas 2D renderer — draws everything imperatively, not in the DOM
+- Designed for **typed-port node graphs**: each slot has a data type, connections are validated at the port level
+- Built-in node widgets rendered inside the canvas (sliders, dropdowns, color pickers)
+- Excellent performance for large graphs (hundreds of interconnected nodes)
+- Serialization/deserialization built-in
+
+**Why it doesn't fit this project:**
+- Vanilla JS — no native React integration. The sidebar, detail panel, Zustand store, and Tailwind layout would all have to live outside the canvas and be manually synchronized with it.
+- Its strengths (typed ports, data flow, in-canvas widgets) are irrelevant to a mind map. A mind map has no port types, no data flowing between nodes, and no in-canvas input widgets.
+- Adopting it would mean rewriting the entire frontend without gaining anything the current architecture lacks.
+
+> The Blender/ComfyUI aesthetic is achievable in ReactFlow through theming alone — LiteGraph's rendering engine is not required to get that visual style, as demonstrated by the Dusk theme.
+
+---
+
+### N8N's @n8n/canvas
+
+N8N is a workflow automation tool with a node-based UI that superficially resembles this project.
+
+**Key facts:**
+- N8N is open source (fair-code license, available on GitHub at `n8n-io/n8n`)
+- Their canvas (`@n8n/canvas`) is part of their monorepo — the source is readable
+- Built with **Vue 3**, not React
+- The canvas is tightly coupled to N8N's internal data model and workflow concepts
+- Not published as a standalone npm package — extracting it for another project would be a significant rewrite
+
+**Why it doesn't fit this project:**
+- Vue 3 is incompatible with this React + Zustand stack
+- Even if ported, it is built for linear workflow graphs (node A → node B → node C), not hierarchical trees
+- N8N did **not** use LiteGraph.js — they built their canvas from scratch
+
+---
+
+### Blender node editor
+
+The Blender node editor (shader nodes, geometry nodes, compositor) is what originally inspired the "dark node-editor" aesthetic goal.
+
+**Key facts:**
+- Blender is a **desktop application** written in C/C++
+- Its node editor is rendered directly by Blender's own OpenGL/GPU drawing code — every panel, node, and wire is drawn imperatively to the GPU
+- There is no HTML, no Canvas API, no JavaScript — it cannot be extracted or reused on the web
+- ComfyUI is the closest web equivalent in terms of aesthetic, achieved with LiteGraph.js
+
+---
+
+### Conclusion: ReactFlow is the right choice
+
+For a **hierarchical mind map** (tree structure, no typed ports, no data flow between nodes), ReactFlow fits every requirement:
+
+1. **React-native** — nodes are real React components. The detail panel, Zustand store, Tailwind layout, and TypeScript types all integrate without seams.
+2. **Tree/flowchart optimized** — ReactFlow is designed for exactly this use case (flowcharts, trees, diagrams). LiteGraph is designed for pipeline graphs.
+3. **No wasted complexity** — typed ports, in-canvas widgets, and data-flow serialization (LiteGraph's main value-adds) are all irrelevant to a mind map.
+4. **Ecosystem** — active maintenance, good TypeScript support, production use at scale (LangFlow, Stripe).
+5. **Aesthetic parity** — the Blender/ComfyUI visual style is achieved through the theme system (`themes.ts`), not through the choice of renderer.
+
+The only scenario where switching to LiteGraph would make sense is if this project evolved into a **data-flow tool** — e.g., an AI pipeline builder where nodes have typed inputs and outputs and data flows between them at runtime.

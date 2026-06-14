@@ -70,17 +70,23 @@ export function buildDagreLayout(
     };
   });
 
+  const EDGE_COLOR: Record<number, string> = {
+    1: 'rgba(69, 137, 255, 0.6)',   // blue   — root → depth-1
+    2: 'rgba(50, 175, 220, 0.5)',   // cyan   — depth-1 → depth-2
+    3: 'rgba(139, 106, 240, 0.45)', // indigo — depth-2+
+  };
+
   const rfEdges: Edge[] = visibleNodes
     .filter((n) => n.parent_id && visibleIds.has(n.parent_id))
     .map((n) => {
       const depth = n.depth_level ?? 1;
-      const edgeColor = depth <= 1 ? '#525252' : '#393939';
+      const edgeColor = EDGE_COLOR[Math.min(depth, 3)];
       return {
         id: `e-${n.parent_id}-${n.id}`,
         source: n.parent_id as string,
         target: n.id,
         type: 'smoothstep',
-        animated: false,
+        animated: true,
         style: {
           stroke: edgeColor,
           strokeWidth: depth <= 1 ? 1.5 : 1,
