@@ -84,6 +84,17 @@ export const api = {
     return request('/api/db/last-project');
   },
 
+  createCollection(name: string, description = ''): Promise<Collection> {
+    return request('/api/db/collections', {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
+    });
+  },
+
+  deleteCollection(id: string): Promise<void> {
+    return request(`/api/db/collections/${id}`, { method: 'DELETE' });
+  },
+
   generateChildren(
     nodeId: string,
     extraPrompt: string,

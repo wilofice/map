@@ -40,6 +40,7 @@ interface MindMapState {
   deleteNode: (id: string) => Promise<void>;
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
   deleteProjects: (ids: string[]) => Promise<void>;
+  moveToCollection: (projectIds: string[], collectionId: string) => Promise<void>;
   bulkAddChildren: (parentId: string, suggestions: AiSuggestion[]) => Promise<void>;
   undoStack: UndoEntry[];
   redoStack: UndoEntry[];
@@ -251,6 +252,15 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       undoStack: [...undoStack.slice(-19), { type: 'add', nodes: created }],
       redoStack: [],
     });
+  },
+
+  async moveToCollection(projectIds, collectionId) {
+    await Promise.all(projectIds.map((id) => api.updateProject(id, { collection_id: collectionId })));
+    set((s) => ({
+      projects: s.projects.map((p) =>
+        projectIds.includes(p.id) ? { ...p, collection_id: collectionId } : p
+      ),
+    }));
   },
 
   async deleteProjects(ids) {

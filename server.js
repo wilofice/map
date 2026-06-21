@@ -2752,6 +2752,58 @@ app.get('/api/ai/search', (req, res) => {
     }
 });
 
+// ─── Docs API — serve docs/Artefacts/*.md to any client on the LAN ──────────
+
+const ARTEFACTS_DIR = path.join(__dirname, 'docs', 'Artefacts');
+
+app.get('/api/docs', async (_req, res) => {
+    try {
+        const files = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
+        const docs = await Promise.all(files.map(async (filename) => {
+            const content = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+            const titleMatch = content.match(/^#\s+(.+)$/m);
+            return {
+                filename,
+                title:  titleMatch ? titleMatch[1] : filename.replace('.md', ''),
+                bytes:  content.length,
+                lines:  content.split('\n').length,
+                url:    `/api/docs/${filename}`,
+            };
+        }));
+        res.json({ docs });
+    } catch (err) {
+        res.status(500).json({ error: String(err) });
+    }
+});
+
+app.get('/api/docs/bundle', async (_req, res) => {
+    try {
+        const files = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
+        const bundle = {};
+        for (const filename of files) {
+            bundle[filename] = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+        }
+        res.json(bundle);
+    } catch (err) {
+        res.status(500).json({ error: String(err) });
+    }
+});
+
+app.get('/api/docs/:filename', async (req, res) => {
+    const { filename } = req.params;
+    if (!filename.endsWith('.md') || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: 'Invalid filename' });
+    }
+    try {
+        const content = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+        res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+        res.send(content);
+    } catch (err) {
+        if (err.code === 'ENOENT') return res.status(404).json({ error: 'Not found' });
+        res.status(500).json({ error: String(err) });
+    }
+});
+
 // ─── AI: Generate child nodes via Codex CLI ──────────────────────────────────
 
 const CHILD_NODE_SCHEMA = {

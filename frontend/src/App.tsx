@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useMindMapStore } from './store/mindMapStore';
 import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
 import ProgressBadge from './components/ProgressBadge';
-import type { Project } from './types/NodeTypes';
+import type { Project, Collection } from './types/NodeTypes';
+import { api } from './hooks/useApi';
 
 export default function App() {
   const {
@@ -17,11 +18,16 @@ export default function App() {
     clickOpensPanel, setClickOpensPanel,
     mapLocked, setMapLocked,
     theme, setTheme,
+    moveToCollection,
   } = useMindMapStore();
   const t = themes[theme];
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [manageMode, setManageMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collapsedColls, setCollapsedColls] = useState<Set<string>>(new Set());
+  const [creatingColl, setCreatingColl] = useState(false);
+  const [newCollName, setNewCollName] = useState('');
 
   const toggleSelect = useCallback((id: string) => {
     setSelected(prev => {
@@ -55,7 +61,44 @@ export default function App() {
 
   useEffect(() => {
     loadProjects();
+    api.getCollections().then(setCollections).catch(() => {});
   }, [loadProjects]);
+
+  const toggleColl = useCallback((id: string) => {
+    setCollapsedColls(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleCreateColl = useCallback(async () => {
+    const name = newCollName.trim();
+    if (!name) return;
+    try {
+      const created = await api.createCollection(name);
+      setCollections(prev => [...prev, created]);
+      setNewCollName('');
+      setCreatingColl(false);
+    } catch {}
+  }, [newCollName]);
+
+  const handleMoveToCollection = useCallback(async (collectionId: string) => {
+    if (selected.size === 0) return;
+    await moveToCollection([...selected], collectionId);
+    exitManage();
+  }, [selected, moveToCollection, exitManage]);
+
+  // Group projects under their collection — preserves collection order from DB
+  const grouped = useMemo(() => {
+    const map = new Map<string, Collection & { projects: Project[] }>();
+    for (const c of collections) map.set(c.id, { ...c, projects: [] });
+    for (const p of projects) {
+      const key = p.collection_id ?? 'default-collection';
+      if (map.has(key)) map.get(key)!.projects.push(p);
+    }
+    return [...map.values()].filter(g => g.projects.length > 0);
+  }, [collections, projects]);
 
   const handleSelectProject = (id: string) => {
     loadProject(id);
@@ -101,79 +144,135 @@ export default function App() {
           {projects.length === 0 && (
             <p className="text-xs p-2" style={{ color: t.textMuted }}>No projects. Make sure the server is running on :3000.</p>
           )}
-          {projects.map((p: Project) => (
-            <div key={p.id} className="relative group mb-1">
-              {manageMode ? (
-                /* ── Manage mode row ── */
-                <label className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer transition-colors ${
-                  selected.has(p.id) ? 'bg-[#2d0709]' : 'hover:bg-[rgba(128,128,128,0.1)]'
-                }`}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(p.id)}
-                    onChange={() => toggleSelect(p.id)}
-                    className="accent-[#fa4d56] shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate" style={{ color: t.textHeading }}>{p.name}</div>
-                    {p.description && (
-                      <div className="text-xs truncate" style={{ color: t.textMuted }}>{p.description}</div>
-                    )}
-                  </div>
-                </label>
-              ) : (
-                /* ── Normal row ── */
+
+          {grouped.map(group => (
+            <div key={group.id} className="mb-1">
+              {/* Collection header — only shown when there is more than one collection */}
+              {grouped.length > 1 && (
                 <button
-                  onClick={() => handleSelectProject(p.id)}
-                  className="w-full text-left px-3 py-2 rounded text-sm transition-colors hover:bg-[rgba(128,128,128,0.1)]"
-                  style={currentProject?.id === p.id
-                    ? { background: t.bgAccent, color: '#ffffff' }
-                    : { color: t.textSecondary }}
+                  onClick={() => toggleColl(group.id)}
+                  className="w-full flex items-center gap-1.5 px-1 py-1 rounded text-[10px] font-semibold uppercase tracking-widest transition-colors hover:bg-[rgba(255,255,255,0.04)]"
+                  style={{ color: t.textMuted }}
                 >
-                  <div className="font-medium truncate">{p.name}</div>
-                  {p.description && (
-                    <div className="text-xs truncate mt-0.5" style={{ color: currentProject?.id === p.id ? 'rgba(255,255,255,0.75)' : t.textMuted }}>
-                      {p.description}
-                    </div>
-                  )}
-                  {(p.node_count ?? 0) > 0 && (() => {
-                    const pct = Math.round(((p.completed_count ?? 0) / (p.node_count ?? 1)) * 100);
-                    const isActive = currentProject?.id === p.id;
-                    return (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: isActive ? 'rgba(255,255,255,0.25)' : t.progressTrack }}>
-                          <div
-                            className="h-full rounded-full transition-all duration-300"
-                            style={{
-                              width: `${pct}%`,
-                              background: pct === 100 ? '#42be65' : isActive ? '#ffffff' : t.bgAccent,
-                            }}
-                          />
-                        </div>
-                        <span className="text-[10px] tabular-nums" style={{ color: isActive ? 'rgba(255,255,255,0.75)' : t.textUI }}>
-                          {pct}%
-                        </span>
-                      </div>
-                    );
-                  })()}
+                  <span className="text-[8px]">{collapsedColls.has(group.id) ? '▸' : '▾'}</span>
+                  <span className="flex-1 text-left truncate">{group.name}</span>
+                  <span className="tabular-nums">{group.projects.length}</span>
                 </button>
               )}
 
-              {/* Quick delete — hover trash icon (normal mode only) */}
-              {!manageMode && (
-                <button
-                  onClick={(e) => handleDeleteOne(p.id, p.name, e)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[#2d0709] text-[#6f6f6f] hover:text-[#fa4d56] text-xs"
-                  title={`Delete "${p.name}"`}
-                >🗑</button>
-              )}
+              {!collapsedColls.has(group.id) && group.projects.map((p: Project) => (
+                <div key={p.id} className="relative group mb-0.5">
+                  {manageMode ? (
+                    <label className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer transition-colors ${
+                      selected.has(p.id) ? 'bg-[#2d0709]' : 'hover:bg-[rgba(128,128,128,0.1)]'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        className="accent-[#fa4d56] shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate" style={{ color: t.textHeading }}>{p.name}</div>
+                        {p.description && (
+                          <div className="text-xs truncate" style={{ color: t.textMuted }}>{p.description}</div>
+                        )}
+                      </div>
+                    </label>
+                  ) : (
+                    <button
+                      onClick={() => handleSelectProject(p.id)}
+                      className="w-full text-left px-3 py-2 rounded text-sm transition-colors hover:bg-[rgba(128,128,128,0.1)]"
+                      style={currentProject?.id === p.id
+                        ? { background: t.bgAccent, color: '#ffffff' }
+                        : { color: t.textSecondary }}
+                    >
+                      <div className="font-medium truncate">{p.name}</div>
+                      {p.description && (
+                        <div className="text-xs truncate mt-0.5" style={{ color: currentProject?.id === p.id ? 'rgba(255,255,255,0.75)' : t.textMuted }}>
+                          {p.description}
+                        </div>
+                      )}
+                      {(p.node_count ?? 0) > 0 && (() => {
+                        const pct = Math.round(((p.completed_count ?? 0) / (p.node_count ?? 1)) * 100);
+                        const isActive = currentProject?.id === p.id;
+                        return (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: isActive ? 'rgba(255,255,255,0.25)' : t.progressTrack }}>
+                              <div
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{ width: `${pct}%`, background: pct === 100 ? '#42be65' : isActive ? '#ffffff' : t.bgAccent }}
+                              />
+                            </div>
+                            <span className="text-[10px] tabular-nums" style={{ color: isActive ? 'rgba(255,255,255,0.75)' : t.textUI }}>
+                              {pct}%
+                            </span>
+                          </div>
+                        );
+                      })()}
+                    </button>
+                  )}
+
+                  {!manageMode && (
+                    <button
+                      onClick={(e) => handleDeleteOne(p.id, p.name, e)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-[#2d0709] text-[#6f6f6f] hover:text-[#fa4d56] text-xs"
+                      title={`Delete "${p.name}"`}
+                    >🗑</button>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
+
+          {/* New collection */}
+          <div className="mt-2 px-1">
+            {creatingColl ? (
+              <div className="flex gap-1 items-center">
+                <input
+                  autoFocus
+                  value={newCollName}
+                  onChange={e => setNewCollName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleCreateColl();
+                    if (e.key === 'Escape') { setCreatingColl(false); setNewCollName(''); }
+                  }}
+                  placeholder="Collection name…"
+                  className="flex-1 bg-[#1e1e1e] border border-[#4589ff] rounded px-2 h-6 text-xs text-[#c6c6c6] outline-none"
+                />
+                <button onClick={handleCreateColl} className="text-[11px] text-[#4589ff] hover:text-[#78a9ff] px-1">✓</button>
+                <button onClick={() => { setCreatingColl(false); setNewCollName(''); }} className="text-[11px] text-[#6f6f6f] hover:text-[#f4f4f4] px-1">×</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setCreatingColl(true)}
+                className="text-[10px] px-1 py-0.5 rounded transition-colors"
+                style={{ color: t.textMuted }}
+              >+ Collection</button>
+            )}
+          </div>
         </div>
 
         {/* Manage mode footer */}
         {manageMode && (
-          <div className="shrink-0 border-t p-2" style={{ borderColor: t.border }}>
+          <div className="shrink-0 border-t p-2 space-y-1.5" style={{ borderColor: t.border }}>
+            {/* Move to collection — only when multiple collections exist */}
+            {collections.length > 1 && (
+              <select
+                value=""
+                disabled={selected.size === 0}
+                onChange={e => { if (e.target.value) handleMoveToCollection(e.target.value); }}
+                className="w-full bg-[#1e1e1e] border border-[#393939] rounded px-2 h-7 text-xs text-[#c6c6c6] outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ colorScheme: 'dark' }}
+              >
+                <option value="" disabled>
+                  {selected.size === 0 ? 'Select maps to move…' : `Move ${selected.size} to collection…`}
+                </option>
+                {collections.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
             <button
               onClick={handleDeleteSelected}
               disabled={selected.size === 0}
