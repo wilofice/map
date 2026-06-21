@@ -1,0 +1,213 @@
+{
+  "type": "project_plan",
+  "version": "1.0",
+  "name": "Mind Map App — State Review",
+  "description": "Global review of the app: current features, technical health, UX gaps, and next directions.",
+  "nodes": [
+    {
+      "title": "Mind Map App — State Review",
+      "status": "in-progress",
+      "priority": "high",
+      "comment": "Comprehensive review of the current state of the application, its technical health, identified gaps, and prioritized next directions.",
+      "children": [
+        {
+          "title": "Current Features",
+          "status": "completed",
+          "priority": "high",
+          "comment": "All features currently implemented and working in production.",
+          "children": [
+            {
+              "title": "Canvas & Navigation",
+              "status": "completed",
+              "priority": "medium",
+              "comment": "React Flow canvas with zoom, pan, and fitView. Arrow key panning (150px per press, animated). Map lock toggle — nodes cannot be dragged when locked (default: locked). Click-opens-panel toggle for opening the detail panel on node click.",
+              "children": [
+                { "title": "React Flow canvas — zoom, pan, fitView", "status": "completed", "priority": "low" },
+                { "title": "Arrow key panning (150px, animated viewport)", "status": "completed", "priority": "low" },
+                { "title": "Map lock toggle (default: locked)", "status": "completed", "priority": "low" },
+                { "title": "Click-opens-panel toggle", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Node System",
+              "status": "completed",
+              "priority": "high",
+              "comment": "Hierarchical tree with unlimited depth. Nodes carry priority (left border) and status (right border) as colored edge indicators — bookending the card visually. Add, delete, expand, and collapse supported.",
+              "children": [
+                { "title": "Hierarchical tree — unlimited depth", "status": "completed", "priority": "low" },
+                { "title": "Add / delete nodes", "status": "completed", "priority": "low" },
+                { "title": "Expand / collapse branches (Space key)", "status": "completed", "priority": "low" },
+                { "title": "Priority left border (red / yellow / green)", "status": "completed", "priority": "low" },
+                { "title": "Status right border (slate / blue / green)", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Layout Engine",
+              "status": "completed",
+              "priority": "medium",
+              "comment": "Dagre auto-layout computes positions from the tree structure. Supports LR (left-right), RL (right-left), and TB (top-bottom) directions. Direction and display mode are persisted per project in SQLite.",
+              "children": [
+                { "title": "Dagre auto-layout", "status": "completed", "priority": "low" },
+                { "title": "LR / RL / TB layout directions", "status": "completed", "priority": "low" },
+                { "title": "Layout direction persisted per project", "status": "completed", "priority": "low" },
+                { "title": "Comfortable / Compact display modes", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Detail Panel",
+              "status": "completed",
+              "priority": "high",
+              "comment": "Right-side panel for full node inspection. Keyboard-driven: Enter to open, Escape to close. Title, Comment, and Status & Priority sections open by default. Comment auto-saves on blur with a brief '✓ Saved' indicator.",
+              "children": [
+                { "title": "Keyboard-driven — Enter open, Escape close", "status": "completed", "priority": "low" },
+                { "title": "Title + Comment + Status open by default", "status": "completed", "priority": "low" },
+                { "title": "Dates, days spent, code block, AI prompt, CLI command", "status": "completed", "priority": "low" },
+                { "title": "Audio recording & file upload", "status": "completed", "priority": "low" },
+                { "title": "Comment auto-save with ✓ indicator", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Theme System",
+              "status": "completed",
+              "priority": "medium",
+              "comment": "Two themes defined in themes.ts with full color token tables. IBM Carbon dark uses dot background. Dusk (navy/blue-gray, inspired by ComfyUI) uses a fine grid background. ReactFlow controls themed via CSS class scoping (.theme-dusk).",
+              "children": [
+                { "title": "IBM Carbon dark theme (dot background)", "status": "completed", "priority": "low" },
+                { "title": "Dusk navy/blue-gray theme (grid background)", "status": "completed", "priority": "low" },
+                { "title": "Token-based system in themes.ts", "status": "completed", "priority": "low" },
+                { "title": "CSS class scoping for ReactFlow controls", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Animated Edges",
+              "status": "completed",
+              "priority": "low",
+              "comment": "ReactFlow animated dashes flowing from parent to child. Depth-based colors: blue for depth-1, cyan for depth-2, indigo for depth-3+. Semi-transparent rgba values keep the effect visible but not distracting on both themes.",
+              "children": [
+                { "title": "Flowing dash animation on all edges", "status": "completed", "priority": "low" },
+                { "title": "Depth-based colors: blue → cyan → indigo", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Progress Tracking",
+              "status": "completed",
+              "priority": "medium",
+              "comment": "Status cycling (pending → in-progress → completed) cascades to all descendants. Progress shown in three places: header progress bar, floating badge (bottom-right), and per-project bars in the sidebar.",
+              "children": [
+                { "title": "Status cycling cascades to children", "status": "completed", "priority": "low" },
+                { "title": "Header progress bar", "status": "completed", "priority": "low" },
+                { "title": "Floating progress badge (expandable)", "status": "completed", "priority": "low" },
+                { "title": "Progress bars in project sidebar", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Data & Persistence",
+              "status": "completed",
+              "priority": "high",
+              "comment": "SQLite backend via better-sqlite3 (synchronous API). Layout direction and display mode saved per project. Idempotent migrations run on every server startup so existing databases are upgraded without data loss.",
+              "children": [
+                { "title": "SQLite backend (better-sqlite3)", "status": "completed", "priority": "low" },
+                { "title": "Layout + display mode saved per project", "status": "completed", "priority": "low" },
+                { "title": "Idempotent DB migrations on server startup", "status": "completed", "priority": "low" },
+                { "title": "Audio files stored in uploads/ (gitignored)", "status": "completed", "priority": "low" }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Technical Health",
+          "status": "in-progress",
+          "priority": "high",
+          "comment": "Assessment of code quality, architecture soundness, and areas of technical debt.",
+          "children": [
+            {
+              "title": "Strengths",
+              "status": "completed",
+              "priority": "medium",
+              "comment": "The codebase is clean, well-typed, and follows consistent patterns throughout.",
+              "children": [
+                { "title": "Clean TypeScript throughout — no any leaks", "status": "completed", "priority": "low" },
+                { "title": "Single Zustand store — no prop drilling", "status": "completed", "priority": "low" },
+                { "title": "Stale-closure ref pattern for event handlers", "status": "completed", "priority": "low", "comment": "clickOpensPanelRef, detailPanelOpenRef updated each render so keydown handlers never go stale without re-registration." },
+                { "title": "Flat API response shape — well-documented", "status": "completed", "priority": "low" },
+                { "title": "Fire-and-forget selectProject pattern", "status": "completed", "priority": "low" }
+              ]
+            },
+            {
+              "title": "Tech Debt & Risks",
+              "status": "in-progress",
+              "priority": "high",
+              "comment": "Known issues that need attention before scaling the codebase further.",
+              "children": [
+                { "title": "NODE_DIMS height must be calibrated manually", "status": "pending", "priority": "medium", "comment": "If any content is added to MindMapNode.tsx that increases rendered height, Dagre will overlap nodes until NODE_DIMS.height is updated to match." },
+                { "title": "Theme not persisted across sessions", "status": "pending", "priority": "medium", "comment": "Theme resets to IBM on every page refresh. Should be saved in localStorage." },
+                { "title": "Edge colors hardcoded — not theme-aware", "status": "pending", "priority": "low", "comment": "dagreLayout.ts uses fixed rgba colors. Should read from the active theme." },
+                { "title": "DetailPanel colors not themed for Dusk", "status": "pending", "priority": "medium", "comment": "DetailPanel still uses IBM dark colors (#161616, #1e1e1e). Contrast is acceptable but not ideal in Dusk mode." },
+                { "title": "No undo / redo system", "status": "pending", "priority": "high", "comment": "Accidental deletes cannot be recovered. Zustand temporal middleware (zustand/middleware) could add undo/redo without structural changes." }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "UX Gaps",
+          "status": "in-progress",
+          "priority": "high",
+          "comment": "Features and interactions that are missing or incomplete from the user's perspective.",
+          "children": [
+            { "title": "No inline title editing on canvas", "status": "pending", "priority": "high", "comment": "Must open the detail panel to rename a node. Double-click to edit title inline would be much faster for quick renames." },
+            { "title": "No drag-and-drop reparenting", "status": "pending", "priority": "medium", "comment": "Nodes cannot be moved to a different parent. Requires React Flow's onNodeDrag + a drop-target detection system." },
+            { "title": "No search / filter nodes", "status": "pending", "priority": "high", "comment": "On large maps it is impossible to find a specific node quickly. A search bar that highlights or zooms to matching nodes is needed." },
+            { "title": "No node enter/exit animation", "status": "pending", "priority": "low", "comment": "Expanding a node's children makes them appear instantly. A fade-in or scale-up would feel more polished. Requires Framer Motion AnimatePresence or CSS @keyframes on mount." },
+            { "title": "No keyboard shortcut for new child node", "status": "pending", "priority": "medium", "comment": "Currently requires hovering the node and clicking the + button. A keyboard shortcut (e.g. N) when a node is selected would be faster." },
+            { "title": "Detail panel not scrollable on small screens", "status": "pending", "priority": "medium", "comment": "On MacBook or small viewports the panel content may overflow without visible scrollbar." }
+          ]
+        },
+        {
+          "title": "Next Directions",
+          "status": "pending",
+          "priority": "high",
+          "comment": "Prioritized list of improvements. High priority items address daily friction. Medium priority items improve completeness. Future items are exploratory.",
+          "children": [
+            {
+              "title": "High Priority",
+              "status": "pending",
+              "priority": "high",
+              "comment": "These items cause daily friction and should be addressed first.",
+              "children": [
+                { "title": "Inline title editing (double-click on canvas)", "status": "pending", "priority": "high", "comment": "Show a contenteditable or input directly on the node card. On blur, call updateNodeField. This is the single most impactful UX improvement." },
+                { "title": "Theme persistence (localStorage)", "status": "pending", "priority": "high", "comment": "Persist the selected theme key to localStorage and rehydrate in the Zustand store initializer. One-line change in mindMapStore.ts using the persist middleware." },
+                { "title": "Detail panel themed for Dusk", "status": "pending", "priority": "medium", "comment": "Apply Dusk surface/border tokens to DetailPanel.tsx when theme === dusk." },
+                { "title": "Undo / redo (Ctrl+Z / Ctrl+Y)", "status": "pending", "priority": "high", "comment": "Use zustand/middleware temporal to snapshot rawNodes before destructive actions (deleteNode, addChild). Wire Ctrl+Z to undo and Ctrl+Y to redo in the keydown handler." }
+              ]
+            },
+            {
+              "title": "Medium Priority",
+              "status": "pending",
+              "priority": "medium",
+              "comment": "Important for a complete product but not blocking daily use.",
+              "children": [
+                { "title": "Search / filter nodes", "status": "pending", "priority": "high", "comment": "A search input in the header that highlights matching nodes and dims non-matching ones. Zoom to first match on Enter." },
+                { "title": "Keyboard shortcut — N for new child", "status": "pending", "priority": "medium", "comment": "When a node is selected, pressing N should call addChild(selectedNodeId) and immediately open the detail panel on the new node." },
+                { "title": "Drag-and-drop reparenting", "status": "pending", "priority": "medium", "comment": "Allow dragging a node onto another node to reparent it. Requires onNodeDragStop + proximity detection + updateNodeField({ parent_id })." },
+                { "title": "Node enter/exit animations (Framer Motion)", "status": "pending", "priority": "low", "comment": "Wrap node list in AnimatePresence. Each node fades + scales in on mount, fades out on unmount. Requires converting rfNodes updates to trigger AnimatePresence lifecycle." }
+              ]
+            },
+            {
+              "title": "Future & Exploratory",
+              "status": "pending",
+              "priority": "low",
+              "comment": "Longer-horizon ideas that would significantly expand the product's scope.",
+              "children": [
+                { "title": "AI — generate child nodes from a prompt", "status": "pending", "priority": "medium", "comment": "A prompt field in the detail panel that calls an LLM API (Claude) to suggest N child nodes for the selected node. Results are previewed and imported on confirm." },
+                { "title": "Export — PNG / PDF screenshot of canvas", "status": "pending", "priority": "medium", "comment": "Use React Flow's getViewport + html-to-image or a headless browser to capture the canvas. Useful for sharing maps in documents or presentations." },
+                { "title": "Multi-user sync (WebSocket)", "status": "pending", "priority": "low", "comment": "Broadcast node changes over a WebSocket so multiple users on LAN see updates in real time. Requires a diff/patch protocol to avoid full tree re-renders." },
+                { "title": "Collections UI — group projects in sidebar", "status": "pending", "priority": "low", "comment": "The DB already has a collections table and collection_id on projects. The sidebar just needs grouping UI." },
+                { "title": "Particle flow edge animation (SVG animateMotion)", "status": "pending", "priority": "low", "comment": "Custom edge component that renders dots traveling along the SVG path from parent to child. Visually evokes data flowing through a pipeline. Non-trivial: requires a custom ReactFlow edge type." }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

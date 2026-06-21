@@ -69,7 +69,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   detailPanelOpen: false,
   clickOpensPanel: false,
   mapLocked: true,
-  theme: 'ibm',
+  theme: 'ibm' as ThemeKey,
 
   async loadProjects() {
     try {

@@ -56,6 +56,53 @@ html, body, #root {
   border-bottom: none !important;
 }
 
+/* Light theme — toolbar buttons */
+.theme-light .toolbar-btn { color: #4b5563; }
+.theme-light .toolbar-btn:hover { color: #111827; background: rgba(0,0,0,0.06); }
+
+/* Light theme — React Flow controls */
+.theme-light .react-flow__controls {
+  background: #ffffff !important;
+  border: 1px solid #dde0e4 !important;
+}
+.theme-light .react-flow__controls-button {
+  background: #ffffff !important;
+  border-bottom: 1px solid #dde0e4 !important;
+  fill: #6b7280 !important;
+  color: #6b7280 !important;
+}
+.theme-light .react-flow__controls-button:hover {
+  background: #f4f5f7 !important;
+  fill: #111827 !important;
+  color: #111827 !important;
+}
+
+/* Light theme — Detail Panel */
+.theme-light aside {
+  background: #f4f5f7 !important;
+  border-color: #dde0e4 !important;
+}
+.theme-light aside input,
+.theme-light aside textarea {
+  background: #ffffff !important;
+  border-color: #dde0e4 !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+}
+.theme-light aside input:focus,
+.theme-light aside textarea:focus { border-color: #2563eb !important; }
+.theme-light aside input::placeholder,
+.theme-light aside textarea::placeholder { color: #9ca3af !important; }
+.theme-light aside [class*="border-b"],
+.theme-light aside [class*="border-[#"] { border-color: #dde0e4 !important; }
+.theme-light aside [class*="text-[#6f6f6f]"],
+.theme-light aside [class*="text-[#525252]"] { color: #6b7280 !important; }
+.theme-light aside [class*="text-[#c6c6c6]"],
+.theme-light aside [class*="text-[#e8e8e8]"] { color: #111827 !important; }
+.theme-light aside [class*="bg-[#1e1e1e]"],
+.theme-light aside [class*="bg-[#1a1a1a]"] { background: #ffffff !important; }
+.theme-light aside [class*="hover:text-[#f4f4f4]"]:hover { color: #111827 !important; }
+
 /* Dusk theme overrides for React Flow controls */
 .theme-dusk .react-flow__controls {
   background: #282a40 !important;

@@ -41,10 +41,10 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const minH = isRoot ? 'min-h-[56px]' : 'min-h-[48px]';
 
   const cardShadow = isActive
-    ? `0 0 0 2px ${t.selectionRing}, 0 2px 12px rgba(0,0,0,0.5)`
+    ? `0 0 0 2px ${t.selectionRing}, ${t.shadowRoot}`
     : isRoot
-      ? `0 2px 8px rgba(0,0,0,0.4)`
-      : `0 1px 4px rgba(0,0,0,0.3)`;
+      ? t.shadowRoot
+      : t.shadowCard;
 
   return (
     <div className="relative group" style={{ width: nodeWidth }}>

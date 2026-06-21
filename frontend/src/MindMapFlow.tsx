@@ -142,7 +142,7 @@ function FlowCanvas() {
       style={{ background: t.canvas }}
     >
       <Controls />
-      <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={24} size={1} />
+      <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={5} size={1} />
     </ReactFlow>
   );
 }
