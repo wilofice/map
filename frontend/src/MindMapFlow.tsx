@@ -33,6 +33,7 @@ function FlowCanvas() {
     selectedNodeId, rawNodes, detailPanelOpen,
     clickOpensPanel, mapLocked, theme,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
+    undoLast, redoLast,
   } = useMindMapStore();
 
   const t = themes[theme];
@@ -69,6 +70,10 @@ function FlowCanvas() {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      // Ctrl+Z — undo, Ctrl+Y / Ctrl+Shift+Z — redo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoLast(); return; }
+      if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoLast(); return; }
 
       // Arrow keys — pan the viewport
       if (e.key in PAN_DELTA) {
@@ -112,7 +117,7 @@ function FlowCanvas() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand, toggleDetailPanel, setDetailPanelOpen, setSelectedNodeId, getViewport, setViewport]);
+  }, [toggleExpand, toggleDetailPanel, setDetailPanelOpen, setSelectedNodeId, getViewport, setViewport, undoLast, redoLast]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);

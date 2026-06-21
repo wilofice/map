@@ -5,6 +5,10 @@ import { buildDagreLayout } from '../layout/dagreLayout';
 import { STATUS_CYCLE } from '../types/NodeTypes';
 import type { MindMapNodeData, NodeStatus, Project } from '../types/NodeTypes';
 import type { AiSuggestion } from '../hooks/useApi';
+
+type UndoEntry =
+  | { type: 'delete'; nodes: MindMapNodeData[] }
+  | { type: 'add';    nodes: MindMapNodeData[] };
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
 import type { ThemeKey } from '../theme/themes';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,6 +41,10 @@ interface MindMapState {
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
   deleteProjects: (ids: string[]) => Promise<void>;
   bulkAddChildren: (parentId: string, suggestions: AiSuggestion[]) => Promise<void>;
+  undoStack: UndoEntry[];
+  redoStack: UndoEntry[];
+  undoLast: () => Promise<void>;
+  redoLast: () => Promise<void>;
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -71,7 +79,9 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   detailPanelOpen: false,
   clickOpensPanel: false,
   mapLocked: true,
-  theme: 'ibm' as ThemeKey,
+  theme: ((localStorage.getItem('mm-theme') as ThemeKey | null) ?? 'ibm'),
+  undoStack: [] as UndoEntry[],
+  redoStack: [] as UndoEntry[],
 
   async loadProjects() {
     try {
@@ -143,7 +153,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   async addChild(parentId) {
-    const { rawNodes, expandedIds, currentProject, displayMode, layoutDir } = get();
+    const { rawNodes, expandedIds, currentProject, displayMode, layoutDir, undoStack } = get();
     if (!currentProject) return;
     const parent = rawNodes.find((n) => n.id === parentId);
     const newNode: Partial<MindMapNodeData> & { project_id: string; title: string } = {
@@ -162,28 +172,35 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const next = new Set(expandedIds);
       next.add(parentId);
       const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
-      set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges });
+      set({
+        rawNodes: updated, expandedIds: next, rfNodes, rfEdges,
+        undoStack: [...undoStack.slice(-19), { type: 'add', nodes: [created] }],
+        redoStack: [],
+      });
     } catch (e) {
       set({ error: String(e) });
     }
   },
 
   async deleteNode(id) {
-    const { rawNodes, expandedIds, displayMode, layoutDir, selectedNodeId } = get();
+    const { rawNodes, expandedIds, displayMode, layoutDir, selectedNodeId, undoStack } = get();
+    const toRemove = new Set<string>();
+    const collect = (nid: string) => {
+      toRemove.add(nid);
+      rawNodes.filter((n) => n.parent_id === nid).forEach((c) => collect(c.id));
+    };
+    collect(id);
+    const deletedNodes = rawNodes.filter((n) => toRemove.has(n.id));
     try {
       await api.deleteNode(id);
-      const toRemove = new Set<string>();
-      const collect = (nid: string) => {
-        toRemove.add(nid);
-        rawNodes.filter((n) => n.parent_id === nid).forEach((c) => collect(c.id));
-      };
-      collect(id);
       const updated = rawNodes.filter((n) => !toRemove.has(n.id));
       const next = new Set([...expandedIds].filter((eid) => !toRemove.has(eid)));
       const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
       set({
         rawNodes: updated, expandedIds: next, rfNodes, rfEdges,
         selectedNodeId: toRemove.has(selectedNodeId ?? '') ? null : selectedNodeId,
+        undoStack: [...undoStack.slice(-19), { type: 'delete', nodes: deletedNodes }],
+        redoStack: [],
       });
     } catch (e) {
       set({ error: String(e) });
@@ -203,7 +220,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   async bulkAddChildren(parentId, suggestions) {
-    const { rawNodes, expandedIds, currentProject, displayMode, layoutDir } = get();
+    const { rawNodes, expandedIds, currentProject, displayMode, layoutDir, undoStack } = get();
     if (!currentProject || suggestions.length === 0) return;
     const parent = rawNodes.find((n) => n.id === parentId);
     const siblingCount = rawNodes.filter((n) => n.parent_id === parentId).length;
@@ -229,7 +246,11 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     const next = new Set(expandedIds);
     next.add(parentId);
     const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
-    set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges });
+    set({
+      rawNodes: updated, expandedIds: next, rfNodes, rfEdges,
+      undoStack: [...undoStack.slice(-19), { type: 'add', nodes: created }],
+      redoStack: [],
+    });
   },
 
   async deleteProjects(ids) {
@@ -242,6 +263,73 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         projects: remaining,
         ...(wasCurrent ? { currentProject: null, rawNodes: [], rfNodes: [], rfEdges: [], selectedNodeId: null } : {}),
       });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  async undoLast() {
+    const { undoStack, redoStack, rawNodes, expandedIds, displayMode, layoutDir } = get();
+    if (!undoStack.length) return;
+    const entry = undoStack[undoStack.length - 1];
+    const remaining = undoStack.slice(0, -1);
+    try {
+      if (entry.type === 'add') {
+        // Collect ALL local descendants (cascade handles DB side)
+        const toRemove = new Set<string>();
+        const descend = (nid: string) => {
+          toRemove.add(nid);
+          rawNodes.filter((n) => n.parent_id === nid).forEach((c) => descend(c.id));
+        };
+        entry.nodes.forEach((n) => descend(n.id));
+        for (const node of entry.nodes) await api.deleteNode(node.id);
+        const updated = rawNodes.filter((n) => !toRemove.has(n.id));
+        const next = new Set([...expandedIds].filter((id) => !toRemove.has(id)));
+        const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
+        set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges, undoStack: remaining, redoStack: [...redoStack, entry] });
+      } else {
+        // Re-create nodes depth-first so parents exist before children
+        const sorted = [...entry.nodes].sort((a, b) => (a.depth_level ?? 0) - (b.depth_level ?? 0));
+        const recreated: MindMapNodeData[] = [];
+        for (const node of sorted) recreated.push(await api.createNode(node));
+        const { rawNodes: cur, expandedIds: expIds, displayMode: dm, layoutDir: ld } = get();
+        const updated = [...cur, ...recreated];
+        const { rfNodes, rfEdges } = reLayout(updated, expIds, dm, ld);
+        set({ rawNodes: updated, rfNodes, rfEdges, undoStack: remaining, redoStack: [...redoStack, entry] });
+      }
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  async redoLast() {
+    const { undoStack, redoStack, rawNodes, expandedIds, displayMode, layoutDir } = get();
+    if (!redoStack.length) return;
+    const entry = redoStack[redoStack.length - 1];
+    const remaining = redoStack.slice(0, -1);
+    try {
+      if (entry.type === 'add') {
+        // Re-create nodes again
+        const sorted = [...entry.nodes].sort((a, b) => (a.depth_level ?? 0) - (b.depth_level ?? 0));
+        const recreated: MindMapNodeData[] = [];
+        for (const node of sorted) recreated.push(await api.createNode(node));
+        const { rawNodes: cur, expandedIds: expIds, displayMode: dm, layoutDir: ld } = get();
+        const updated = [...cur, ...recreated];
+        const next = new Set(expIds);
+        entry.nodes.forEach((n) => { if (n.parent_id) next.add(n.parent_id); });
+        const { rfNodes, rfEdges } = reLayout(updated, next, dm, ld);
+        set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges, undoStack: [...undoStack, entry], redoStack: remaining });
+      } else {
+        // Delete the nodes again — find roots (nodes whose parent is NOT in the set)
+        const nodeIds = new Set(entry.nodes.map((n) => n.id));
+        const roots = entry.nodes.filter((n) => !n.parent_id || !nodeIds.has(n.parent_id ?? ''));
+        for (const root of roots) await api.deleteNode(root.id);
+        const toRemove = nodeIds;
+        const updated = rawNodes.filter((n) => !toRemove.has(n.id));
+        const next = new Set([...expandedIds].filter((id) => !toRemove.has(id)));
+        const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
+        set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges, undoStack: [...undoStack, entry], redoStack: remaining });
+      }
     } catch (e) {
       set({ error: String(e) });
     }
@@ -275,5 +363,5 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setClickOpensPanel(v) { set({ clickOpensPanel: v }); },
   setMapLocked(v) { set({ mapLocked: v }); },
-  setTheme(t) { set({ theme: t }); },
+  setTheme(t) { localStorage.setItem('mm-theme', t); set({ theme: t }); },
 }));
