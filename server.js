@@ -62,7 +62,7 @@ fs.mkdir(uploadsDir, { recursive: true }).catch(() => {});
 
 // HTTPS — constants only; cert generation happens at startup (see bottom of file)
 const https    = require('https');
-const { execSync } = require('child_process');
+const { execSync, execFile } = require('child_process');
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const certsDir = path.join(__dirname, 'certs');
 const certFile = path.join(certsDir, 'cert.pem');
@@ -2106,17 +2106,18 @@ app.delete('/api/db/nodes/:id', (req, res) => {
         // Get node info before deletion for activity log
         const node = db.getNode(nodeId);
 
-        db.deleteNode(nodeId);
-
-        // Log activity
+        // Log before deleting: node_id=null so the activity record survives
+        // (passing nodeId after deletion violates the FK constraint since foreign_keys=ON)
         if (node) {
             db.logActivity(node.project_id, 'node_deleted', {
                 node_id: nodeId,
                 title: node.title,
                 status: node.status,
                 priority: node.priority
-            }, nodeId, req.get('User-Agent'), req.ip);
+            }, null, req.get('User-Agent'), req.ip);
         }
+
+        db.deleteNode(nodeId);
 
         res.json({ success: true });
     } catch (error) {
@@ -2748,6 +2749,93 @@ app.get('/api/ai/search', (req, res) => {
     } catch (error) {
         console.error('❌ Error in AI search:', error);
         res.status(500).json({ error: 'Search failed' });
+    }
+});
+
+// ─── AI: Generate child nodes via Codex CLI ──────────────────────────────────
+
+const CHILD_NODE_SCHEMA = {
+    type: 'object',
+    required: ['suggestions'],
+    properties: {
+        suggestions: {
+            type: 'array',
+            items: {
+                type: 'object',
+                required: ['title', 'priority', 'status'],
+                properties: {
+                    title:    { type: 'string', description: 'Concise node title (3-10 words)' },
+                    comment:  { type: 'string', description: 'Optional brief explanation or context' },
+                    priority: { type: 'string', enum: ['low', 'medium', 'high'] },
+                    status:   { type: 'string', enum: ['pending', 'in-progress', 'completed'] },
+                },
+            },
+        },
+    },
+};
+
+app.post('/api/ai/generate-children', async (req, res) => {
+    const { node_id, extra_prompt, count = 5, provider = 'codex' } = req.body;
+    if (!node_id) return res.status(400).json({ error: 'node_id required' });
+
+    const node = db && db.getNode ? db.getNode(node_id) : null;
+    if (!node) return res.status(404).json({ error: 'Node not found' });
+
+    const sessionId = crypto.randomUUID();
+    const schemaFile = path.join(os.tmpdir(), `mm_schema_${sessionId}.json`);
+    const outputFile = path.join(os.tmpdir(), `mm_out_${sessionId}.json`);
+
+    try {
+        await fs.writeFile(schemaFile, JSON.stringify(CHILD_NODE_SCHEMA, null, 2), 'utf8');
+
+        const contextParts = [
+            `Mind map node title: "${node.title}"`,
+            node.content ? `Node description: "${node.content}"` : null,
+            extra_prompt  ? `Additional instruction: ${extra_prompt}` : null,
+        ].filter(Boolean);
+
+        const prompt =
+            `You are a mind map assistant. Generate exactly ${count} child node suggestions for the following node.\n\n` +
+            contextParts.join('\n') +
+            `\n\nRules:\n` +
+            `- Each title must be concise (3-10 words)\n` +
+            `- Suggestions must be distinct and directly relevant to the parent\n` +
+            `- Use status "pending" unless context clearly implies otherwise\n` +
+            `- Return ONLY valid JSON matching the output schema — no markdown, no explanation`;
+
+        let args, cmd;
+        if (provider === 'codex') {
+            cmd = 'codex';
+            args = [
+                'exec', prompt,
+                '--output-schema', schemaFile,
+                '-o', outputFile,
+                '--ephemeral',
+                '-s', 'read-only',
+                '--dangerously-bypass-approvals-and-sandbox',
+            ];
+        } else {
+            return res.status(400).json({ error: `Unknown provider: ${provider}` });
+        }
+
+        await new Promise((resolve, reject) => {
+            execFile(cmd, args, { timeout: 120_000 }, (err) => {
+                if (err) reject(err); else resolve(null);
+            });
+        });
+
+        const raw = await fs.readFile(outputFile, 'utf8');
+        // Strip markdown fences if the model wrapped output anyway
+        const cleaned = raw.trim().replace(/^```json?\s*/i, '').replace(/\s*```$/, '');
+        const result = JSON.parse(cleaned);
+
+        res.json({ suggestions: result.suggestions ?? [] });
+    } catch (err) {
+        console.error('❌ AI generate-children error:', err);
+        res.status(500).json({ error: String(err.message ?? err) });
+    } finally {
+        fs.unlink(schemaFile).catch(() => {});
+        fs.unlink(outputFile).catch(() => {});
     }
 });
 

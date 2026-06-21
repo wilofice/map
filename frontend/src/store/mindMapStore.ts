@@ -4,6 +4,7 @@ import { api } from '../hooks/useApi';
 import { buildDagreLayout } from '../layout/dagreLayout';
 import { STATUS_CYCLE } from '../types/NodeTypes';
 import type { MindMapNodeData, NodeStatus, Project } from '../types/NodeTypes';
+import type { AiSuggestion } from '../hooks/useApi';
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
 import type { ThemeKey } from '../theme/themes';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +36,7 @@ interface MindMapState {
   deleteNode: (id: string) => Promise<void>;
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
   deleteProjects: (ids: string[]) => Promise<void>;
+  bulkAddChildren: (parentId: string, suggestions: AiSuggestion[]) => Promise<void>;
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -198,6 +200,36 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     } catch (e) {
       set({ error: String(e) });
     }
+  },
+
+  async bulkAddChildren(parentId, suggestions) {
+    const { rawNodes, expandedIds, currentProject, displayMode, layoutDir } = get();
+    if (!currentProject || suggestions.length === 0) return;
+    const parent = rawNodes.find((n) => n.id === parentId);
+    const siblingCount = rawNodes.filter((n) => n.parent_id === parentId).length;
+
+    const created: MindMapNodeData[] = [];
+    for (let i = 0; i < suggestions.length; i++) {
+      const s = suggestions[i];
+      const node = await api.createNode({
+        id: uuidv4(),
+        project_id: currentProject.id,
+        parent_id: parentId,
+        title: s.title,
+        content: s.comment ?? '',
+        status: s.status,
+        priority: s.priority,
+        sort_order: siblingCount + i,
+        depth_level: (parent?.depth_level ?? 0) + 1,
+      });
+      created.push(node);
+    }
+
+    const updated = [...rawNodes, ...created];
+    const next = new Set(expandedIds);
+    next.add(parentId);
+    const { rfNodes, rfEdges } = reLayout(updated, next, displayMode, layoutDir);
+    set({ rawNodes: updated, expandedIds: next, rfNodes, rfEdges });
   },
 
   async deleteProjects(ids) {

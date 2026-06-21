@@ -83,4 +83,23 @@ export const api = {
   getLastProject(): Promise<{ project_id: string } | null> {
     return request('/api/db/last-project');
   },
+
+  generateChildren(
+    nodeId: string,
+    extraPrompt: string,
+    count: number,
+    provider = 'codex',
+  ): Promise<{ suggestions: AiSuggestion[] }> {
+    return request('/api/ai/generate-children', {
+      method: 'POST',
+      body: JSON.stringify({ node_id: nodeId, extra_prompt: extraPrompt, count, provider }),
+    });
+  },
+};
+
+export type AiSuggestion = {
+  title: string;
+  comment?: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'pending' | 'in-progress' | 'completed';
 };

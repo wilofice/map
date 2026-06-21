@@ -3,6 +3,7 @@ import { useMindMapStore } from '../store/mindMapStore';
 import { STATUS_CONFIG, STATUS_CYCLE, PRIORITY_COLOR, PRIORITY_LABEL } from '../types/NodeTypes';
 import type { NodeStatus, NodePriority, NodeAudioFile } from '../types/NodeTypes';
 import { api } from '../hooks/useApi';
+import type { AiSuggestion } from '../hooks/useApi';
 
 const PRIORITY_CYCLE: NodePriority[] = ['low', 'medium', 'high'];
 
@@ -290,6 +291,170 @@ function FieldInput({
   );
 }
 
+// ─── AI: Generate child nodes ────────────────────────────────────────────────
+
+const PRIORITY_COLOR_MAP: Record<AiSuggestion['priority'], string> = {
+  high: '#fa4d56',
+  medium: '#f1c21b',
+  low: '#42be65',
+};
+
+function GenerateChildrenSection({ nodeId }: { nodeId: string }) {
+  const { bulkAddChildren } = useMindMapStore();
+  const [extraPrompt, setExtraPrompt] = useState('');
+  const [count, setCount] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<AiSuggestion[] | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [adding, setAdding] = useState(false);
+
+  const generate = async () => {
+    setLoading(true);
+    setError(null);
+    setSuggestions(null);
+    try {
+      const result = await api.generateChildren(nodeId, extraPrompt, count);
+      setSuggestions(result.suggestions);
+      setSelected(new Set(result.suggestions.map((_, i) => i)));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleSelected = (i: number) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  };
+
+  const addSelected = async () => {
+    if (!suggestions || selected.size === 0) return;
+    setAdding(true);
+    try {
+      const toAdd = suggestions.filter((_, i) => selected.has(i));
+      await bulkAddChildren(nodeId, toAdd);
+      setSuggestions(null);
+      setSelected(new Set());
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Extra prompt */}
+      <textarea
+        value={extraPrompt}
+        onChange={e => setExtraPrompt(e.target.value)}
+        placeholder="Optional: focus, constraint, or angle…"
+        rows={2}
+        className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 py-1.5 text-xs
+          text-[#c6c6c6] placeholder-[#525252] resize-none outline-none
+          focus:border-[#4589ff] transition-colors mb-2"
+      />
+
+      {/* Count selector + Generate button */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] text-[#525252]">Count:</span>
+        {([3, 5, 7] as const).map(n => (
+          <button
+            key={n}
+            onClick={() => setCount(n)}
+            className={`text-[10px] w-6 h-5 rounded transition-colors border ${
+              count === n
+                ? 'border-[#4589ff] text-[#4589ff] bg-[rgba(69,137,255,0.12)]'
+                : 'border-[#393939] text-[#6f6f6f] hover:text-[#c6c6c6]'
+            }`}
+          >{n}</button>
+        ))}
+        <button
+          onClick={generate}
+          disabled={loading}
+          className="ml-auto text-[11px] px-3 py-1 rounded border transition-colors
+            border-[#4589ff] text-[#4589ff] hover:bg-[rgba(69,137,255,0.12)]
+            disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+        >
+          {loading ? (
+            <>
+              <span className="w-2 h-2 rounded-full border border-[#4589ff] border-t-transparent animate-spin inline-block" />
+              Generating…
+            </>
+          ) : '✨ Generate'}
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="mt-2 text-[10px] text-[#fa4d56] bg-[#2d0709] border border-[#fa4d5633] rounded px-2 py-1.5 leading-snug">
+          {error}
+        </div>
+      )}
+
+      {/* Suggestions */}
+      {suggestions && suggestions.length > 0 && (
+        <div className="mt-3">
+          <div className="text-[10px] text-[#525252] mb-1.5">
+            {suggestions.length} suggestions — select to add:
+          </div>
+          <div className="space-y-1">
+            {suggestions.map((s, i) => (
+              <label
+                key={i}
+                className={`flex items-start gap-2 px-2 py-1.5 rounded cursor-pointer transition-colors border ${
+                  selected.has(i)
+                    ? 'bg-[rgba(69,137,255,0.08)] border-[#4589ff33]'
+                    : 'border-transparent hover:bg-[rgba(244,244,244,0.03)]'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(i)}
+                  onChange={() => toggleSelected(i)}
+                  className="mt-0.5 accent-[#4589ff] shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12px] text-[#c6c6c6] leading-snug">{s.title}</div>
+                  {s.comment && (
+                    <div className="text-[10px] text-[#525252] mt-0.5 leading-snug">{s.comment}</div>
+                  )}
+                </div>
+                <span
+                  className="text-[9px] font-medium uppercase tracking-wide shrink-0 mt-0.5"
+                  style={{ color: PRIORITY_COLOR_MAP[s.priority] }}
+                >{s.priority}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={addSelected}
+              disabled={selected.size === 0 || adding}
+              className="flex-1 py-1 rounded text-[11px] font-medium transition-colors
+                bg-[#4589ff] text-white hover:bg-[#78a9ff]
+                disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {adding ? 'Adding…' : `Add ${selected.size} node${selected.size !== 1 ? 's' : ''}`}
+            </button>
+            <button
+              onClick={() => { setSuggestions(null); setSelected(new Set()); }}
+              className="px-3 py-1 rounded text-[11px] border border-[#393939] text-[#6f6f6f]
+                hover:text-[#f4f4f4] transition-colors"
+            >Discard</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main panel ──────────────────────────────────────────────────────────────
 
 export default function DetailPanel() {
@@ -465,6 +630,11 @@ export default function DetailPanel() {
             multiline
             onSave={(v) => save({ task_prompt: v })}
           />
+        </CollapsibleSection>
+
+        {/* AI Generate children */}
+        <CollapsibleSection title="✨ Generate Children">
+          <GenerateChildrenSection nodeId={node.id} />
         </CollapsibleSection>
 
         {/* CLI */}
