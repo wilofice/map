@@ -62,7 +62,7 @@ fs.mkdir(uploadsDir, { recursive: true }).catch(() => {});
 
 // HTTPS — constants only; cert generation happens at startup (see bottom of file)
 const https    = require('https');
-const { execSync, execFile } = require('child_process');
+const { execSync, execFile, spawn } = require('child_process');
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const certsDir = path.join(__dirname, 'certs');
 const certFile = path.join(certsDir, 'cert.pem');
@@ -2782,17 +2782,20 @@ app.post('/api/ai/generate-children', async (req, res) => {
     if (!node) return res.status(404).json({ error: 'Node not found' });
 
     const sessionId = crypto.randomUUID();
-    const schemaFile = path.join(os.tmpdir(), `mm_schema_${sessionId}.json`);
     const outputFile = path.join(os.tmpdir(), `mm_out_${sessionId}.json`);
 
     try {
-        await fs.writeFile(schemaFile, JSON.stringify(CHILD_NODE_SCHEMA, null, 2), 'utf8');
-
         const contextParts = [
             `Mind map node title: "${node.title}"`,
             node.content ? `Node description: "${node.content}"` : null,
             extra_prompt  ? `Additional instruction: ${extra_prompt}` : null,
         ].filter(Boolean);
+
+        const exampleJson = JSON.stringify({
+            suggestions: [
+                { title: 'Example child node title', comment: 'Optional context', priority: 'medium', status: 'pending' },
+            ],
+        }, null, 2);
 
         const prompt =
             `You are a mind map assistant. Generate exactly ${count} child node suggestions for the following node.\n\n` +
@@ -2801,26 +2804,44 @@ app.post('/api/ai/generate-children', async (req, res) => {
             `- Each title must be concise (3-10 words)\n` +
             `- Suggestions must be distinct and directly relevant to the parent\n` +
             `- Use status "pending" unless context clearly implies otherwise\n` +
-            `- Return ONLY valid JSON matching the output schema — no markdown, no explanation`;
+            `- priority must be one of: low, medium, high\n` +
+            `- status must be one of: pending, in-progress, completed\n` +
+            `- Return ONLY a raw JSON object — no markdown, no code fences, no explanation\n\n` +
+            `Required output format:\n${exampleJson}`;
 
-        let args, cmd;
-        if (provider === 'codex') {
-            cmd = 'codex';
-            args = [
-                'exec', prompt,
-                '--output-schema', schemaFile,
-                '-o', outputFile,
-                '--ephemeral',
-                '-s', 'read-only',
-                '--dangerously-bypass-approvals-and-sandbox',
-            ];
-        } else {
+        if (provider !== 'codex') {
             return res.status(400).json({ error: `Unknown provider: ${provider}` });
         }
 
+        // Pass '-' so codex reads the prompt from stdin — avoids Windows arg quoting
+        // issues with multiline strings passed as CLI arguments.
+        const child = spawn('codex', [
+            'exec', '-',
+            '-o', outputFile,
+            '--ephemeral',
+            '--dangerously-bypass-approvals-and-sandbox',
+        ], { stdio: ['pipe', 'pipe', 'pipe'] });
+
+        child.stdin.write(prompt, 'utf8');
+        child.stdin.end();
+
+        let stderrOut = '';
+        child.stderr?.on('data', (d) => { stderrOut += d.toString(); });
+
         await new Promise((resolve, reject) => {
-            execFile(cmd, args, { timeout: 120_000 }, (err) => {
-                if (err) reject(err); else resolve(null);
+            const timer = setTimeout(() => {
+                child.kill();
+                reject(new Error('Timeout: codex did not respond within 120s'));
+            }, 120_000);
+
+            child.on('close', (code) => {
+                clearTimeout(timer);
+                if (code === 0 || code === null) resolve(null);
+                else reject(new Error(`codex exited with code ${code}. stderr: ${stderrOut}`));
+            });
+            child.on('error', (err) => {
+                clearTimeout(timer);
+                reject(err);
             });
         });
 
@@ -2834,7 +2855,6 @@ app.post('/api/ai/generate-children', async (req, res) => {
         console.error('❌ AI generate-children error:', err);
         res.status(500).json({ error: String(err.message ?? err) });
     } finally {
-        fs.unlink(schemaFile).catch(() => {});
         fs.unlink(outputFile).catch(() => {});
     }
 });
