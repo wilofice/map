@@ -1,520 +1,316 @@
-# 🤖 AI Co-Pilot Integration Guide
+# AI Co-Pilot Integration Guide
 
-This guide explains how to use the MindMap CLI system for AI agent task management, project/collection automation, and JSON-based imports.
+This guide is for AI agents (Claude, Codex, Copilot, Gemini, etc.) that interact with the Mind Map application. Read this before creating, updating, or designing any mind map.
 
-## 🛠️ System Overview
+---
 
-The MindMap CLI allows AI agents to:
-- Discover Tasks: find pending work from project queues
-- Update Progress: track work status and add progress notes
-- Manage Projects: access project context and node details
-- Search & Filter: find tasks by priority, status, or keywords
-- Manage Collections: list and create collections, and assign projects to them
-- Create/Import Projects: create projects directly or import from JSON
-- JSON Operations: create/update nodes using JSON payloads
+## ⚠️ Critical: What the App Already Does — Do NOT Replicate
 
-## 📋 Prerequisites
+**The UI renders all visual state automatically from data fields. Never encode visual information in node titles.**
 
-1. **Server Running**: Ensure the MindMap server is running on port 3333
-   ```bash
-   node server.js
-   # or
-   PORT=3333 node server.js
-   ```
+| Data field | What the app renders automatically |
+|---|---|
+| `status: "pending"` | Grey right border on the node card |
+| `status: "in-progress"` | Blue right border + animated pulse dot |
+| `status: "completed"` | Green right border |
+| `priority: "high"` | Red left border |
+| `priority: "medium"` | Yellow left border |
+| `priority: "low"` | Green left border |
+| Node depth | Animated edge color (blue → cyan → indigo) |
+| Project progress | Header progress bar + floating badge + sidebar bars |
+| Themes | IBM Carbon dark / Dusk navy / Light — all rendering is theme-aware |
 
-2. **CLI Access**: The CLI is located at `mindmap-cli.js` in the project root
-   ```bash
-   node mindmap-cli.js --help
-   ```
+**Node titles must be plain text — concise, 3-15 words, no emoji, no markdown, no status labels.**
 
-## 🎯 Core Workflow for AI Agents
+Bad titles an AI must never create:
+- `"✅ [DONE] Authentication API"` — status is already shown visually
+- `"🔴 HIGH PRIORITY: Database Setup"` — priority is already shown visually
+- `"[IN PROGRESS] Frontend Components (60%)"` — progress is tracked automatically
+- `"**Bold Task**"` — markdown is displayed as literal characters
 
-### Step 1: Discover Available Work
+Good titles:
+- `"Authentication API"`
+- `"Database Setup"`
+- `"Frontend Components"`
 
-Find high-priority tasks:
+---
+
+## Server Connection
+
+| Service | Default URL | Notes |
+|---|---|---|
+| Backend API (HTTP) | `http://<server-ip>:3000` | Main API — use this for CLI and direct requests |
+| Backend API (HTTPS) | `https://<server-ip>:3443` | LAN access with self-signed cert |
+| Frontend (dev) | `https://<server-ip>:5173` | Vite dev server — proxies `/api` to port 3000 |
+
+The port can be overridden with the `PORT` environment variable. Default is **3000**.
+
+Health check:
 ```bash
-node mindmap-cli.js list-tasks --priority=high --limit=5
+curl http://localhost:3000/api/db/projects
 ```
 
-Find all pending tasks:
-```bash
-node mindmap-cli.js list-tasks --status=pending --limit=10
-```
+---
 
-Search for specific work:
-```bash
-node mindmap-cli.js search "authentication" --status=pending
-node mindmap-cli.js search "frontend" --priority=high
-```
+## REST API Reference
 
-### Step 2: Get Task Context
+All endpoints are at `http://<server>:3000`. No authentication required (LAN-only app).
 
-Get detailed task information:
-```bash
-node mindmap-cli.js get-node <task-id>
-```
-
-Get project context:
-```bash
-node mindmap-cli.js get-project <project-id> --show-nodes
-```
-
-### Step 3: Start Working
-
-Update task status to in-progress:
-```bash
-node mindmap-cli.js update-status <task-id> in-progress
-```
-
-### Step 4: Track Progress
-
-Add progress updates:
-```bash
-node mindmap-cli.js add-progress <task-id> "Initialized project structure"
-node mindmap-cli.js add-progress <task-id> "Completed authentication setup"
-node mindmap-cli.js add-progress <task-id> "All tests passing"
-```
-
-### Step 5: Complete Work
-
-Mark task as completed:
-```bash
-node mindmap-cli.js update-status <task-id> completed
-```
-
-Add final progress note:
-```bash
-node mindmap-cli.js add-progress <task-id> "Task completed successfully - ready for review"
-```
-
-## 📊 CLI Commands Reference
-
-### Project Management
-```bash
-# List all projects
-mindmap projects
-
-# Get project details with nodes
-mindmap get-project <project-id> --show-nodes
-
-# Get specific node details
-mindmap get-node <node-id>
-
-# Get highest priority task in a specific project
-mindmap highest-priority-task <project-id>
-
-# Get lowest priority task in a specific project
-mindmap lowest-priority-task <project-id>
-```
-
-### Collections and Projects
-```bash
-# List all collections
-mindmap collections
-
-# Create a new collection
-mindmap create-collection "My Ideas" --description="Scratch pad"
-
-# Create a new project (defaults to collection 'default-collection')
-mindmap create-project "Research Plan" --collection-id=my-collection --description="Initial research"
-
-# Import a project (nodes + optional metadata) from JSON
-mindmap import-json ./path/to/project.json --collection-id=my-collection
-
-# Assign/remove a project to/from a collection
-mindmap assign-project-collection <project-id> --collection-id=my-collection
-mindmap assign-project-collection <project-id> --remove
-```
-
-### JSON-based Node Operations
-```bash
-# Update a node with JSON
-mindmap update-node-json <node-id> --file=./node-update.json
-
-# Create a node from JSON
-mindmap create-node-json --file=./new-node.json --project-id=<project-id>
-```
-
-### Task Discovery
-```bash
-# List pending tasks (AI work queue)
-mindmap list-tasks [options]
-
-# Filter tasks by priority, status, and/or project (FLEXIBLE!)
-mindmap filter-tasks [options]
-
-# List tasks for specific project
-mindmap list-tasks --project-id=<project-id>
-
-# Get highest priority task in project
-mindmap highest-priority-task <project-id>
-
-# Get lowest priority task in project
-mindmap lowest-priority-task <project-id>
-
-# Search for specific tasks
-mindmap search <query> [options]
-```
-
-### Advanced Task Filtering
-```bash
-# Filter by priority only
-mindmap filter-tasks --priority=high
-mindmap filter-tasks --priority=medium
-mindmap filter-tasks --priority=low
-
-# Filter by status only
-mindmap filter-tasks --status=pending
-mindmap filter-tasks --status=in-progress
-mindmap filter-tasks --status=completed
-
-# Filter by project only
-mindmap filter-tasks --project-id=<project-id>
-
-# Combine multiple filters
-mindmap filter-tasks --project-id=abc123 --priority=high
-mindmap filter-tasks --project-id=abc123 --status=in-progress
-mindmap filter-tasks --priority=medium --status=pending --limit=10
-mindmap filter-tasks --project-id=abc123 --priority=low --status=completed
-```
-
-### Task Management
-```bash
-# Update task status
-mindmap update-status <node-id> <status>
-# Status options: pending, in-progress, completed
-
-# Add progress message
-mindmap add-progress <node-id> <message>
-```
-
-### Filtering Options
-```bash
---priority=<high|medium|low>    # Filter by priority
---status=<status>               # Filter by status
---limit=<number>                # Limit results
---project-id=<id>               # Filter by project
---format=<json|human>           # Output format
-```
-
-## 🎬 Example AI Workflow Script
-
-Here's a complete example of an AI agent working session:
+### Projects
 
 ```bash
-#!/bin/bash
-# AI Co-Pilot Workflow Example
+# List all projects (with node counts and progress)
+GET /api/db/projects
 
-CLI="node mindmap-cli.js"
+# Get one project with all its nodes (flat array)
+GET /api/db/projects/:id
 
-echo "🤖 AI Co-Pilot Starting Work Session..."
+# Create a new empty project
+POST /api/db/projects
+Body: { "name": "My Project", "description": "...", "collection_id": "default-collection" }
 
-# Step 1: Find high-priority work
-echo "📋 Looking for high-priority tasks..."
-$CLI list-tasks --priority=high --limit=1
+# Update project metadata
+PUT /api/db/projects/:id
+Body: { "name": "...", "description": "...", "layout_dir": "LR|RL|TB", "display_mode": "comfortable|compact" }
 
-# Step 2: Get task details (replace with actual task ID)
-TASK_ID="your-task-id-here"
-echo "📝 Getting task details..."
-$CLI get-node $TASK_ID
+# Delete a project and all its nodes
+DELETE /api/db/projects/:id
 
-# Step 3: Start working
-echo "🔄 Starting work on task..."
-$CLI update-status $TASK_ID in-progress
-
-# Step 4: Add progress updates
-echo "⚙️ AI working on task..."
-$CLI add-progress $TASK_ID "Initialized project structure"
-$CLI add-progress $TASK_ID "Configured dependencies and setup"
-$CLI add-progress $TASK_ID "Implemented core functionality"
-
-# Step 5: Complete the task
-echo "✅ Completing task..."
-$CLI update-status $TASK_ID completed
-$CLI add-progress $TASK_ID "Task completed successfully - all tests passing"
-
-# Step 6: Show final status
-echo "📊 Final task status:"
-$CLI get-node $TASK_ID
-
-echo "🎉 AI Co-Pilot work session completed!"
+# Import a project from a JSON file (nested node tree)
+POST /api/db/import-json
+Body: <project JSON — see PROJECT_FILE_GUIDE_JSON.md>
 ```
 
-## 🔧 Configuration
+### Nodes
 
-### Set API Endpoint
 ```bash
-node mindmap-cli.js config --api-url=http://localhost:3333
+# Create a node
+POST /api/db/nodes
+Body: {
+  "project_id": "...",
+  "parent_id": "...",           # null for root
+  "title": "Node title",
+  "status": "pending",          # pending | in-progress | completed
+  "priority": "medium",         # low | medium | high
+  "content": "Notes text",
+  "sort_order": 0,
+  "depth_level": 1,
+  "code_language": "typescript",
+  "code_content": "// code here",
+  "task_prompt": "AI prompt...",
+  "cli_command": "npm run build"
+}
+
+# Update a node (any subset of fields)
+PUT /api/db/nodes/:id
+Body: { "status": "completed", "content": "Updated notes" }
+
+# Delete a node and all its descendants
+DELETE /api/db/nodes/:id
 ```
 
-### Show Current Configuration
+### Collections
+
 ```bash
-node mindmap-cli.js config --list
+# List all collections (with project counts)
+GET /api/db/collections
+
+# Create a collection
+POST /api/db/collections
+Body: { "name": "My Collection", "description": "..." }
+
+# Delete a collection (moves its projects to uncollected)
+DELETE /api/db/collections/:id
 ```
 
-### Environment Variables
+### Search & Task Discovery
+
 ```bash
-export MINDMAP_API_URL=http://localhost:3333
+# Search nodes across all projects
+GET /api/ai/search?q=authentication&priority=high&status=pending&limit=10
+
+# Get a single node
+GET /api/ai/nodes/:id
+
+# Update node status
+PUT /api/ai/nodes/:id/status
+Body: { "status": "in-progress" }
 ```
 
-## 📝 Output Formats
+### AI: Generate Child Nodes
 
-### Human-Readable (Default)
 ```bash
-node mindmap-cli.js list-tasks --priority=high
-```
-```
-📋 Found 3 pending tasks:
-  🔴 Frontend Development
-     📁 Project: test-features
-     🔗 ID: 31962c97-b692-457a-b683-771af044d791
-     📄 All frontend components have been implemented and tested.
-```
+# Generate child node suggestions using Codex CLI (runs on the server)
+POST /api/ai/generate-children
+Body: {
+  "node_id": "...",
+  "extra_prompt": "Focus on backend concerns",   # optional
+  "count": 5,                                    # 3, 5, or 7
+  "provider": "codex"                            # currently only codex
+}
 
-### JSON Format (for parsing)
-```bash
-node mindmap-cli.js filter-tasks --priority=high --format=json
-```
-```json
+# Response:
 {
-  "tasks": [
-    {
-      "id": "31962c97-b692-457a-b683-771af044d791",
-      "title": "Frontend Development",
-      "priority": "high",
-      "status": "pending",
-      "project_name": "test-features",
-      "comment": "All frontend components have been implemented and tested."
-    }
+  "suggestions": [
+    { "title": "API rate limiting", "priority": "high", "status": "pending", "comment": "..." },
+    ...
   ]
 }
 ```
 
-## 🧠 AI Agent Best Practices
+The suggestions are previewed in the UI (Detail Panel → ✨ Generate Children) where the user selects which ones to add.
 
-### 1. Task Selection Strategy
-- **Prioritize high-priority tasks** for immediate attention
-- **Check project context** before starting work
-- **Look for related tasks** in the same project
+### Documentation API
 
-### 2. Progress Tracking
-- **Update status immediately** when starting work
-- **Add frequent progress notes** to track incremental progress
-- **Include specific details** in progress messages
-- **Mark completion clearly** with final status
-
-### 3. Error Handling
-- **Verify task exists** before updating status
-- **Check for API connectivity** before starting workflows
-- **Handle failed requests gracefully**
-
-### 4. Context Awareness
-- **Read task descriptions** for specific requirements
-- **Check project scope** for related dependencies
-- **Review existing progress** before adding updates
-
-## 🔍 Troubleshooting
-
-### Server Connection Issues
 ```bash
-# Check if server is running
-curl http://localhost:3333/api/health
+# List all docs in docs/Artefacts/
+GET /api/docs
+# → { "docs": [{ "filename": "AI-COPILOT-GUIDE.md", "title": "...", "bytes": 4200, "url": "/api/docs/AI-COPILOT-GUIDE.md" }, ...] }
 
-# Test CLI connectivity
-node mindmap-cli.js projects
+# Get a specific doc as markdown text
+GET /api/docs/AI-COPILOT-GUIDE.md
+GET /api/docs/PROJECT_FILE_GUIDE_JSON.md
+
+# Get all docs as a single JSON bundle
+GET /api/docs/bundle
+# → { "AI-COPILOT-GUIDE.md": "...", "PROJECT_FILE_GUIDE_JSON.md": "...", ... }
 ```
-
-### Task ID Issues
-```bash
-# List available tasks to get correct IDs
-node mindmap-cli.js list-tasks --limit=20
-
-# Verify task exists
-node mindmap-cli.js get-node <task-id>
-```
-
-### Configuration Issues
-```bash
-# Reset configuration
-rm .mindmap-cli-config.json
-
-# Set correct API URL
-node mindmap-cli.js config --api-url=http://localhost:3333
-```
-
-## 📚 Advanced Usage
-
-### Batch Processing
-```bash
-# Process multiple high-priority tasks
-for task in $(node mindmap-cli.js filter-tasks --priority=high --format=json | jq -r '.tasks[].id'); do
-    echo "Processing task: $task"
-    node mindmap-cli.js get-node $task
-done
-```
-
-### Integration with Other Tools
-```bash
-# Export task list for external processing
-node mindmap-cli.js filter-tasks --format=json > current_tasks.json
-
-# Search and update in one workflow
-TASK_ID=$(node mindmap-cli.js search "authentication" --format=json | jq -r '.results[0].id')
-node mindmap-cli.js update-status $TASK_ID in-progress
-```
-
-## 🎯 Quick Reference Card
-
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `projects` | List all projects | `mindmap projects` |
-| `collections` | List all collections | `mindmap collections` |
-| `create-collection` | Create a new collection | `mindmap create-collection "Ideas"` |
-| `create-project` | Create a new project | `mindmap create-project "Alpha" --collection-id=default-collection` |
-| `import-json` | Import project from JSON | `mindmap import-json ./project.json --collection-id=alpha` |
-| `list-tasks` | Find work to do | `mindmap list-tasks --priority=high` |
-| `filter-tasks` | Flexible task filtering | `mindmap filter-tasks --priority=high --status=pending` |
-| `highest-priority-task` | Get top priority task in project | `mindmap highest-priority-task abc123` |
-| `lowest-priority-task` | Get lowest priority task in project | `mindmap lowest-priority-task abc123` |
-| `get-node` | Get task details | `mindmap get-node abc123` |
-| `update-status` | Change task status | `mindmap update-status abc123 in-progress` |
-| `add-progress` | Track progress | `mindmap add-progress abc123 "Feature completed"` |
-| `search` | Find specific tasks | `mindmap search "auth" --status=pending` |
-| `assign-project-collection` | Assign/remove project to/from a collection | `mindmap assign-project-collection <project-id> --collection-id=my-collection` |
-| `update-node-json` | Update a node using JSON | `mindmap update-node-json <node-id> --file=./update.json` |
-| `create-node-json` | Create a node using JSON | `mindmap create-node-json --file=./node.json --project-id=<project-id>` |
 
 ---
 
-🚀 Ready to integrate? Start with `node mindmap-cli.js collections` or `node mindmap-cli.js projects` to explore your workspace.
+## CLI Reference
 
+The CLI (`node mindmap-cli.js`) is a convenience wrapper around the REST API. Use it when working from a terminal in the repo directory.
 
+```bash
+# List all collections and projects
+node mindmap-cli.js collections
+node mindmap-cli.js projects
 
-  ✅ AI Workflow System Status: FULLY TESTED & WORKING
+# Create a collection and a project
+node mindmap-cli.js create-collection "My Collection" --description="Team work"
+node mindmap-cli.js create-project "My Project" --collection-id=<id> --description="..."
 
-  🧪 Testing Results:
+# Import a project from JSON
+node mindmap-cli.js import-json ./data/myproject.json --collection-id=<id>
 
-  - ✅ CLI Commands: All core commands working perfectly
-  - ✅ Task Discovery: Successfully finds and lists tasks by priority
-  - ✅ Status Updates: Can change task status (pending → in-progress → completed)
-  - ✅ Progress Tracking: Successfully adds progress notes with timestamps
-  - ✅ Task Details: Retrieves complete task information with history
-  - ✅ JSON Output: Provides parseable JSON for programmatic access
+# Task discovery
+node mindmap-cli.js list-tasks --priority=high --limit=10
+node mindmap-cli.js filter-tasks --project-id=<id> --status=pending --limit=20
+node mindmap-cli.js highest-priority-task <project-id>
+node mindmap-cli.js search "authentication" --status=pending
 
-  📚 Documentation Created:
+# Get details
+node mindmap-cli.js get-project <id> --show-nodes
+node mindmap-cli.js get-node <node-id>
 
-  1. AI-COPILOT-GUIDE.md - Comprehensive guide covering:
-    - Complete CLI command reference
-    - Step-by-step workflows for AI agents
-    - Best practices and troubleshooting
-    - Example usage patterns
-    - JSON output formats for parsing
-  2. Updated examples/ai-workflow-example.sh - Working demonstration script that:
-    - Dynamically finds available tasks
-    - Handles cases where no tasks exist
-    - Uses real task IDs from the system
-    - Demonstrates complete AI workflow
+# Update nodes
+node mindmap-cli.js update-status <node-id> in-progress
+node mindmap-cli.js update-status <node-id> completed
+node mindmap-cli.js add-progress <node-id> "Completed auth module"
 
-  🎯 Quick Start for Your AI Co-Pilot:
+# JSON-based operations
+node mindmap-cli.js update-node-json <node-id> --file=./update.json
+node mindmap-cli.js create-node-json --file=./node.json --project-id=<id>
 
-  Basic Commands:
-  # Find work to do
-  node mindmap-cli.js list-tasks --priority=high --limit=5
+# Assign project to collection
+node mindmap-cli.js assign-project-collection <project-id> --collection-id=<collection-id>
+node mindmap-cli.js assign-project-collection <project-id> --remove
+```
 
-  # Start working on a task
-  node mindmap-cli.js update-status <task-id> in-progress
+Output formats: `--format=json` for machine parsing, default is human-readable.
 
-  # Track progress
-  node mindmap-cli.js add-progress <task-id> "Completed authentication setup"
+---
 
-  # Mark as done
-  node mindmap-cli.js update-status <task-id> completed
+## Typical AI Agent Workflow
 
-  Run the demo workflow:
-  cd examples
-  ./ai-workflow-example.sh
+### 1. Read a project and find work
 
-  🔗 Key Features for AI Integration:
+```bash
+# Get all projects
+curl http://localhost:3000/api/db/projects
 
-  - Dynamic Task Discovery: No hardcoded IDs needed
-  - Structured JSON Output: Perfect for AI parsing
-  - Progress Tracking: Detailed activity logging
-  - Priority-Based Queuing: AI can focus on high-priority work
-  - Error Handling: Graceful failure recovery
-  - Context Awareness: Full project and task details available
+# Get project details + all nodes
+curl http://localhost:3000/api/db/projects/<id>
 
-  The system is production-ready for AI co-pilot integration! Your AI agent can now autonomously discover, work on, and track progress on tasks from your mind map projects.
+# Or via CLI
+node mindmap-cli.js filter-tasks --priority=high --status=pending --format=json
+```
 
+### 2. Start working on a task
 
+```bash
+curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+  -H "Content-Type: application/json" \
+  -d '{"status": "in-progress"}'
+```
 
+### 3. Add progress notes
 
+```bash
+# The "content" field is the node's notes/comment field
+curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Completed database schema. Next: API endpoints."}'
+```
 
-  ✅ COMPLETE: Flexible Task Filtering System Implemented
+### 4. Mark complete
 
-  I've successfully implemented the advanced task filtering system you requested! Your AI co-pilot now has complete granular control over task discovery.
+```bash
+curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+  -H "Content-Type: application/json" \
+  -d '{"status": "completed"}'
+```
 
-  🎯 New filter-tasks Command
+---
 
-  All filtering combinations are now possible:
+## Creating a Project from Scratch
 
-  # Filter by any single criteria
-  mindmap filter-tasks --priority=high
-  mindmap filter-tasks --priority=medium
-  mindmap filter-tasks --priority=low
-  mindmap filter-tasks --status=pending
-  mindmap filter-tasks --status=in-progress
-  mindmap filter-tasks --status=completed
-  mindmap filter-tasks --project-id=<project-id>
+Use the JSON import endpoint. See `PROJECT_FILE_GUIDE_JSON.md` for the full format.
 
-  # Combine any filters
-  mindmap filter-tasks --project-id=abc123 --priority=medium
-  mindmap filter-tasks --project-id=abc123 --status=in-progress
-  mindmap filter-tasks --status=pending --priority=high --limit=10
-  mindmap filter-tasks --project-id=abc123 --priority=low --status=completed
+```bash
+curl -X POST http://localhost:3000/api/db/import-json \
+  -H "Content-Type: application/json" \
+  -d @./data/myproject.json
+```
 
-  ✅ Comprehensive Testing Results:
+Or via CLI:
+```bash
+node mindmap-cli.js import-json ./data/myproject.json --collection-id=default-collection
+```
 
-  1. ✅ Priority Filtering: High/Medium/Low priority filtering working perfectly
-  2. ✅ Status Filtering: Pending/In-Progress/Completed status filtering working perfectly
-  3. ✅ Project Filtering: Project-specific task filtering working perfectly
-  4. ✅ Combined Filtering: All combinations of filters working together seamlessly
-  5. ✅ JSON Output: Full structured data available for AI parsing
-  6. ✅ Visual Output: Human-readable format with priority and status indicators
+---
 
-  🔧 Technical Implementation:
+## What the UI Provides (No Agent Action Needed)
 
-  - New Server Endpoint: /api/ai/tasks with flexible filtering
-  - Enhanced CLI Command: filter-tasks with full option support
-  - Intelligent Sorting: Priority + Status + Creation time ordering
-  - Smart Display: Visual indicators (🔴🟡🟢 for priority, ⏳🔄✅ for status)
+When a user opens the app in a browser, these features are available out of the box:
 
-  📊 Example Outputs:
+- **Canvas**: pan, zoom, fit-to-screen (React Flow)
+- **Layout**: auto-layout via Dagre (LR, RL, TB directions)
+- **Node cards**: priority left-border + status right-border + title
+- **Expand/collapse**: branches can be collapsed to reduce clutter
+- **Detail Panel**: per-node editor for title, notes, dates, code, AI prompt, CLI command, audio
+- **Status cycling**: click the status badge to cycle pending→in-progress→completed (cascades to children)
+- **Progress tracking**: header bar, floating badge, sidebar per-project bars
+- **Themes**: IBM Carbon dark / Dusk / Light (toggle in top bar)
+- **Undo/redo**: Ctrl+Z / Ctrl+Y for add and delete operations
+- **AI generate children**: ✨ Generate Children section in the Detail Panel (uses Codex on server)
+- **Search**: available via the AI search API
+- **Keyboard shortcuts**: Arrow keys (pan), Space (expand/collapse), Enter (open detail), Escape (close)
 
-  Priority-based filtering:
-  📋 Found 3 tasks (high priority):
-    🔴⏳ VoiceFlow Project Plan
-       📁 Project: voiceflow_project
-       🔗 ID: a2356b17-cf8a-46f5-88b4-66d076c04e65
-       ⚡ Priority: high | 📊 Status: pending
+**An agent designing a graph structure does not need to worry about any of this.** Focus on: node titles, hierarchy (parent_id / children), status, priority, and content/notes.
 
-  Combined filtering:
-  📋 Found 3 tasks (low priority, pending status):
-    🟢⏳ DevOps & Deployment
-       📁 Project: test-features
-       ⚡ Priority: low | 📊 Status: pending
+---
 
-  🤖 Perfect for AI Co-Pilot Use Cases:
+## Quick Reference
 
-  Your AI can now intelligently select tasks based on:
-  - Context-aware prioritization: "Find medium priority tasks I can work on"
-  - Status-based workflows: "Show me all in-progress tasks to continue"
-  - Project-focused work: "Get low priority tasks in this specific project"
-  - Strategic task selection: "Find high priority pending tasks across all projects"
-
-  📚 Documentation Updated:
-
-  - AI-COPILOT-GUIDE.md: Enhanced with comprehensive filtering examples
-  - CLI Help: Updated with new command and detailed examples
-  - Quick Reference: Added flexible filtering to command table
-
-  Your AI co-pilot now has complete flexibility to discover and work on exactly the tasks it needs based on any combination of priority, status, and project context! 🚀
+| Task | REST | CLI |
+|---|---|---|
+| List projects | `GET /api/db/projects` | `mindmap projects` |
+| List collections | `GET /api/db/collections` | `mindmap collections` |
+| Create collection | `POST /api/db/collections` | `mindmap create-collection "Name"` |
+| Import project | `POST /api/db/import-json` | `mindmap import-json file.json` |
+| Get nodes | `GET /api/db/projects/:id` | `mindmap get-project <id> --show-nodes` |
+| Update node | `PUT /api/db/nodes/:id` | `mindmap update-status <id> completed` |
+| Search | `GET /api/ai/search?q=...` | `mindmap search "query"` |
+| Get all docs | `GET /api/docs/bundle` | — |
