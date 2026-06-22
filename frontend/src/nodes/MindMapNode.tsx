@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { motion } from 'framer-motion';
 import { Handle, Position } from '@xyflow/react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { PRIORITY_COLOR, STATUS_CONFIG } from '../types/NodeTypes';
@@ -14,6 +15,7 @@ interface MindMapNodeProps {
     nodeWidth: number;
     displayMode: DisplayMode;
     layoutDir: LayoutDir;
+    isRemoving?: boolean;
   };
   selected: boolean;
 }
@@ -22,12 +24,13 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const { toggleExpand, addChild, deleteNode, selectedNodeId, theme } = useMindMapStore();
   const t = themes[theme];
 
-  const depth     = data.depth_level ?? 0;
-  const isRoot    = depth === 0;
-  const mode      = data.displayMode ?? 'comfortable';
-  const dir       = data.layoutDir ?? 'LR';
-  const nodeWidth = data.nodeWidth ?? NODE_DIMS[mode].width;
-  const isActive  = selected || selectedNodeId === data.id;
+  const depth      = data.depth_level ?? 0;
+  const isRoot     = depth === 0;
+  const mode       = data.displayMode ?? 'comfortable';
+  const dir        = data.layoutDir ?? 'LR';
+  const nodeWidth  = data.nodeWidth ?? NODE_DIMS[mode].width;
+  const isActive   = selected || selectedNodeId === data.id;
+  const isRemoving = data.isRemoving ?? false;
 
   const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
   const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
@@ -47,7 +50,13 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       : t.shadowCard;
 
   return (
-    <div className="relative group" style={{ width: nodeWidth }}>
+    <motion.div
+      className="relative group"
+      style={{ width: nodeWidth }}
+      initial={{ opacity: 0, scale: 0.88 }}
+      animate={isRemoving ? { opacity: 0, scale: 0.82 } : { opacity: 1, scale: 1 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+    >
       <Handle
         type="target"
         position={targetPos}
@@ -114,7 +123,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
         position={sourcePos}
         style={{ background: t.handle, width: 5, height: 5, border: 'none' }}
       />
-    </div>
+    </motion.div>
   );
 });
 

@@ -74,7 +74,7 @@ export const themes: Record<ThemeKey, AppTheme> = {
   },
   light: {
     canvas: '#eef0f3',
-    bgDots: '#c8cdd4',
+    bgDots: '#8896a6',
     bgVariant: 'dots',
     shell: '#ffffff',
     surface: '#f4f5f7',

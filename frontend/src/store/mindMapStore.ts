@@ -110,10 +110,39 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   toggleExpand(id) {
     const { rawNodes, expandedIds, displayMode, layoutDir } = get();
-    const next = new Set(expandedIds);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    const { rfNodes, rfEdges } = reLayout(rawNodes, next, displayMode, layoutDir);
-    set({ expandedIds: next, rfNodes, rfEdges });
+    const isCollapsing = expandedIds.has(id);
+
+    if (isCollapsing) {
+      // Collect all currently-visible descendants
+      const toHide = new Set<string>();
+      const collectVisible = (nid: string) => {
+        rawNodes.filter((n) => n.parent_id === nid).forEach((child) => {
+          toHide.add(child.id);
+          if (expandedIds.has(child.id)) collectVisible(child.id);
+        });
+      };
+      collectVisible(id);
+
+      // Trigger exit animation on all children
+      set((s) => ({
+        rfNodes: s.rfNodes.map((n) =>
+          toHide.has(n.id) ? { ...n, data: { ...n.data, isRemoving: true } } : n
+        ),
+      }));
+
+      setTimeout(() => {
+        const { rawNodes: rn, displayMode: dm, layoutDir: ld } = get();
+        const next = new Set(expandedIds);
+        next.delete(id);
+        const { rfNodes, rfEdges } = reLayout(rn, next, dm, ld);
+        set({ expandedIds: next, rfNodes, rfEdges });
+      }, 165);
+    } else {
+      const next = new Set(expandedIds);
+      next.add(id);
+      const { rfNodes, rfEdges } = reLayout(rawNodes, next, displayMode, layoutDir);
+      set({ expandedIds: next, rfNodes, rfEdges });
+    }
   },
 
   expandAll() {
@@ -192,6 +221,15 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     };
     collect(id);
     const deletedNodes = rawNodes.filter((n) => toRemove.has(n.id));
+
+    // Trigger exit animation
+    set((s) => ({
+      rfNodes: s.rfNodes.map((n) =>
+        toRemove.has(n.id) ? { ...n, data: { ...n.data, isRemoving: true } } : n
+      ),
+    }));
+    await new Promise((r) => setTimeout(r, 165));
+
     try {
       await api.deleteNode(id);
       const updated = rawNodes.filter((n) => !toRemove.has(n.id));
