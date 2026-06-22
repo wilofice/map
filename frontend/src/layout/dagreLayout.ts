@@ -92,7 +92,7 @@ export function buildDagreLayout(
         id: `e-${n.parent_id}-${n.id}`,
         source: n.parent_id as string,
         target: n.id,
-        type: 'smoothstep',
+        type: 'default',
         animated: true,
         style: {
           stroke: edgeColor,
