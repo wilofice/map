@@ -146,9 +146,14 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         set({ expandedIds: next, rfNodes, rfEdges });
       }, 165);
     } else {
+      const prevIds = new Set(get().rfNodes.map((n) => n.id));
       const next = new Set(expandedIds);
       next.add(id);
-      const { rfNodes, rfEdges } = reLayout(rawNodes, next, displayMode, layoutDir);
+      const { rfNodes: laid, rfEdges } = reLayout(rawNodes, next, displayMode, layoutDir);
+      let si = 0;
+      const rfNodes = laid.map((n) =>
+        prevIds.has(n.id) ? n : { ...n, data: { ...n.data, staggerIndex: si++ } }
+      );
       set({ expandedIds: next, rfNodes, rfEdges });
     }
   },

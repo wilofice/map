@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Handle, Position } from '@xyflow/react';
 import { useMindMapStore } from '../store/mindMapStore';
@@ -16,6 +16,7 @@ interface MindMapNodeProps {
     displayMode: DisplayMode;
     layoutDir: LayoutDir;
     isRemoving?: boolean;
+    staggerIndex?: number;
   };
   selected: boolean;
 }
@@ -29,8 +30,29 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const mode       = data.displayMode ?? 'comfortable';
   const dir        = data.layoutDir ?? 'LR';
   const nodeWidth  = data.nodeWidth ?? NODE_DIMS[mode].width;
-  const isActive   = selected || selectedNodeId === data.id;
-  const isRemoving = data.isRemoving ?? false;
+  const isActive      = selected || selectedNodeId === data.id;
+  const isRemoving    = data.isRemoving ?? false;
+  const staggerIndex  = data.staggerIndex ?? 0;
+  const staggerDelay  = staggerIndex * 0.05; // 50ms per sibling
+
+  // Typewriter: type the title letter-by-letter on mount only
+  const [displayedTitle, setDisplayedTitle] = useState('');
+  useEffect(() => {
+    const fullTitle = data.title;
+    let cancelled = false;
+    // Start typing ~60ms after the node begins fading in (stagger-aware)
+    const outer = setTimeout(() => {
+      let i = 0;
+      const tick = () => {
+        if (cancelled) return;
+        i++;
+        setDisplayedTitle(fullTitle.slice(0, i));
+        if (i < fullTitle.length) setTimeout(tick, 25);
+      };
+      tick();
+    }, staggerIndex * 50 + 60);
+    return () => { cancelled = true; clearTimeout(outer); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Slide in from the parent side so the node feels like it emerges from its parent
   const enterX = dir === 'LR' ? -22 : dir === 'RL' ? 22 : 0;
@@ -66,7 +88,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       transition={
         isRemoving
           ? { duration: 0.15, ease: 'easeOut' }
-          : { type: 'spring', stiffness: 260, damping: 22, mass: 0.85 }
+          : { type: 'spring', duration: 0.9, bounce: 0.15, delay: staggerDelay }
       }
     >
       <Handle
@@ -111,7 +133,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
             style={{ color: t.textPrimary }}
             title={data.title}
           >
-            {data.title}
+            {displayedTitle || ' '}
           </span>
 
           {/* Action buttons — appear on hover */}
