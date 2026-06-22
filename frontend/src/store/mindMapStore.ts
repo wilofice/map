@@ -57,6 +57,20 @@ interface MindMapState {
   setClickOpensPanel: (v: boolean) => void;
   setMapLocked: (v: boolean) => void;
   setTheme: (t: ThemeKey) => void;
+
+  // Animation settings
+  animEntranceMode: 'cascade' | 'sequential';
+  animStaggerMs: number;
+  animSpringDuration: number;
+  typewriterEnabled: boolean;
+  typewriterSpeedMs: number;
+  settingsPanelOpen: boolean;
+  setAnimEntranceMode: (mode: 'cascade' | 'sequential') => void;
+  setAnimStaggerMs: (ms: number) => void;
+  setAnimSpringDuration: (s: number) => void;
+  setTypewriterEnabled: (v: boolean) => void;
+  setTypewriterSpeedMs: (ms: number) => void;
+  setSettingsPanelOpen: (v: boolean) => void;
 }
 
 // Tracks the active theme's edge colors so every reLayout call gets them automatically.
@@ -89,6 +103,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   mapLocked: true,
   theme: ((localStorage.getItem('mm-theme') as ThemeKey | null) ?? 'ibm'),
   pendingFitView: true,
+
+  animEntranceMode: (localStorage.getItem('mm-anim-entrance') as 'cascade' | 'sequential' | null) ?? 'cascade',
+  animStaggerMs: Number(localStorage.getItem('mm-anim-stagger-ms') ?? 100),
+  animSpringDuration: Number(localStorage.getItem('mm-anim-spring-s') ?? 0.9),
+  typewriterEnabled: (localStorage.getItem('mm-typewriter-enabled') ?? 'true') === 'true',
+  typewriterSpeedMs: Number(localStorage.getItem('mm-typewriter-speed-ms') ?? 25),
+  settingsPanelOpen: false,
   undoStack: [] as UndoEntry[],
   redoStack: [] as UndoEntry[],
 
@@ -426,4 +447,11 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setMapLocked(v) { set({ mapLocked: v }); },
   setTheme(t) { _edgeColors = themes[t].edgeColors; localStorage.setItem('mm-theme', t); set({ theme: t }); },
   clearPendingFitView() { set({ pendingFitView: false }); },
+
+  setAnimEntranceMode(mode) { localStorage.setItem('mm-anim-entrance', mode); set({ animEntranceMode: mode }); },
+  setAnimStaggerMs(ms) { localStorage.setItem('mm-anim-stagger-ms', String(ms)); set({ animStaggerMs: ms }); },
+  setAnimSpringDuration(s) { localStorage.setItem('mm-anim-spring-s', String(s)); set({ animSpringDuration: s }); },
+  setTypewriterEnabled(v) { localStorage.setItem('mm-typewriter-enabled', String(v)); set({ typewriterEnabled: v }); },
+  setTypewriterSpeedMs(ms) { localStorage.setItem('mm-typewriter-speed-ms', String(ms)); set({ typewriterSpeedMs: ms }); },
+  setSettingsPanelOpen(v) { set({ settingsPanelOpen: v }); },
 }));

@@ -22,7 +22,11 @@ interface MindMapNodeProps {
 }
 
 const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
-  const { toggleExpand, addChild, deleteNode, selectedNodeId, theme } = useMindMapStore();
+  const {
+    toggleExpand, addChild, deleteNode, selectedNodeId, theme,
+    animEntranceMode, animStaggerMs, animSpringDuration,
+    typewriterEnabled, typewriterSpeedMs,
+  } = useMindMapStore();
   const t = themes[theme];
 
   const depth      = data.depth_level ?? 0;
@@ -33,26 +37,32 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const isActive      = selected || selectedNodeId === data.id;
   const isRemoving    = data.isRemoving ?? false;
   const staggerIndex  = data.staggerIndex ?? 0;
-  const staggerDelay  = staggerIndex * 0.05; // 50ms per sibling
+  // cascade: each node offset by animStaggerMs; sequential: each waits for the previous spring to finish
+  const staggerDelay  = animEntranceMode === 'sequential'
+    ? staggerIndex * animSpringDuration
+    : staggerIndex * (animStaggerMs / 1000);
 
   // Typewriter: type the title letter-by-letter on mount only
   const [displayedTitle, setDisplayedTitle] = useState('');
   useEffect(() => {
     const fullTitle = data.title;
+    if (!typewriterEnabled) { setDisplayedTitle(fullTitle); return; }
     let cancelled = false;
-    // Start typing ~60ms after the node begins fading in (stagger-aware)
+    const outerDelay = animEntranceMode === 'sequential'
+      ? staggerIndex * animSpringDuration * 1000 + 60
+      : staggerIndex * animStaggerMs + 60;
     const outer = setTimeout(() => {
       let i = 0;
       const tick = () => {
         if (cancelled) return;
         i++;
         setDisplayedTitle(fullTitle.slice(0, i));
-        if (i < fullTitle.length) setTimeout(tick, 25);
+        if (i < fullTitle.length) setTimeout(tick, typewriterSpeedMs);
       };
       tick();
-    }, staggerIndex * 50 + 60);
+    }, outerDelay);
     return () => { cancelled = true; clearTimeout(outer); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentional mount-only
 
   // Slide in from the parent side so the node feels like it emerges from its parent
   const enterX = dir === 'LR' ? -22 : dir === 'RL' ? 22 : 0;
@@ -88,7 +98,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       transition={
         isRemoving
           ? { duration: 0.15, ease: 'easeOut' }
-          : { type: 'spring', duration: 0.9, bounce: 0.15, delay: staggerDelay }
+          : { type: 'spring', duration: animSpringDuration, bounce: 0.15, delay: staggerDelay }
       }
     >
       <Handle

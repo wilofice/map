@@ -3,6 +3,7 @@ import { useMindMapStore } from './store/mindMapStore';
 import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
+import SettingsPanel from './components/SettingsPanel';
 import ProgressBadge from './components/ProgressBadge';
 import type { Project, Collection } from './types/NodeTypes';
 import { api } from './hooks/useApi';
@@ -18,6 +19,7 @@ export default function App() {
     clickOpensPanel, setClickOpensPanel,
     mapLocked, setMapLocked,
     theme, setTheme,
+    settingsPanelOpen, setSettingsPanelOpen,
     moveToCollection,
   } = useMindMapStore();
   const t = themes[theme];
@@ -415,12 +417,11 @@ export default function App() {
 
           <div className="ml-auto flex items-center gap-2">
             <button
-              onClick={() => setTheme(theme === 'ibm' ? 'dusk' : theme === 'dusk' ? 'light' : 'ibm')}
-              className="toolbar-btn"
-              title={theme === 'ibm' ? 'Switch to Dusk theme' : theme === 'dusk' ? 'Switch to Light theme' : 'Switch to IBM theme'}
-            >
-              {theme === 'ibm' ? '🌙 Dusk' : theme === 'dusk' ? '☀ Light' : '⬛ IBM'}
-            </button>
+              onClick={() => setSettingsPanelOpen(!settingsPanelOpen)}
+              className={`toolbar-btn ${settingsPanelOpen ? 'bg-[rgba(69,137,255,0.12)]' : ''}`}
+              style={{ color: settingsPanelOpen ? t.bgAccent : t.textUI }}
+              title="Settings"
+            >⚙</button>
             <span className="text-xs" style={{ color: t.textMuted }}>React Flow</span>
           </div>
         </header>
@@ -454,6 +455,7 @@ export default function App() {
 
           {/* Detail panel — only shown when explicitly opened via Enter */}
           {detailPanelOpen && selectedNodeId && currentProject && <DetailPanel />}
+          {settingsPanelOpen && <SettingsPanel />}
         </div>
       </div>
     </div>
