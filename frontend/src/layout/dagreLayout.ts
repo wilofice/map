@@ -3,11 +3,18 @@ import type { Node, Edge } from '@xyflow/react';
 import type { MindMapNodeData } from '../types/NodeTypes';
 import { NODE_DIMS, type DisplayMode, type LayoutDir } from '../config/nodeDimensions';
 
+const DEFAULT_EDGE_COLORS: [string, string, string] = [
+  'rgba(69, 137, 255, 0.6)',
+  'rgba(50, 175, 220, 0.5)',
+  'rgba(139, 106, 240, 0.45)',
+];
+
 export function buildDagreLayout(
   nodes: MindMapNodeData[],
   expandedIds: Set<string>,
   mode: DisplayMode = 'comfortable',
-  layoutDir: LayoutDir = 'LR'
+  layoutDir: LayoutDir = 'LR',
+  edgeColors: [string, string, string] = DEFAULT_EDGE_COLORS
 ): { rfNodes: Node[]; rfEdges: Edge[] } {
   const dims = NODE_DIMS[mode];
   const isHorizontal = layoutDir === 'LR' || layoutDir === 'RL';
@@ -71,9 +78,9 @@ export function buildDagreLayout(
   });
 
   const EDGE_COLOR: Record<number, string> = {
-    1: 'rgba(69, 137, 255, 0.6)',   // blue   — root → depth-1
-    2: 'rgba(50, 175, 220, 0.5)',   // cyan   — depth-1 → depth-2
-    3: 'rgba(139, 106, 240, 0.45)', // indigo — depth-2+
+    1: edgeColors[0],
+    2: edgeColors[1],
+    3: edgeColors[2],
   };
 
   const rfEdges: Edge[] = visibleNodes

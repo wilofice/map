@@ -32,6 +32,7 @@ function FlowCanvas() {
     rfNodes: storeNodes, rfEdges: storeEdges,
     selectedNodeId, rawNodes, detailPanelOpen,
     clickOpensPanel, mapLocked, theme,
+    pendingFitView, clearPendingFitView,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
     undoLast, redoLast,
   } = useMindMapStore();
@@ -55,8 +56,13 @@ function FlowCanvas() {
   useEffect(() => {
     setNodes(storeNodes);
     setEdges(storeEdges);
-    setTimeout(() => fitView({ padding: 0.15, duration: 400 }), 50);
-  }, [storeNodes, storeEdges, setNodes, setEdges, fitView]);
+    if (pendingFitView) {
+      setTimeout(() => {
+        fitView({ padding: 0.15, duration: 500 });
+        clearPendingFitView();
+      }, 50);
+    }
+  }, [storeNodes, storeEdges, pendingFitView, setNodes, setEdges, fitView, clearPendingFitView]);
 
   useEffect(() => {
     const PAN_STEP = 150;
@@ -147,7 +153,7 @@ function FlowCanvas() {
       style={{ background: t.canvas }}
     >
       <Controls />
-      <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={5} size={1} />
+      {theme !== 'light' && <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={5} size={1} />}
     </ReactFlow>
   );
 }

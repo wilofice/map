@@ -32,6 +32,10 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const isActive   = selected || selectedNodeId === data.id;
   const isRemoving = data.isRemoving ?? false;
 
+  // Slide in from the parent side so the node feels like it emerges from its parent
+  const enterX = dir === 'LR' ? -22 : dir === 'RL' ? 22 : 0;
+  const enterY = dir === 'TB' ? -22 : 0;
+
   const targetPos = dir === 'LR' ? Position.Left  : dir === 'RL' ? Position.Right : Position.Top;
   const sourcePos = dir === 'LR' ? Position.Right : dir === 'RL' ? Position.Left  : Position.Bottom;
 
@@ -53,9 +57,17 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
     <motion.div
       className="relative group"
       style={{ width: nodeWidth }}
-      initial={{ opacity: 0, scale: 0.88 }}
-      animate={isRemoving ? { opacity: 0, scale: 0.82 } : { opacity: 1, scale: 1 }}
-      transition={{ duration: 0.15, ease: 'easeOut' }}
+      initial={{ opacity: 0, scale: 0.80, x: enterX, y: enterY }}
+      animate={
+        isRemoving
+          ? { opacity: 0, scale: 0.82, x: enterX * 0.6, y: enterY * 0.6 }
+          : { opacity: 1, scale: 1, x: 0, y: 0 }
+      }
+      transition={
+        isRemoving
+          ? { duration: 0.15, ease: 'easeOut' }
+          : { type: 'spring', stiffness: 260, damping: 22, mass: 0.85 }
+      }
     >
       <Handle
         type="target"

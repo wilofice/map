@@ -10,6 +10,7 @@ type UndoEntry =
   | { type: 'delete'; nodes: MindMapNodeData[] }
   | { type: 'add';    nodes: MindMapNodeData[] };
 import type { DisplayMode, LayoutDir } from '../config/nodeDimensions';
+import { themes } from '../theme/themes';
 import type { ThemeKey } from '../theme/themes';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -29,8 +30,10 @@ interface MindMapState {
   clickOpensPanel: boolean;
   mapLocked: boolean;
   theme: ThemeKey;
+  pendingFitView: boolean;
 
   loadProjects: () => Promise<void>;
+  clearPendingFitView: () => void;
   loadProject: (id: string) => Promise<void>;
   toggleExpand: (id: string) => void;
   expandAll: () => void;
@@ -56,13 +59,17 @@ interface MindMapState {
   setTheme: (t: ThemeKey) => void;
 }
 
+// Tracks the active theme's edge colors so every reLayout call gets them automatically.
+const _initialTheme = (localStorage.getItem('mm-theme') as ThemeKey | null) ?? 'ibm';
+let _edgeColors: [string, string, string] = themes[_initialTheme].edgeColors;
+
 function reLayout(
   rawNodes: MindMapNodeData[],
   expandedIds: Set<string>,
   mode: DisplayMode,
   dir: LayoutDir
 ) {
-  return buildDagreLayout(rawNodes, expandedIds, mode, dir);
+  return buildDagreLayout(rawNodes, expandedIds, mode, dir, _edgeColors);
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
@@ -81,6 +88,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   clickOpensPanel: false,
   mapLocked: true,
   theme: ((localStorage.getItem('mm-theme') as ThemeKey | null) ?? 'ibm'),
+  pendingFitView: true,
   undoStack: [] as UndoEntry[],
   redoStack: [] as UndoEntry[],
 
@@ -101,7 +109,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const displayMode = (project.display_mode as DisplayMode) ?? get().displayMode;
       const layoutDir   = (project.layout_dir  as LayoutDir)   ?? get().layoutDir;
       const { rfNodes, rfEdges } = reLayout(nodes, expandedIds, displayMode, layoutDir);
-      set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false, displayMode, layoutDir });
+      set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false, displayMode, layoutDir, pendingFitView: true });
       api.selectProject(id).catch(() => {});
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -411,5 +419,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setClickOpensPanel(v) { set({ clickOpensPanel: v }); },
   setMapLocked(v) { set({ mapLocked: v }); },
-  setTheme(t) { localStorage.setItem('mm-theme', t); set({ theme: t }); },
+  setTheme(t) { _edgeColors = themes[t].edgeColors; localStorage.setItem('mm-theme', t); set({ theme: t }); },
+  clearPendingFitView() { set({ pendingFitView: false }); },
 }));

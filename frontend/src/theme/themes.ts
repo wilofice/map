@@ -25,6 +25,8 @@ export interface AppTheme {
   // Node card shadows
   shadowCard: string;
   shadowRoot: string;
+  // Edge colors by depth level [depth-1, depth-2, depth-3+]
+  edgeColors: [string, string, string];
 }
 
 export const themes: Record<ThemeKey, AppTheme> = {
@@ -49,6 +51,7 @@ export const themes: Record<ThemeKey, AppTheme> = {
     progressTrack: '#2a2a2a',
     shadowCard: '0 1px 4px rgba(0,0,0,0.3)',
     shadowRoot: '0 2px 8px rgba(0,0,0,0.4)',
+    edgeColors: ['rgba(69,137,255,0.6)', 'rgba(50,175,220,0.5)', 'rgba(139,106,240,0.45)'],
   },
   dusk: {
     canvas: '#1a1b27',
@@ -71,27 +74,29 @@ export const themes: Record<ThemeKey, AppTheme> = {
     progressTrack: '#252645',
     shadowCard: '0 1px 4px rgba(0,0,0,0.4)',
     shadowRoot: '0 2px 8px rgba(0,0,0,0.5)',
+    edgeColors: ['rgba(108,95,255,0.65)', 'rgba(50,175,220,0.5)', 'rgba(139,106,240,0.45)'],
   },
   light: {
-    canvas: '#eef0f3',
+    canvas: '#111827',
     bgDots: '#8896a6',
     bgVariant: 'dots',
-    shell: '#ffffff',
-    surface: '#f4f5f7',
-    border: '#dde0e4',
+    shell: '#0f172a',
+    surface: '#1e293b',
+    border: '#334155',
     card: '#ffffff',
-    cardBorder: '#dde0e4',
-    handle: '#9ca3af',
-    selectionRing: '#2563eb',
+    cardBorder: '#e2e8f0',
+    handle: '#64748b',
+    selectionRing: '#3b82f6',
     textPrimary: '#111827',
     textMuted: '#6b7280',
-    textUI: '#4b5563',
-    textHeading: '#111827',
-    textSecondary: '#374151',
-    bgHover: 'rgba(0,0,0,0.05)',
-    bgAccent: '#2563eb',
-    progressTrack: '#e5e7eb',
-    shadowCard: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
-    shadowRoot: '0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06)',
+    textUI: '#94a3b8',
+    textHeading: '#f1f5f9',
+    textSecondary: '#cbd5e1',
+    bgHover: 'rgba(255,255,255,0.07)',
+    bgAccent: '#3b82f6',
+    progressTrack: '#1e293b',
+    shadowCard: '0 2px 12px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)',
+    shadowRoot: '0 4px 20px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4)',
+    edgeColors: ['rgba(255,255,255,0.6)', 'rgba(200,215,255,0.5)', 'rgba(190,180,255,0.4)'],
   },
 };
