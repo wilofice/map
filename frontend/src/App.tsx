@@ -18,7 +18,7 @@ export default function App() {
     selectedNodeId, detailPanelOpen,
     clickOpensPanel, setClickOpensPanel,
     mapLocked, setMapLocked,
-    theme, setTheme,
+    theme,
     settingsPanelOpen, setSettingsPanelOpen,
     moveToCollection,
   } = useMindMapStore();
