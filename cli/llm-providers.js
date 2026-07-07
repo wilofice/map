@@ -145,10 +145,13 @@ class CLIProvider extends LLMProvider {
         fs.writeFileSync(promptFile, this.buildPrompt(content, options));
 
         try {
-            // Note: command syntax depends on the specific CLI provider.
-            // Assuming generic syntax for illustration. Adjust as needed for specific CLI tools.
-            const cmd = `${this.binary} generate --prompt-file "${promptFile}"`;
-            console.log(`Running CLI provider: ${cmd}`);
+            let cmd;
+            if (this.binary === 'agy') {
+                cmd = `${this.binary} --print "$(cat '${promptFile}')"`;
+            } else {
+                cmd = `${this.binary} generate --prompt-file "${promptFile}"`;
+            }
+            console.log(`Running CLI provider: ${this.binary}`);
             const output = execSync(cmd, { encoding: 'utf8' });
             
             return {

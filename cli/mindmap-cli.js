@@ -13,7 +13,7 @@ const path = require('path');
 // CLI Command Handler
 class MindMapCLI {
     constructor() {
-        this.baseUrl = process.env.MINDMAP_API_URL || 'http://localhost:3333';
+        this.baseUrl = process.env.MINDMAP_API_URL || 'http://localhost:3000';
         this.configFile = path.join(process.cwd(), '.mindmap-cli-config.json');
         this.loadConfig();
     }
