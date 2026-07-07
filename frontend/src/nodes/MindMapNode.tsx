@@ -25,7 +25,7 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const {
     toggleExpand, addChild, deleteNode, selectedNodeId, theme,
     animEntranceMode, animStaggerMs, animSpringDuration,
-    typewriterEnabled, typewriterSpeedMs,
+    typewriterEnabled, typewriterSpeedMs, sequentialStep
   } = useMindMapStore();
   const t = themes[theme];
 
@@ -37,9 +37,12 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   const isActive      = selected || selectedNodeId === data.id;
   const isRemoving    = data.isRemoving ?? false;
   const staggerIndex  = data.staggerIndex ?? 0;
-  // cascade: each node offset by animStaggerMs; sequential: each waits for the previous spring to finish
-  const staggerDelay  = animEntranceMode === 'sequential'
-    ? staggerIndex * animSpringDuration
+  // cascade: each node offset by animStaggerMs; sequential: controlled by sequentialStep
+  const isSequential = animEntranceMode === 'sequential';
+  const isVisible = isRoot || !isSequential || staggerIndex <= sequentialStep;
+
+  const staggerDelay  = isSequential
+    ? 0
     : staggerIndex * (animStaggerMs / 1000);
 
   // Typewriter: type the title letter-by-letter on mount only
@@ -47,10 +50,11 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
   useEffect(() => {
     const fullTitle = data.title;
     if (!typewriterEnabled) { setDisplayedTitle(fullTitle); return; }
+    if (!isVisible) { setDisplayedTitle(''); return; }
+    
     let cancelled = false;
-    const outerDelay = animEntranceMode === 'sequential'
-      ? staggerIndex * animSpringDuration * 1000 + 60
-      : staggerIndex * animStaggerMs + 60;
+    const outerDelay = isSequential ? 60 : staggerIndex * animStaggerMs + 60;
+    
     const outer = setTimeout(() => {
       let i = 0;
       const tick = () => {
@@ -61,8 +65,9 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       };
       tick();
     }, outerDelay);
+    
     return () => { cancelled = true; clearTimeout(outer); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentional mount-only
+  }, [isVisible, typewriterEnabled, data.title, isSequential, staggerIndex, animStaggerMs, typewriterSpeedMs]);
 
   // Slide in from the parent side so the node feels like it emerges from its parent
   const enterX = dir === 'LR' ? -22 : dir === 'RL' ? 22 : 0;
@@ -93,12 +98,19 @@ const MindMapNode = memo(({ data, selected }: MindMapNodeProps) => {
       animate={
         isRemoving
           ? { opacity: 0, scale: 0.82, x: enterX * 0.6, y: enterY * 0.6 }
-          : { opacity: 1, scale: 1, x: 0, y: 0 }
+          : !isVisible
+            ? { opacity: 0, scale: 0.80, x: enterX, y: enterY }
+            : { opacity: 1, scale: 1, x: 0, y: 0 }
       }
       transition={
-        isRemoving
+        isRemoving || !isVisible
           ? { duration: 0.15, ease: 'easeOut' }
-          : { type: 'spring', duration: animSpringDuration, bounce: 0.15, delay: staggerDelay }
+          : {
+              type: 'spring',
+              duration: animSpringDuration,
+              bounce: 0.35,
+              delay: staggerDelay,
+            }
       }
     >
       <Handle

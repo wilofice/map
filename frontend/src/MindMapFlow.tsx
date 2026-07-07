@@ -34,7 +34,7 @@ function FlowCanvas() {
     clickOpensPanel, mapLocked, theme,
     pendingFitView, clearPendingFitView,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
-    undoLast, redoLast,
+    undoLast, redoLast, incrementSequentialStep
   } = useMindMapStore();
 
   const t = themes[theme];
@@ -81,6 +81,13 @@ function FlowCanvas() {
       if (e.ctrlKey && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoLast(); return; }
       if (e.ctrlKey && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoLast(); return; }
 
+      // N — next step in sequential animation
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        incrementSequentialStep();
+        return;
+      }
+
       // Arrow keys — pan the viewport
       if (e.key in PAN_DELTA) {
         e.preventDefault();
@@ -123,7 +130,7 @@ function FlowCanvas() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [toggleExpand, toggleDetailPanel, setDetailPanelOpen, setSelectedNodeId, getViewport, setViewport, undoLast, redoLast]);
+  }, [toggleExpand, toggleDetailPanel, setDetailPanelOpen, setSelectedNodeId, getViewport, setViewport, undoLast, redoLast, incrementSequentialStep]);
 
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);

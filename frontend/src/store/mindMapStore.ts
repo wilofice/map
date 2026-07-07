@@ -71,6 +71,10 @@ interface MindMapState {
   setTypewriterEnabled: (v: boolean) => void;
   setTypewriterSpeedMs: (ms: number) => void;
   setSettingsPanelOpen: (v: boolean) => void;
+
+  sequentialStep: number;
+  incrementSequentialStep: () => void;
+  resetSequentialStep: () => void;
 }
 
 // Tracks the active theme's edge colors so every reLayout call gets them automatically.
@@ -110,6 +114,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   typewriterEnabled: (localStorage.getItem('mm-typewriter-enabled') ?? 'true') === 'true',
   typewriterSpeedMs: Number(localStorage.getItem('mm-typewriter-speed-ms') ?? 25),
   settingsPanelOpen: false,
+
+  sequentialStep: 0,
+  incrementSequentialStep: () => set((s) => ({ sequentialStep: s.sequentialStep + 1 })),
+  resetSequentialStep: () => set({ sequentialStep: 0 }),
   undoStack: [] as UndoEntry[],
   redoStack: [] as UndoEntry[],
 
@@ -171,19 +179,37 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const next = new Set(expandedIds);
       next.add(id);
       const { rfNodes: laid, rfEdges } = reLayout(rawNodes, next, displayMode, layoutDir);
-      let si = 0;
+      const newNodes = laid.filter(n => !prevIds.has(n.id));
+      newNodes.sort((a, b) => {
+        if (layoutDir === 'LR' || layoutDir === 'RL') return a.position.y - b.position.y;
+        return a.position.x - b.position.x;
+      });
+      const staggerMap = new Map(newNodes.map((n, i) => [n.id, i]));
+
       const rfNodes = laid.map((n) =>
-        prevIds.has(n.id) ? n : { ...n, data: { ...n.data, staggerIndex: si++ } }
+        prevIds.has(n.id) ? n : { ...n, data: { ...n.data, staggerIndex: staggerMap.get(n.id) } }
       );
-      set({ expandedIds: next, rfNodes, rfEdges });
+      set({ expandedIds: next, rfNodes, rfEdges, sequentialStep: 0 });
     }
   },
 
   expandAll() {
     const { rawNodes, displayMode, layoutDir } = get();
     const parentIds = new Set(rawNodes.filter((n) => n.parent_id).map((n) => n.parent_id as string));
-    const { rfNodes, rfEdges } = reLayout(rawNodes, parentIds, displayMode, layoutDir);
-    set({ expandedIds: parentIds, rfNodes, rfEdges });
+    const { rfNodes: laid, rfEdges } = reLayout(rawNodes, parentIds, displayMode, layoutDir);
+    
+    const newNodes = laid.filter(n => n.data.parent_id !== null); // Sort all non-root nodes
+    newNodes.sort((a, b) => {
+      if (layoutDir === 'LR' || layoutDir === 'RL') return a.position.y - b.position.y;
+      return a.position.x - b.position.x;
+    });
+    const staggerMap = new Map(newNodes.map((n, i) => [n.id, i]));
+    
+    const rfNodes = laid.map((n) =>
+      n.data.parent_id === null ? n : { ...n, data: { ...n.data, staggerIndex: staggerMap.get(n.id) } }
+    );
+    
+    set({ expandedIds: parentIds, rfNodes, rfEdges, sequentialStep: 0 });
   },
 
   collapseAll() {
