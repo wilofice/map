@@ -143,7 +143,7 @@ function FlowCanvas() {
       nodeTypes={nodeTypes}
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick}
-      colorMode="dark"
+      colorMode={theme === 'light' ? 'light' : 'dark'}
       nodesDraggable={!mapLocked}
       fitView
       fitViewOptions={{ padding: 0.15 }}
@@ -153,7 +153,7 @@ function FlowCanvas() {
       style={{ background: t.canvas }}
     >
       <Controls />
-      {theme !== 'light' && <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={5} size={1} />}
+      <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={t.bgVariant === 'lines' ? 20 : 5} size={1} />
     </ReactFlow>
   );
 }
