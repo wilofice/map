@@ -41,8 +41,8 @@ class XMLSanitizer {
     sanitize(xmlContent) {
         console.log('🧹 Starting XML sanitization...');
         
-        // Step 1: Only sanitize content within comment tags
-        let sanitizedContent = this.sanitizeCommentSections(xmlContent);
+        // Step 1: Only sanitize content within content/comment tags
+        let sanitizedContent = this.sanitizeComments(xmlContent);
         
         // Step 2: Handle any remaining dangerous patterns
         sanitizedContent = this.finalCleanup(sanitizedContent);
@@ -52,22 +52,35 @@ class XMLSanitizer {
     }
 
     /**
-     * Sanitize only content within <comment> tags
+     * Sanitize only content within <content> tags (and <comment> for backward compatibility)
      */
-    sanitizeCommentSections(xmlContent) {
-        // Match content within comment tags
-        return xmlContent.replace(/<comment>([\s\S]*?)<\/comment>/g, (match, commentContent) => {
-            // Extract and protect code blocks within comment
+    sanitizeComments(xmlContent) {
+        if (!xmlContent) return '';
+        
+        // Match content within content tags
+        let result = xmlContent.replace(/<content>([\s\S]*?)<\/content>/g, (match, commentContent) => {
+            // Extract and protect code blocks within content
             const { content: contentWithPlaceholders, codeBlocks } = this.extractCodeBlocks(commentContent);
             
-            // Sanitize remaining content (escape XML entities in non-code text)
+            // Sanitize the rest
             let sanitizedContent = this.sanitizeNonCodeContent(contentWithPlaceholders);
             
-            // Restore code blocks wrapped in CDATA
+            // Restore code blocks
             sanitizedContent = this.restoreCodeBlocks(sanitizedContent, codeBlocks);
             
-            return `<comment>${sanitizedContent}</comment>`;
+            return `<content>${sanitizedContent}</content>`;
         });
+
+        // Also process <comment> tags for backward compatibility
+        result = result.replace(/<comment>([\s\S]*?)<\/comment>/g, (match, commentContent) => {
+            const { content: contentWithPlaceholders, codeBlocks } = this.extractCodeBlocks(commentContent);
+            let sanitizedContent = this.sanitizeNonCodeContent(contentWithPlaceholders);
+            sanitizedContent = this.restoreCodeBlocks(sanitizedContent, codeBlocks);
+            // Replace with <content> tag
+            return `<content>${sanitizedContent}</content>`;
+        });
+
+        return result;
     }
 
     /**
@@ -183,9 +196,9 @@ class XMLSanitizer {
         // Fix nested CDATA issues
         content = content.replace(/<!\[CDATA\[(.*?)<!\[CDATA\[(.*?)\]\]>(.*?)\]\]>/g, '<![CDATA[$1$2$3]]>');
         
-        // Ensure proper comment structure
-        content = content.replace(/<comment>\s*<!\[CDATA\[/g, '<comment><![CDATA[');
-        content = content.replace(/\]\]>\s*<\/comment>/g, ']]></comment>');
+        // Ensure proper content structure
+        content = content.replace(/<content>\s*<!\[CDATA\[/g, '<content><![CDATA[');
+        content = content.replace(/\]\]>\s*<\/content>/g, ']]></content>');
         
         return content;
     }

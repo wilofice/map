@@ -40,7 +40,7 @@ class JSONMindMapElement {
 }
 
 /**
- * Represents a comment in pure JSON format
+ * Represents a content in pure JSON format
  */
 class JSONCommentElement extends JSONMindMapElement {
     constructor(text = '') {
@@ -225,14 +225,15 @@ class JSONNodeElement extends JSONMindMapElement {
         this.sourceFile = attributes.sourceFile || null;
         
         // Content elements
-        this.comment = null;
+        this.content = null;
         this.code = null;
         this.taskPrompt = null;
         this.cliCommand = null;
         this.children = [];
         
-        // Set content if provided
-        if (attributes.comment) this.setComment(attributes.comment);
+        // Initialize if attributes provided
+        if (attributes.content) this.setContent(attributes.content);
+        else if (attributes.comment) this.setContent(attributes.comment); // Backward compatibility
         if (attributes.code) this.setCode(attributes.code);
         if (attributes.taskPrompt) this.setTaskPrompt(attributes.taskPrompt);
         if (attributes.cliCommand) this.setCLICommand(attributes.cliCommand);
@@ -272,15 +273,16 @@ class JSONNodeElement extends JSONMindMapElement {
     }
 
     /**
-     * Set comment
+     * Set content
+     * @param {string|object|JSONContentElement} content 
      */
-    setComment(comment) {
-        if (typeof comment === 'string') {
-            this.comment = new JSONCommentElement(comment);
-        } else if (comment instanceof JSONCommentElement) {
-            this.comment = comment;
-        } else if (comment) {
-            this.comment = JSONCommentElement.fromObject(comment);
+    setContent(content) {
+        if (typeof content === 'string') {
+            this.content = new JSONContentElement(content);
+        } else if (content instanceof JSONContentElement) {
+            this.content = content;
+        } else if (content) {
+            this.content = JSONContentElement.fromObject(content);
         }
     }
 
@@ -342,7 +344,7 @@ class JSONNodeElement extends JSONMindMapElement {
         if (this.sourceFile) obj.sourceFile = this.sourceFile;
 
         // Add content elements if present
-        if (this.comment) obj.comment = this.comment.toObject();
+        if (this.content) obj.content = this.content.toObject();
         if (this.code) obj.code = this.code.toObject();
         if (this.taskPrompt) obj.taskPrompt = this.taskPrompt.toObject();
         if (this.cliCommand) obj.cliCommand = this.cliCommand.toObject();
@@ -369,7 +371,8 @@ class JSONNodeElement extends JSONMindMapElement {
         });
 
         // Set content elements
-        if (obj.comment) node.setComment(obj.comment);
+        if (obj.content) node.setContent(obj.content);
+        else if (obj.comment) node.setContent(obj.comment); // Backward compatibility
         if (obj.code) node.setCode(obj.code);
         if (obj.taskPrompt) node.setTaskPrompt(obj.taskPrompt);
         if (obj.cliCommand) node.setCLICommand(obj.cliCommand);
@@ -407,9 +410,12 @@ class JSONNodeElement extends JSONMindMapElement {
         }
 
         // Validate content elements
-        if (obj.comment) {
-            const commentValid = JSONCommentElement.validate(obj.comment);
-            if (!commentValid.valid) return commentValid;
+        if (obj.content) {
+            const contentValid = JSONContentElement.validate(obj.content);
+            if (!contentValid.valid) return contentValid;
+        } else if (obj.comment) { // Backward compatibility
+            const contentValid = JSONContentElement.validate(obj.comment);
+            if (!contentValid.valid) return contentValid;
         }
 
         if (obj.code) {

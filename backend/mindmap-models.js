@@ -63,32 +63,26 @@ class MindMapElement {
 }
 
 /**
- * Represents a <comment> element
+ * Represents a <content> element
  */
-class CommentElement extends MindMapElement {
+class ContentElement extends MindMapElement {
     constructor(text = '') {
         super();
         this.text = text;
     }
 
-    toJSON() {
-        return {
-            type: 'comment',
-            text: this.text
-        };
+    getType() {
+        return 'content';
     }
 
     toXML() {
-        return this.text ? `<comment>${MindMapElement.escapeXML(this.text)}</comment>` : '';
-    }
-
-    static fromJSON(json) {
-        return new CommentElement(json.text || json);
+        return this.text ? `<content>${MindMapElement.escapeXML(this.text)}</content>` : '';
     }
 
     static fromXML(xmlObj) {
-        const text = typeof xmlObj === 'string' ? xmlObj : (xmlObj._ || '');
-        return new CommentElement(text);
+        if (!xmlObj) return null;
+        let contentText = xmlObj._ || (typeof xmlObj === 'string' ? xmlObj : '');
+        return new ContentElement(contentText);
     }
 }
 
@@ -235,7 +229,7 @@ class NodeElement extends MindMapElement {
         this.sourceFile = attributes.sourceFile || null;
         
         // Child elements
-        this.comment = null;
+        this.content = null;
         this.code = null;
         this.taskPrompt = null;
         this.cliCommand = null;
@@ -259,14 +253,14 @@ class NodeElement extends MindMapElement {
     }
 
     /**
-     * Set comment for this node
-     * @param {string|CommentElement} comment 
+     * Set content for this node
+     * @param {string|ContentElement} content 
      */
-    setComment(comment) {
-        if (typeof comment === 'string') {
-            this.comment = new CommentElement(comment);
-        } else if (comment instanceof CommentElement) {
-            this.comment = comment;
+    setContent(content) {
+        if (typeof content === 'string') {
+            this.content = new ContentElement(content);
+        } else if (content instanceof ContentElement) {
+            this.content = content;
         }
     }
 
@@ -324,7 +318,7 @@ class NodeElement extends MindMapElement {
         if (this.sourceFile) json.sourceFile = this.sourceFile;
 
         // Add content elements if present
-        if (this.comment) json.comment = this.comment.text;
+        if (this.content) json.content = this.content.text;
         if (this.code) json.code = this.code.toJSON();
         if (this.taskPrompt) json.taskPrompt = this.taskPrompt.prompt;
         if (this.cliCommand) json.cliCommand = this.cliCommand.command;
@@ -348,7 +342,7 @@ class NodeElement extends MindMapElement {
         if (this.endDate) attrs.push(`endDate="${this.endDate}"`);
         if (this.daysSpent) attrs.push(`daysSpent="${this.daysSpent}"`);
 
-        const hasContent = this.comment || this.code || this.taskPrompt || this.cliCommand || this.children.length > 0;
+        const hasContent = this.content || this.code || this.taskPrompt || this.cliCommand || this.children.length > 0;
 
         if (!hasContent) {
             return `${indent}<node ${attrs.join(' ')}/>`;
@@ -358,8 +352,8 @@ class NodeElement extends MindMapElement {
         const childIndent = indent + '    ';
 
         // Add content elements
-        if (this.comment) {
-            xml += '\n' + childIndent + this.comment.toXML();
+        if (this.content) {
+            xml += '\n' + childIndent + this.content.toXML();
         }
         if (this.code) {
             xml += '\n' + childIndent + this.code.toXML();
@@ -394,7 +388,8 @@ class NodeElement extends MindMapElement {
         });
 
         // Set content elements
-        if (json.comment) node.setComment(json.comment);
+        if (json.content) node.setContent(json.content);
+        else if (json.comment) node.setContent(json.comment); // Backward compatibility
         if (json.code) {
             if (typeof json.code === 'object') {
                 node.code = CodeElement.fromJSON(json.code);
@@ -434,8 +429,10 @@ class NodeElement extends MindMapElement {
         });
 
         // Process child elements
-        if (xmlObj.comment) {
-            node.comment = CommentElement.fromXML(xmlObj.comment);
+        if (xmlObj.content) {
+            node.content = ContentElement.fromXML(xmlObj.content);
+        } else if (xmlObj.comment) { // Backward compatibility
+            node.content = ContentElement.fromXML(xmlObj.comment);
         }
         if (xmlObj.code) {
             node.code = CodeElement.fromXML(xmlObj.code);
@@ -656,7 +653,7 @@ class MindMapConverter {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         MindMapElement,
-        CommentElement,
+        ContentElement,
         CodeElement,
         TaskPromptElement,
         CLICommandElement,
@@ -671,7 +668,7 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.MindMapModels = {
         MindMapElement,
-        CommentElement,
+        ContentElement,
         CodeElement,
         TaskPromptElement,
         CLICommandElement,

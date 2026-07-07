@@ -215,8 +215,9 @@ class XMLToJSONConverter {
                 for (const child of xmlNode.$$) {
                     const tag = child['#name'];
                     switch (tag) {
+                        case 'content':
                         case 'comment': {
-                            if (child._) jsonNode.comment = child._;
+                            if (child._) jsonNode.content = child._;
                             break;
                         }
                         case 'code': {

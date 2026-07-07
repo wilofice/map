@@ -110,7 +110,8 @@ export const api = {
 
 export type AiSuggestion = {
   title: string;
-  comment?: string;
+  content?: string;
+  comment?: string; // Backward compatibility
   priority: 'low' | 'medium' | 'high';
   status: 'pending' | 'in-progress' | 'completed';
 };

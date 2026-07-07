@@ -96,7 +96,7 @@ class MindMapCLI {
                         title: 'Getting Started',
                         status: 'pending',
                         priority: 'medium',
-                        comment: 'Add your first tasks under this node.',
+                        content: 'Add your first tasks under this node.',
                         children: [
                             { title: 'Create your first task', status: 'pending', priority: 'low' },
                             { title: 'Explore Board and Mind Map views', status: 'pending', priority: 'low' }
@@ -772,8 +772,8 @@ class MindMapCLI {
                 console.log(`     📁 Project: ${task.project_name}`);
                 console.log(`     🔗 ID: ${task.id}`);
                 console.log(`     ⚡ Priority: ${task.priority} | 📊 Status: ${task.status}`);
-                if (task.content || task.comment) {
-                    const content = task.content || task.comment;
+                if (task.content) {
+                    const content = task.content;
                     const preview = content.length > 100
                         ? content.substring(0, 100) + '...'
                         : content;

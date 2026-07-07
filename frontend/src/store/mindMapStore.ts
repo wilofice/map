@@ -306,7 +306,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         project_id: currentProject.id,
         parent_id: parentId,
         title: s.title,
-        content: s.comment ?? '',
+        content: s.content ?? s.comment ?? '',
         status: s.status,
         priority: s.priority,
         sort_order: siblingCount + i,

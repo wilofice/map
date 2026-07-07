@@ -421,8 +421,8 @@ function GenerateChildrenSection({ nodeId }: { nodeId: string }) {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] text-[#c6c6c6] leading-snug">{s.title}</div>
-                  {s.comment && (
-                    <div className="text-[10px] text-[#525252] mt-0.5 leading-snug">{s.comment}</div>
+                  {(s.content || s.comment) && (
+                    <div className="text-[10px] text-[#525252] mt-0.5 leading-snug">{s.content || s.comment}</div>
                   )}
                 </div>
                 <span

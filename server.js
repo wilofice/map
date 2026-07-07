@@ -1161,7 +1161,7 @@ app.post('/api/create-json', async (req, res) => {
                     title: 'Sample Project',
                     priority: 'high',
                     status: 'pending',
-                    comment: 'This is a sample project to demonstrate the JSON format.',
+                    content: 'This is a sample project to demonstrate the JSON format.',
                     children: [
                         {
                             type: 'node',
@@ -1743,7 +1743,7 @@ function flattenNodesForImport(projectId, nodes, parentId = null, depthLevel = 0
         const title = nodeData.title || nodeData.text || 'Imported Node';
         const status = nodeData.status || 'pending';
         const priority = nodeData.priority || 'medium';
-        const comment = nodeData.comment || '';
+        const content = nodeData.content || nodeData.comment || '';
         const startDate = nodeData.startDate || null;
         const endDate = nodeData.endDate || null;
         const daysSpent = nodeData.daysSpent || 0;
@@ -1775,7 +1775,7 @@ function flattenNodesForImport(projectId, nodes, parentId = null, depthLevel = 0
             project_id: projectId,
             parent_id: parentId,
             title: title,
-            content: comment,
+            content: content,
             status: status,
             priority: priority,
             start_date: startDate,
@@ -2408,7 +2408,7 @@ async function generateXMLFromDatabase(project) {
         let xml = `${indent}<node ${attrs.join(' ')}>\n`;
         
         if (node.content) {
-            xml += `${indent}    <comment>${escapeXML(node.content)}</comment>\n`;
+            xml += `${indent}    <content>${escapeXML(node.content)}</content>\n`;
         }
         
         if (node.code_content && node.code_language) {
@@ -2451,7 +2451,7 @@ function generateJSONFromDatabase(project) {
             priority: node.priority
         };
         
-        if (node.content) nodeData.comment = node.content;
+        // No need to map to comment, JSON exporter will just output content since it uses node values
         if (node.start_date) nodeData.startDate = node.start_date;
         if (node.end_date) nodeData.endDate = node.end_date;
         if (node.days_spent > 0) nodeData.daysSpent = node.days_spent;
@@ -2864,7 +2864,7 @@ const CHILD_NODE_SCHEMA = {
                 required: ['title', 'priority', 'status'],
                 properties: {
                     title:    { type: 'string', description: 'Concise node title (3-10 words)' },
-                    comment:  { type: 'string', description: 'Optional brief explanation or context' },
+                    content:  { type: 'string', description: 'Optional brief explanation or context' },
                     priority: { type: 'string', enum: ['low', 'medium', 'high'] },
                     status:   { type: 'string', enum: ['pending', 'in-progress', 'completed'] },
                 },
@@ -2892,7 +2892,7 @@ app.post('/api/ai/generate-children', async (req, res) => {
 
         const exampleJson = JSON.stringify({
             suggestions: [
-                { title: 'Example child node title', comment: 'Optional context', priority: 'medium', status: 'pending' },
+                { title: 'Example child node title', content: 'Optional context', priority: 'medium', status: 'pending' },
             ],
         }, null, 2);
 
