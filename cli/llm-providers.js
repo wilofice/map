@@ -16,10 +16,11 @@ class LLMProvider {
     }
 
     buildPrompt(content, options) {
-        return `You are an expert at creating mind maps. Read the following content and generate a mind map in JSON format.
-Your output MUST be raw JSON without any markdown formatting, no backticks, and no introductory text.
+        return `You are an expert at creating mind maps. Read the following content and extract its core concepts into a hierarchical mind map.
+You MUST output ONLY valid JSON. 
+CRITICAL: Do not include ANY thoughts, explanations, or introductory text. Do not output markdown code blocks. Just output the raw JSON object starting with { and ending with }.
 
-Use exactly this JSON schema (version 2.0):
+Your JSON MUST strictly follow this exact structure:
 {
   "schema_version": "2.0",
   "project": {
@@ -30,7 +31,7 @@ Use exactly this JSON schema (version 2.0):
     {
       "temp_id": "t-001",
       "title": "Root Topic",
-      "content": "Notes",
+      "content": "Detailed notes",
       "status": "pending",
       "priority": "medium",
       "children": [
@@ -56,16 +57,16 @@ ${content}
 
     parseResult(resultString) {
         try {
-            // strip markdown formatting if the model still included it
-            let cleanString = resultString.trim();
-            if (cleanString.startsWith('\`\`\`json')) {
-                cleanString = cleanString.replace(/^\`\`\`json/, '');
-                cleanString = cleanString.replace(/\`\`\`$/, '');
-            } else if (cleanString.startsWith('\`\`\`')) {
-                cleanString = cleanString.replace(/^\`\`\`/, '');
-                cleanString = cleanString.replace(/\`\`\`$/, '');
+            // Find the first { and the last } to extract just the JSON object
+            const firstBrace = resultString.indexOf('{');
+            const lastBrace = resultString.lastIndexOf('}');
+            
+            if (firstBrace === -1 || lastBrace === -1) {
+                throw new Error("No JSON object found in the response.");
             }
-            return JSON.parse(cleanString.trim());
+            
+            const cleanString = resultString.substring(firstBrace, lastBrace + 1);
+            return JSON.parse(cleanString);
         } catch (error) {
             throw new Error(`Failed to parse LLM output as JSON: ${error.message}\nOutput was: ${resultString.substring(0, 200)}...`);
         }
@@ -99,7 +100,6 @@ class OllamaProvider extends LLMProvider {
             body: JSON.stringify({
                 model: model,
                 prompt: prompt,
-                format: 'json',
                 stream: false,
                 options: {
                     temperature: 0.1

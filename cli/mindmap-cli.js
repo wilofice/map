@@ -472,6 +472,7 @@ class MindMapCLI {
             
             if (!result.nodes || !Array.isArray(result.nodes)) {
                 console.error('❌ Generated result does not contain a valid nodes array.');
+                console.error('Raw result:', JSON.stringify(result, null, 2));
                 process.exit(1);
             }
 
