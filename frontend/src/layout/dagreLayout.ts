@@ -25,23 +25,41 @@ export function buildDagreLayout(
   graph.setDefaultEdgeLabel(() => ({}));
   graph.setGraph({ rankdir: layoutDir, ranksep, nodesep, marginx: 40, marginy: 40 });
 
-  // Collect visible nodes: roots + children of expanded parents
-  const visibleIds = new Set<string>();
+  // Precompute children map for O(1) lookups
+  const childrenMap = new Map<string, string[]>();
   for (const node of nodes) {
-    if (node.parent_id === null) visibleIds.add(node.id);
+    if (node.parent_id) {
+      let siblings = childrenMap.get(node.parent_id);
+      if (!siblings) {
+        siblings = [];
+        childrenMap.set(node.parent_id, siblings);
+      }
+      siblings.push(node.id);
+    }
   }
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const node of nodes) {
-      if (
-        node.parent_id &&
-        expandedIds.has(node.parent_id) &&
-        visibleIds.has(node.parent_id) &&
-        !visibleIds.has(node.id)
-      ) {
-        visibleIds.add(node.id);
-        changed = true;
+
+  // Collect visible nodes using BFS
+  const visibleIds = new Set<string>();
+  const queue: string[] = [];
+
+  for (const node of nodes) {
+    if (node.parent_id === null) {
+      visibleIds.add(node.id);
+      if (expandedIds.has(node.id)) {
+        queue.push(node.id);
+      }
+    }
+  }
+
+  while (queue.length > 0) {
+    const parentId = queue.shift()!;
+    const children = childrenMap.get(parentId);
+    if (children) {
+      for (const childId of children) {
+        visibleIds.add(childId);
+        if (expandedIds.has(childId)) {
+          queue.push(childId);
+        }
       }
     }
   }
@@ -61,7 +79,7 @@ export function buildDagreLayout(
 
   const rfNodes: Node[] = visibleNodes.map((node) => {
     const pos = graph.node(node.id);
-    const hasChildren = nodes.some((n) => n.parent_id === node.id);
+    const hasChildren = childrenMap.has(node.id);
     return {
       id: node.id,
       type: 'mindMapNode',

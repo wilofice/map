@@ -518,6 +518,33 @@ class DatabaseManager {
         }
     }
 
+    createNodesBulk(nodes) {
+        try {
+            const insertMany = this.db.transaction((nodesList) => {
+                for (const nodeData of nodesList) {
+                    const {
+                        id, project_id, parent_id = null, title, content = '', 
+                        status = 'pending', priority = 'medium',
+                        start_date = null, end_date = null, days_spent = 0,
+                        code_language = null, code_content = null,
+                        task_prompt = null, cli_command = null,
+                        sort_order = 0, depth_level = 0
+                    } = nodeData;
+                    this.stmts.insertNode.run(
+                        id, project_id, parent_id, title, content, status, priority,
+                        start_date, end_date, days_spent, code_language, code_content,
+                        task_prompt, cli_command, sort_order, depth_level
+                    );
+                }
+            });
+            insertMany(nodes);
+            return { success: true, count: nodes.length };
+        } catch (error) {
+            console.error('Error in bulk create:', error);
+            throw error;
+        }
+    }
+
     getNode(id) {
         try {
             return this.stmts.getNode.get(id);

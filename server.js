@@ -1631,7 +1631,8 @@ app.post('/api/db/projects', (req, res) => {
 
         // If nodes are provided, import them
         if (nodes && nodes.length > 0) {
-            importNodesToProject(projectId, nodes);
+            const flatNodes = flattenNodesForImport(projectId, nodes);
+            db.createNodesBulk(flatNodes);
             // Log node import activity
             db.logActivity(projectId, 'nodes_imported', {
                 node_count: nodes.length,
@@ -1709,7 +1710,8 @@ app.post('/api/db/import-json', async (req, res) => {
 
         // Import nodes
         if (nodes && nodes.length > 0) {
-            importNodesToProject(projectId, nodes);
+            const flatNodes = flattenNodesForImport(projectId, nodes);
+            db.createNodesBulk(flatNodes);
             // Log import activity
             db.logActivity(projectId, 'nodes_imported', {
                 node_count: nodes.length,
@@ -1731,9 +1733,10 @@ app.post('/api/db/import-json', async (req, res) => {
     }
 });
 
-// Helper function to import nodes recursively
-function importNodesToProject(projectId, nodes, parentId = null, depthLevel = 0) {
-    for (const nodeData of nodes) {
+// Helper function to flatten nodes recursively for bulk import
+function flattenNodesForImport(projectId, nodes, parentId = null, depthLevel = 0, outputArray = []) {
+    for (let i = 0; i < nodes.length; i++) {
+        const nodeData = nodes[i];
         const nodeId = uuidv4();
 
         // Extract node properties with proper defaults
@@ -1782,18 +1785,62 @@ function importNodesToProject(projectId, nodes, parentId = null, depthLevel = 0)
             code_content: codeContent,
             task_prompt: taskPrompt,
             cli_command: cliCommand,
-            sort_order: 0,
+            sort_order: i,
             depth_level: depthLevel
         };
 
-        db.createNode(nodeDataForDB);
+        outputArray.push(nodeDataForDB);
 
         // Import child nodes recursively
         if (nodeData.children && nodeData.children.length > 0) {
-            importNodesToProject(projectId, nodeData.children, nodeId, depthLevel + 1);
+            flattenNodesForImport(projectId, nodeData.children, nodeId, depthLevel + 1, outputArray);
         }
     }
+    return outputArray;
 }
+
+// Bulk import nodes into an existing project
+app.post('/api/db/projects/:id/bulk-import', (req, res) => {
+    if (!db) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+
+    try {
+        const projectId = req.params.id;
+        const { nodes, parent_id = null } = req.body;
+
+        if (!nodes || !Array.isArray(nodes)) {
+            return res.status(400).json({ error: 'nodes array is required' });
+        }
+
+        // Validate project exists
+        const project = db.getProject(projectId);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        const flatNodes = flattenNodesForImport(projectId, nodes, parent_id, 0);
+        db.createNodesBulk(flatNodes);
+
+        // Log import activity
+        db.logActivity(projectId, 'nodes_bulk_imported', {
+            node_count: flatNodes.length,
+            parent_id: parent_id,
+            source: 'bulk_import'
+        }, null, req.get('User-Agent'), req.ip);
+
+        // Return complete project
+        const completeProject = db.getProjectWithNodes(projectId);
+        res.json({
+            success: true,
+            project: completeProject,
+            imported_count: flatNodes.length
+        });
+    } catch (error) {
+        console.error('Error bulk importing nodes:', error);
+        res.status(500).json({ error: 'Failed to bulk import nodes' });
+    }
+});
 
 // Update project
 app.put('/api/db/projects/:id', (req, res) => {

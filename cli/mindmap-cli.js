@@ -404,6 +404,117 @@ class MindMapCLI {
         }
     }
 
+    // ============================
+    // Map Generation (LLM)
+    // ============================
+    async generateMap(options = {}) {
+        try {
+            const source = options.source;
+            if (!source) {
+                console.error('❌ Usage: mindmap generate --source=<file|url|dir> [--provider=ollama] [--model=llama3.2] [--project-id=<id>] [--parent-node-id=<id>] [--name="Project Name"]');
+                process.exit(1);
+            }
+
+            let content = '';
+            if (source.startsWith('http://') || source.startsWith('https://')) {
+                console.log(`🌐 Fetching URL: ${source}`);
+                const { default: fetch } = await import('node-fetch');
+                const res = await fetch(source);
+                if (!res.ok) throw new Error(`Failed to fetch URL: ${res.statusText}`);
+                const html = await res.text();
+                // Simple stripping of html tags
+                content = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            } else {
+                const stat = fs.statSync(source);
+                if (stat.isDirectory()) {
+                    console.log(`📁 Reading directory: ${source}`);
+                    const files = fs.readdirSync(source);
+                    for (const file of files) {
+                        const ext = path.extname(file).toLowerCase();
+                        if (['.md', '.txt', '.js', '.ts', '.html'].includes(ext)) {
+                            content += `\n\n--- ${file} ---\n`;
+                            content += fs.readFileSync(path.join(source, file), 'utf8');
+                        }
+                    }
+                } else {
+                    console.log(`📄 Reading file: ${source}`);
+                    content = fs.readFileSync(source, 'utf8');
+                }
+            }
+
+            if (content.length > 100000) {
+                console.log('⚠️ Content is very large, truncating for LLM context...');
+                content = content.substring(0, 100000);
+            }
+
+            const providerName = options.provider || 'ollama';
+            const { OllamaProvider, CLIProvider } = require('./llm-providers.js');
+            let provider;
+
+            if (providerName === 'ollama') {
+                provider = new OllamaProvider({ model: options.model });
+            } else if (providerName === 'agy' || providerName === 'codex' || providerName === 'claude') {
+                provider = new CLIProvider({ binary: providerName });
+            } else {
+                console.error(`❌ Unknown provider: ${providerName}. Supported: ollama, agy, codex, claude`);
+                process.exit(1);
+            }
+
+            console.log(`🧠 Checking provider ${providerName}...`);
+            const isAvail = await provider.isAvailable();
+            if (!isAvail) {
+                console.error(`❌ Provider ${providerName} is not available. Please ensure it is installed and running.`);
+                process.exit(1);
+            }
+
+            console.log(`🤖 Generating mind map using ${providerName}... This may take a while.`);
+            const result = await provider.generate(content, options);
+            
+            if (!result.nodes || !Array.isArray(result.nodes)) {
+                console.error('❌ Generated result does not contain a valid nodes array.');
+                process.exit(1);
+            }
+
+            console.log(`✅ Generated map with ${result.nodes.length} root nodes.`);
+
+            // Upload to backend
+            if (options.projectId) {
+                console.log(`⬆️ Uploading to existing project: ${options.projectId}`);
+                const endpoint = `/api/db/projects/${options.projectId}/bulk-import`;
+                const response = await this.makeRequest(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        nodes: result.nodes,
+                        parent_id: options.parentNodeId || null
+                    })
+                });
+                console.log('🎉 Successfully added generated nodes to project!');
+                console.log(`   Imported ${response.imported_count} nodes.`);
+            } else {
+                console.log('⬆️ Creating new project from generated nodes...');
+                const name = options.name || result.project?.name || 'Generated Project';
+                const description = options.description || result.project?.description || 'Auto-generated mind map';
+                
+                const projRes = await this.makeRequest('/api/db/projects', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        collection_id: options.collectionId || 'default-collection',
+                        nodes: result.nodes
+                    })
+                });
+                console.log('🎉 Successfully created new project!');
+                console.log(`   Project ID: ${projRes.id}`);
+                console.log(`   Nodes: ${projRes.nodes?.length || result.nodes.length}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Error generating map:', error.message);
+            process.exit(1);
+        }
+    }
+
     // Command: List all projects
     async listProjects() {
         try {
@@ -789,6 +900,7 @@ COMMANDS:
     create-collection <name>        Create a new collection (use --description=...)
     create-project <name>           Create a new project (use --collection-id=... --description=... [--from-file=<nodes.json>])
     import-json <file>              Create project by importing JSON (auto-detects shape; uses --collection-id if provided)
+    generate                        Generate mind map using LLM (--source=<file|url|dir> [--provider=ollama] [--model=llama3.2] [--project-id=<id>] [--parent-node-id=<id>] [--name="Name"])
   get-project <id>                Get project details with context
   get-node <id>                   Get node details with progress history
   list-tasks                      List pending tasks (AI task queue)
@@ -868,6 +980,10 @@ async function main() {
 
     try {
         switch (command) {
+            case 'generate':
+                await cli.generateMap(options);
+                break;
+
             case 'projects':
                 await cli.listProjects();
                 break;
