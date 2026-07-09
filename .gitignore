@@ -6305,3 +6305,4 @@ mind_maps.db
 
 # TLS certificates (auto-generated, never commit private keys)
 certs/
+.DS_Store
