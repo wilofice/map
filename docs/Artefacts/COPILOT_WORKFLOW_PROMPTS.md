@@ -16,7 +16,7 @@ Use placeholders: <collectionId> <projectName> <projectId> <nodeId> <parentNodeI
 - Deliverables: working code in my app repo (outside the mind map), plus a corresponding plan and status updates in the Mind Map.
 
 2) Before implementation — generate the report for my dashboard
-- Produce a concise plan as JSON nodes following our guide: id, title, priority, status=pending, comment, children[]. Return either a {"nodes": [...]} or a single-root {"nodes": [{...}]}. Include stable kebab‑case ids.
+- Produce a concise plan as JSON nodes following our guide: id, title, priority, status=pending, content, children[]. Return either a {"nodes": [...]} or a single-root {"nodes": [{...}]}. Include stable kebab-case ids.
 - If large, split into modular JSON files and reference them via import directives {"type":"import","src":"..."} relative to <path>.
 - After returning the JSON, provide CLI commands I can run to import and view it in my dashboard:
   ```zsh

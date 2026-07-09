@@ -152,7 +152,7 @@ Body: {
 # Response:
 {
   "suggestions": [
-    { "title": "API rate limiting", "priority": "high", "status": "pending", "comment": "..." },
+    { "title": "API rate limiting", "priority": "high", "status": "pending", "content": "..." },
     ...
   ]
 }

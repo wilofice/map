@@ -41,7 +41,8 @@ A mind-mapping tool intended for commercial release. Data is stored in SQLite (p
 - Detail panel for full node inspection (keyboard-driven: Enter to open, Escape to close)
 - Map locking: nodes cannot be dragged when locked (default: locked)
 - Progress badge (completion %) and header progress bar
-- Two visual themes: IBM Carbon dark and Dusk (navy/blue-gray node-editor style)
+- Three visual themes: IBM Carbon dark, Dusk (navy/blue-gray node-editor style), and Light (crisp graph-paper grid)
+- Keyboard-driven sequential animation mode for presentations
 - Accessible over LAN for multi-device use
 
 ---
@@ -363,7 +364,7 @@ Single Zustand store. No React context, no prop drilling.
   error: string | null
   displayMode: 'compact' | 'comfortable'    // default: 'comfortable'
   layoutDir: 'LR' | 'RL' | 'TB'           // default: 'LR' (persisted per project)
-  theme: 'ibm' | 'dusk'                   // default: 'ibm'
+  theme: 'ibm' | 'dusk' | 'light'         // default: 'ibm'
   selectedNodeId: string | null
   detailPanelOpen: boolean                 // default: false
   clickOpensPanel: boolean                 // default: false
@@ -392,7 +393,7 @@ Single Zustand store. No React context, no prop drilling.
 | `toggleDetailPanel()` | Toggle detail panel open/closed |
 | `setClickOpensPanel(v)` | Toggle whether clicking a node auto-opens the panel |
 | `setMapLocked(v)` | Toggle node dragging on/off |
-| `setTheme(t)` | Switch between `'ibm'` and `'dusk'` themes |
+| `setTheme(t)` | Switch between `'ibm'`, `'dusk'`, and `'light'` themes |
 
 ### Layout trigger pattern
 
@@ -521,7 +522,7 @@ When a node is selected, a colored outline appears using `t.selectionRing` from 
 All color tokens are defined in a central config. Components read the active theme via `useMindMapStore()` and compute `t = themes[theme]`.
 
 ```ts
-export type ThemeKey = 'ibm' | 'dusk';
+export type ThemeKey = 'ibm' | 'dusk' | 'light';
 export type BgVariant = 'dots' | 'lines' | 'cross';
 
 export interface AppTheme {
@@ -540,20 +541,20 @@ export interface AppTheme {
 }
 ```
 
-| Token | IBM Carbon dark | Dusk (navy/blue-gray) |
-|-------|----------------|----------------------|
-| canvas | `#111111` | `#1a1b27` |
-| bgDots | `#2d2d2d` | `#252645` |
-| bgVariant | `dots` | `lines` (grid) |
-| shell | `#111111` | `#13142a` |
-| surface | `#161616` | `#1e2038` |
-| border | `#2a2a2a` | `#30325a` |
-| card | `#1e1e1e` | `#282a40` |
-| cardBorder | `#333333` | `#383a5a` |
-| handle | `#525252` | `#39c759` |
-| selectionRing | `#4589ff` | `#6c5fff` |
-| textPrimary | `#e8e8e8` | `#e0e2f8` |
-| textMuted | `#6f6f6f` | `#7272a8` |
+| Token | IBM Carbon dark | Dusk (navy/blue-gray) | Light (graph paper) |
+|-------|----------------|----------------------|--------------------|
+| canvas | `#111111` | `#1a1b27` | `#e5e5e5` |
+| bgDots | `#2d2d2d` | `#252645` | `#000000` |
+| bgVariant | `dots` | `lines` (grid) | `lines` (grid) |
+| shell | `#111111` | `#13142a` | `#f3f4f6` |
+| surface | `#161616` | `#1e2038` | `#ffffff` |
+| border | `#2a2a2a` | `#30325a` | `#e5e7eb` |
+| card | `#1e1e1e` | `#282a40` | `#ffffff` |
+| cardBorder | `#333333` | `#383a5a` | `#d1d5db` |
+| handle | `#525252` | `#39c759` | `#64748b` |
+| selectionRing | `#4589ff` | `#6c5fff` | `#3b82f6` |
+| textPrimary | `#e8e8e8` | `#e0e2f8` | `#111827` |
+| textMuted | `#6f6f6f` | `#7272a8` | `#6b7280` |
 
 ReactFlow controls are themed via CSS class `.theme-${theme}` on the root div (see `index.css`).
 
@@ -576,7 +577,7 @@ The theme is session-only (not persisted) and defaults to `'ibm'`.
 | ↓ TB | Vertical layout (root top, children below) |
 | 🔒 Locked / 🔓 Unlocked | Toggle node dragging on canvas |
 | ⊡ Panel on click | Toggle whether clicking a node opens the detail panel |
-| 🌙 Dusk / ☀ IBM | Switch visual theme |
+| 🌙 / ☀ / ⚪ | Switch visual theme (Dusk, IBM, Light) |
 
 ### Detail Panel
 
@@ -616,6 +617,7 @@ Thin horizontal bar in the toolbar showing overall completion % for the current 
 | Enter | Open/close detail panel for the selected node |
 | Escape | Close detail panel (if open); deselect node (if panel already closed) |
 | Space | Expand/collapse children of the selected node |
+| N | Reveal next node in Sequential Animation mode (top-to-bottom) |
 | Arrow keys | Pan the canvas (150px per press) |
 
 Keyboard shortcuts are disabled when focus is inside an `<input>` or `<textarea>`.
@@ -716,8 +718,8 @@ New-NetFirewallRule -DisplayName "Vite 5173" -Direction Inbound -Protocol TCP -L
 # Install globally (from project root)
 npm link
 
-# Usage
-mindmap --help
+# Usage (including AI-based mindmap generation)
+mindmap generate --source=/path/to/files --provider=ollama --model=gemma4
 ```
 
 The CLI lives in `cli/mindmap-cli.js` and is registered as the `mindmap` binary in `package.json`.

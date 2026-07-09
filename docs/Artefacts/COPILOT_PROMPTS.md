@@ -15,7 +15,7 @@ Use these ready-to-paste prompts with your AI assistant while working on this pr
 ## JSON project files and modular imports
 
 - Given this JSON file at <path>, validate it against our JSON guide (PROJECT_FILE_GUIDE_JSON.md). List issues and the exact line/field to fix. Suggest minimal fixes.
-- Expand JSON-native imports in <path> and print only the final normalized shape {"type":"project_plan","nodes":[...]}, showing titles and ids only (no comments/code).
+- Expand JSON-native imports in <path> and print only the final normalized shape {"type":"project_plan","nodes":[...]}, showing titles and ids only (no content/code).
 - Detect and report circular imports across this set of files: <paths or folder>. Explain where the cycle starts and the safe file to break the cycle.
 - Convert this node list into a single-root project JSON skeleton that follows our guide and best practices (id, title, status, priority, children).
 - Infer missing ids in this JSON and propose stable ids (kebab-case) based on titles. Show a diff-style preview.
@@ -182,8 +182,8 @@ Use these prompts to run a full project lifecycle using the mind map UI for visi
 
 - Draft a high-level roadmap for <projectName> with 4 quarters, each with 2–3 epics. Convert epics into node JSON (id, title, priority, children) and prepare an importable {"nodes": [...]} file.
 - Convert this PRD into backlog nodes grouped by epic and priority. Keep items atomic and action-oriented. Output only the nodes array.
-- Enrich each epic with a taskPromptForLlm that asks for risk analysis and unknowns; add placeholders for acceptance criteria in comments.
-- Identify dependencies between tasks and annotate nodes with a comment field listing upstream ids.
+- Enrich each epic with a taskPromptForLlm that asks for risk analysis and unknowns; add placeholders for acceptance criteria in content.
+- Identify dependencies between tasks and annotate nodes with a content field listing upstream ids.
 
 ### Sprint planning
 
@@ -207,30 +207,30 @@ Use these prompts to run a full project lifecycle using the mind map UI for visi
 ### DevOps and deployments
 
 - Create a deployment checklist node with children: Build, Package, Secrets, Migrations, Deploy, Smoke Test, Rollback plan. Set default status=pending.
-- Propose an environment matrix (dev, staging, prod) and create nodes with per-env differences documented in comment fields.
+- Propose an environment matrix (dev, staging, prod) and create nodes with per-env differences documented in content fields.
 - Add a “Release <version>” node with children for release notes, change summary, and verification steps.
 
 ### Security and compliance
 
 - Run a threat-modeling session for <feature> and create nodes for STRIDE categories with specific risks as children; set priority=high for critical items.
 - Add a “Dependency Audit” node with a taskPromptForLlm that asks to scan lockfiles and list vulnerable packages.
-- Create policy reminder nodes: data retention, PII handling, access control reviews, and set review cadence in comment fields.
+- Create policy reminder nodes: data retention, PII handling, access control reviews, and set review cadence in content fields.
 
 ### Documentation suite
 
-- Create a Documentation root with children: README plan, API docs (OpenAPI), ADRs, Onboarding, and Runbooks. Seed each with a comment template.
+- Create a Documentation root with children: README plan, API docs (OpenAPI), ADRs, Onboarding, and Runbooks. Seed each with a content template.
 - Generate an ADR node format and create one ADR for “Adopt JSON modular imports for project planning.”
 - Produce a “Contributing” node with checklist items: Setup, Branching model, Commit conventions, PR checklist, Code owners.
 
 ### Observability and SRE
 
-- Add an Observability root with children: Logging, Metrics, Traces, Dashboards, Alerts. Propose key metrics and thresholds in comments.
+- Add an Observability root with children: Logging, Metrics, Traces, Dashboards, Alerts. Propose key metrics and thresholds in content.
 - Create a “Health Checks” node with child nodes per endpoint and expected responses.
 - Add “Incident Response” nodes: Severity levels, Runbook links, Pager rotation, Postmortem template.
 
 ### Maintenance and lifecycle
 
-- Create recurring maintenance tasks: dependency updates, database vacuum, security scans, and backup restores drills. Add a cadence in comments.
+- Create recurring maintenance tasks: dependency updates, database vacuum, security scans, and backup restores drills. Add a cadence in content.
 - Add a “Backlog Grooming” node that lists criteria for re-prioritizing and archiving old tasks.
 - Propose a deprecation plan for legacy components as nodes with timelines.
 
@@ -238,7 +238,7 @@ Use these prompts to run a full project lifecycle using the mind map UI for visi
 
 - Generate a weekly status report by summarizing: totals by status, new tasks created, tasks completed, and top risks. Return Markdown only.
 - Build a “Project Dashboard” node with children: Burn-down, Work in Progress, Lead time, Cycle time. Add taskPromptForLlm asking to compute metrics from CLI output.
-- Create a “Stakeholder Update” node with a script-like comment that fetches stats via CLI and formats an email.
+- Create a “Stakeholder Update” node with a script-like content that fetches stats via CLI and formats an email.
 
 ### Automation recipes (Copilot driving the CLI)
 

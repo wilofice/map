@@ -48,7 +48,7 @@ node mindmap-cli.js import-json ./data/project.json --collection-id=<id>
       "title": "Root Node Title",
       "status": "pending",
       "priority": "high",
-      "comment": "Notes or description text",
+      "content": "Notes or description text",
       "children": [
         {
           "title": "Child Node",
@@ -84,7 +84,7 @@ node mindmap-cli.js import-json ./data/project.json --collection-id=<id>
 | `title` | Yes | plain text string | Node label — plain text, no markdown |
 | `status` | No | `pending` `in-progress` `completed` | Default: `pending` |
 | `priority` | No | `low` `medium` `high` | Default: `medium` |
-| `comment` | No | string | Notes/description shown in Detail Panel |
+| `content` | No | string | Notes/description shown in Detail Panel |
 | `children` | No | array of nodes | Nested child nodes, same structure |
 | `startDate` | No | `YYYY-MM-DD` | Timeline start |
 | `endDate` | No | `YYYY-MM-DD` | Timeline end |
@@ -130,7 +130,7 @@ Progress is calculated automatically from `status` values across all nodes and s
           "title": "JWT token generation",
           "status": "completed",
           "priority": "high",
-          "comment": "Using jose library, RS256 algorithm"
+          "content": "Using jose library, RS256 algorithm"
         },
         {
           "title": "Refresh token rotation",
@@ -248,7 +248,7 @@ When asked to create a project plan for any software project, follow this struct
 3. **Task nodes** under each domain (specific, actionable items)
 4. Set `status: "pending"` on all nodes unless you know current state
 5. Set `priority` based on blocking dependencies and business impact
-6. Use `comment` for context, constraints, and decisions — not for visual markers
+6. Use `content` for context, constraints, and decisions — not for visual markers
 
 The user will open the map in the browser and immediately see the hierarchy with visual status/priority indicators. No visual design work is needed from the agent.
 
@@ -268,13 +268,13 @@ The user will open the map in the browser and immediately see the hierarchy with
       "title": "API Gateway Implementation",
       "status": "in-progress",
       "priority": "high",
-      "comment": "Central routing layer for all microservices. Must be zero-downtime deployable.",
+      "content": "Central routing layer for all microservices. Must be zero-downtime deployable.",
       "children": [
         {
           "title": "Routing and load balancing",
           "status": "completed",
           "priority": "high",
-          "comment": "Using http-proxy-middleware with round-robin lb",
+          "content": "Using http-proxy-middleware with round-robin lb",
           "children": [
             { "title": "Route table configuration", "status": "completed", "priority": "high" },
             { "title": "Health check endpoints", "status": "completed", "priority": "medium" }
@@ -284,7 +284,7 @@ The user will open the map in the browser and immediately see the hierarchy with
           "title": "Authentication middleware",
           "status": "in-progress",
           "priority": "high",
-          "comment": "JWT validation + API key support",
+          "content": "JWT validation + API key support",
           "taskPromptForLlm": "Implement Express middleware that validates both JWT bearer tokens and X-API-Key headers. Use RS256 for JWT. Cache public keys for 1 hour.",
           "children": [
             { "title": "JWT validation", "status": "in-progress", "priority": "high" },

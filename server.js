@@ -2802,12 +2802,31 @@ app.get('/api/ai/search', (req, res) => {
 // ─── Docs API — serve docs/Artefacts/*.md to any client on the LAN ──────────
 
 const ARTEFACTS_DIR = path.join(__dirname, 'docs', 'Artefacts');
+const DOCS_DIR = path.join(__dirname, 'docs');
+const README_PATH = path.join(__dirname, 'README.md');
+
+async function getAllDocs() {
+    const files = new Map();
+    files.set('README.md', README_PATH);
+    
+    try {
+        const docsFiles = (await fs.readdir(DOCS_DIR)).filter(f => f.endsWith('.md'));
+        for (const f of docsFiles) files.set(f, path.join(DOCS_DIR, f));
+    } catch (e) {}
+
+    try {
+        const artFiles = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
+        for (const f of artFiles) files.set(f, path.join(ARTEFACTS_DIR, f)); // Artefacts overrides root docs if collision
+    } catch (e) {}
+    
+    return files;
+}
 
 app.get('/api/docs', async (_req, res) => {
     try {
-        const files = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
-        const docs = await Promise.all(files.map(async (filename) => {
-            const content = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+        const docMap = await getAllDocs();
+        const docs = await Promise.all(Array.from(docMap.entries()).map(async ([filename, filepath]) => {
+            const content = await fs.readFile(filepath, 'utf8');
             const titleMatch = content.match(/^#\s+(.+)$/m);
             return {
                 filename,
@@ -2825,10 +2844,10 @@ app.get('/api/docs', async (_req, res) => {
 
 app.get('/api/docs/bundle', async (_req, res) => {
     try {
-        const files = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
+        const docMap = await getAllDocs();
         const bundle = {};
-        for (const filename of files) {
-            bundle[filename] = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+        for (const [filename, filepath] of docMap.entries()) {
+            bundle[filename] = await fs.readFile(filepath, 'utf8');
         }
         res.json(bundle);
     } catch (err) {
@@ -2842,11 +2861,27 @@ app.get('/api/docs/:filename', async (req, res) => {
         return res.status(400).json({ error: 'Invalid filename' });
     }
     try {
-        const content = await fs.readFile(path.join(ARTEFACTS_DIR, filename), 'utf8');
+        const docMap = await getAllDocs();
+        const filepath = docMap.get(filename);
+        if (!filepath) return res.status(404).json({ error: 'Not found' });
+        
+        const content = await fs.readFile(filepath, 'utf8');
         res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
         res.send(content);
     } catch (err) {
         if (err.code === 'ENOENT') return res.status(404).json({ error: 'Not found' });
+        res.status(500).json({ error: String(err) });
+    }
+});
+
+app.get('/api/system-prompt', async (_req, res) => {
+    try {
+        const filepath = path.join(ARTEFACTS_DIR, 'SYSTEM_PROMPT.md');
+        const content = await fs.readFile(filepath, 'utf8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.send(content);
+    } catch (err) {
+        if (err.code === 'ENOENT') return res.status(404).json({ error: 'System prompt not found' });
         res.status(500).json({ error: String(err) });
     }
 });
