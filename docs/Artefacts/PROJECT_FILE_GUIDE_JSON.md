@@ -54,6 +54,7 @@ node mindmap-cli.js import-json ./data/project.json --collection-id=<id>
           "title": "Child Node",
           "status": "pending",
           "priority": "medium",
+          "content": "Description of child task",
           "children": []
         }
       ]
@@ -84,7 +85,7 @@ node mindmap-cli.js import-json ./data/project.json --collection-id=<id>
 | `title` | Yes | plain text string | Node label — plain text, no markdown |
 | `status` | No | `pending` `in-progress` `completed` | Default: `pending` |
 | `priority` | No | `low` `medium` `high` | Default: `medium` |
-| `content` | No | string | Notes/description shown in Detail Panel |
+| `content` | Yes | string | Notes/description shown in Detail Panel (Must not be empty) |
 | `children` | No | array of nodes | Nested child nodes, same structure |
 | `startDate` | No | `YYYY-MM-DD` | Timeline start |
 | `endDate` | No | `YYYY-MM-DD` | Timeline end |
@@ -135,17 +136,20 @@ Progress is calculated automatically from `status` values across all nodes and s
         {
           "title": "Refresh token rotation",
           "status": "in-progress",
-          "priority": "high"
+          "priority": "high",
+          "content": "Implement sliding window expiration for refresh tokens"
         },
         {
           "title": "Session expiry handling",
           "status": "pending",
-          "priority": "medium"
+          "priority": "medium",
+          "content": "Handle 401 Unauthorized responses on the frontend"
         },
         {
           "title": "Logout and token revocation",
           "status": "pending",
-          "priority": "medium"
+          "priority": "medium",
+          "content": "Blacklist tokens in Redis on user logout"
         }
       ]
     }
@@ -224,9 +228,9 @@ Split a large project across multiple JSON files using import directives:
 ```json
 {
   "nodes": [
-    { "title": "React component library", "priority": "high" },
-    { "title": "State management setup", "priority": "medium" },
-    { "title": "Routing and navigation", "priority": "medium" }
+    { "title": "React component library", "priority": "high", "content": "Set up shadcn/ui and storybook" },
+    { "title": "State management setup", "priority": "medium", "content": "Configure Zustand stores" },
+    { "title": "Routing and navigation", "priority": "medium", "content": "Implement react-router with lazy loading" }
   ]
 }
 ```
@@ -276,8 +280,8 @@ The user will open the map in the browser and immediately see the hierarchy with
           "priority": "high",
           "content": "Using http-proxy-middleware with round-robin lb",
           "children": [
-            { "title": "Route table configuration", "status": "completed", "priority": "high" },
-            { "title": "Health check endpoints", "status": "completed", "priority": "medium" }
+            { "title": "Route table configuration", "status": "completed", "priority": "high", "content": "Map incoming paths to internal services" },
+            { "title": "Health check endpoints", "status": "completed", "priority": "medium", "content": "Implement /ping routes for load balancer" }
           ]
         },
         {
@@ -287,30 +291,32 @@ The user will open the map in the browser and immediately see the hierarchy with
           "content": "JWT validation + API key support",
           "taskPromptForLlm": "Implement Express middleware that validates both JWT bearer tokens and X-API-Key headers. Use RS256 for JWT. Cache public keys for 1 hour.",
           "children": [
-            { "title": "JWT validation", "status": "in-progress", "priority": "high" },
-            { "title": "API key management", "status": "pending", "priority": "high" },
-            { "title": "Rate limiting per client", "status": "pending", "priority": "medium" }
+            { "title": "JWT validation", "status": "in-progress", "priority": "high", "content": "Verify signature and expiry" },
+            { "title": "API key management", "status": "pending", "priority": "high", "content": "Validate keys against DB" },
+            { "title": "Rate limiting per client", "status": "pending", "priority": "medium", "content": "Use Redis rate limiter" }
           ]
         },
         {
           "title": "Observability",
           "status": "pending",
           "priority": "medium",
+          "content": "Metrics and logging infrastructure",
           "children": [
-            { "title": "Request/response logging", "status": "pending", "priority": "medium" },
-            { "title": "Prometheus metrics endpoint", "status": "pending", "priority": "medium" },
-            { "title": "Distributed tracing", "status": "pending", "priority": "low" }
+            { "title": "Request/response logging", "status": "pending", "priority": "medium", "content": "Log via Winston/Morgan" },
+            { "title": "Prometheus metrics endpoint", "status": "pending", "priority": "medium", "content": "Expose /metrics for scraping" },
+            { "title": "Distributed tracing", "status": "pending", "priority": "low", "content": "Add OpenTelemetry headers" }
           ]
         },
         {
           "title": "Deployment",
           "status": "pending",
           "priority": "high",
+          "content": "Containerization and orchestration",
           "cliCommand": "docker build -t api-gateway:latest .\ndocker push registry/api-gateway:latest\nkubectl rollout restart deployment/api-gateway",
           "children": [
-            { "title": "Docker image and compose setup", "status": "pending", "priority": "high" },
-            { "title": "Kubernetes manifests", "status": "pending", "priority": "high" },
-            { "title": "CI/CD pipeline integration", "status": "pending", "priority": "medium" }
+            { "title": "Docker image and compose setup", "status": "pending", "priority": "high", "content": "Write Dockerfile and docker-compose.yml" },
+            { "title": "Kubernetes manifests", "status": "pending", "priority": "high", "content": "Create Deployment, Service, and Ingress" },
+            { "title": "CI/CD pipeline integration", "status": "pending", "priority": "medium", "content": "GitHub Actions workflow for auto-deploy" }
           ]
         }
       ]
