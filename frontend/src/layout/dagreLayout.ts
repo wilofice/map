@@ -14,6 +14,7 @@ export function buildDagreLayout(
   expandedIds: Set<string>,
   mode: DisplayMode = 'comfortable',
   layoutDir: LayoutDir = 'LR',
+  focusedNodeId: string | null = null,
   edgeColors: [string, string, string] = DEFAULT_EDGE_COLORS
 ): { rfNodes: Node[]; rfEdges: Edge[] } {
   const dims = NODE_DIMS[mode];
@@ -43,10 +44,15 @@ export function buildDagreLayout(
   const queue: string[] = [];
 
   for (const node of nodes) {
-    if (node.parent_id === null) {
-      visibleIds.add(node.id);
-      if (expandedIds.has(node.id)) {
-        queue.push(node.id);
+    if (focusedNodeId) {
+      if (node.id === focusedNodeId) {
+        visibleIds.add(node.id);
+        if (expandedIds.has(node.id)) queue.push(node.id);
+      }
+    } else {
+      if (node.parent_id === null) {
+        visibleIds.add(node.id);
+        if (expandedIds.has(node.id)) queue.push(node.id);
       }
     }
   }

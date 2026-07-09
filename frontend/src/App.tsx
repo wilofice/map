@@ -15,7 +15,7 @@ export default function App() {
     expandAll, collapseAll,
     displayMode, setDisplayMode,
     layoutDir, setLayoutDir,
-    selectedNodeId, detailPanelOpen,
+    selectedNodeId, focusedNodeId, setFocusedNodeId, detailPanelOpen,
     clickOpensPanel, setClickOpensPanel,
     mapLocked, setMapLocked,
     theme,
@@ -316,6 +316,20 @@ export default function App() {
               {/* Expand / Collapse */}
               <button onClick={expandAll}  className="toolbar-btn" title="Expand all">⊞ <span>All</span></button>
               <button onClick={collapseAll} className="toolbar-btn" title="Collapse all">⊟</button>
+
+              {/* Focus Mode Exit */}
+              {focusedNodeId && (
+                <>
+                  <span className="w-px h-4 mx-1" style={{ background: t.border }} />
+                  <button
+                    onClick={() => setFocusedNodeId(null)}
+                    className="toolbar-btn text-[#f1c21b] bg-[rgba(241,194,27,0.12)] font-semibold"
+                    title="Exit Focus Mode (Show entire map)"
+                  >
+                    ⌖ Exit Focus Mode
+                  </button>
+                </>
+              )}
 
               {/* Divider */}
               <span className="w-px h-4 mx-1" style={{ background: t.border }} />

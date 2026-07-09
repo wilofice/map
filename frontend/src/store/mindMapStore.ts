@@ -26,6 +26,7 @@ interface MindMapState {
   displayMode: DisplayMode;
   layoutDir: LayoutDir;
   selectedNodeId: string | null;
+  focusedNodeId: string | null;
   detailPanelOpen: boolean;
   clickOpensPanel: boolean;
   mapLocked: boolean;
@@ -52,6 +53,7 @@ interface MindMapState {
   setDisplayMode: (mode: DisplayMode) => void;
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
+  setFocusedNodeId: (id: string | null) => void;
   setDetailPanelOpen: (open: boolean) => void;
   toggleDetailPanel: () => void;
   setClickOpensPanel: (v: boolean) => void;
@@ -87,7 +89,9 @@ function reLayout(
   mode: DisplayMode,
   dir: LayoutDir
 ) {
-  return buildDagreLayout(rawNodes, expandedIds, mode, dir, _edgeColors);
+  // Use getState to avoid modifying all call sites
+  const focusedNodeId = useMindMapStore.getState ? useMindMapStore.getState().focusedNodeId : null;
+  return buildDagreLayout(rawNodes, expandedIds, mode, dir, focusedNodeId, _edgeColors);
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
@@ -102,6 +106,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   displayMode: 'comfortable',
   layoutDir: 'LR',
   selectedNodeId: null,
+  focusedNodeId: null,
   detailPanelOpen: false,
   clickOpensPanel: false,
   mapLocked: true,
@@ -459,6 +464,17 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setSelectedNodeId(id) {
     set({ selectedNodeId: id });
+  },
+
+  setFocusedNodeId(id) {
+    const { rawNodes, expandedIds, displayMode, layoutDir } = get();
+    // We update focusedNodeId first, then call reLayout so it picks up the new value via getState()
+    set({ focusedNodeId: id, pendingFitView: true });
+    // setTimeout to ensure Zustand state is updated before reLayout reads it
+    setTimeout(() => {
+      const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir);
+      set({ rfNodes, rfEdges });
+    }, 0);
   },
 
   setDetailPanelOpen(open) {

@@ -478,11 +478,20 @@ export default function DetailPanel() {
       {/* ── Header (always visible) ─────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a] shrink-0">
         <span className="text-xs font-semibold text-[#6f6f6f] uppercase tracking-wide">Node detail</span>
-        <button
-          onClick={() => setDetailPanelOpen(false)}
-          className="text-[#6f6f6f] hover:text-[#f4f4f4] text-lg leading-none transition-colors"
-          title="Close (Esc)"
-        >×</button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => useMindMapStore.getState().setFocusedNodeId(node.id)}
+            className="text-[10px] text-[#f1c21b] border border-[#f1c21b] px-2 py-0.5 rounded hover:bg-[#f1c21b20] transition-colors"
+            title="Isolate this node and its children"
+          >
+            ⌖ Focus Subtree
+          </button>
+          <button
+            onClick={() => setDetailPanelOpen(false)}
+            className="text-[#6f6f6f] hover:text-[#f4f4f4] text-lg leading-none transition-colors"
+            title="Close (Esc)"
+          >×</button>
+        </div>
       </div>
 
       {/* ── Sections ────────────────────────────────────────────────── */}
