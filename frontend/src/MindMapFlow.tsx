@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import {
   ReactFlow,
   Controls,
+  MiniMap,
   Background,
   BackgroundVariant,
   useNodesState,
@@ -160,6 +161,14 @@ function FlowCanvas() {
       style={{ background: t.canvas }}
     >
       <Controls />
+      <MiniMap 
+        nodeColor={t.card}
+        maskColor={theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.5)'}
+        style={{ backgroundColor: t.shell, border: `1px solid ${t.border}` }}
+        position="bottom-right"
+        zoomable
+        pannable
+      />
       <Background variant={BG_VARIANT_MAP[t.bgVariant]} color={t.bgDots} gap={t.bgVariant === 'lines' ? 20 : 5} size={1} />
     </ReactFlow>
   );
