@@ -43,28 +43,38 @@ export function buildDagreLayout(
   const visibleIds = new Set<string>();
   const queue: string[] = [];
 
-  for (const node of nodes) {
-    if (focusedNodeId) {
-      if (node.id === focusedNodeId) {
-        visibleIds.add(node.id);
-        if (expandedIds.has(node.id)) queue.push(node.id);
+  if (focusedNodeId) {
+    // Focus mode: show the focused node and ALL its descendants, ignoring expandedIds
+    const focusedNode = nodes.find(n => n.id === focusedNodeId);
+    if (focusedNode) {
+      visibleIds.add(focusedNode.id);
+      queue.push(focusedNode.id);
+    }
+    while (queue.length > 0) {
+      const parentId = queue.shift()!;
+      const children = childrenMap.get(parentId);
+      if (children) {
+        for (const childId of children) {
+          visibleIds.add(childId);
+          queue.push(childId);
+        }
       }
-    } else {
+    }
+  } else {
+    // Normal mode: respect expandedIds
+    for (const node of nodes) {
       if (node.parent_id === null) {
         visibleIds.add(node.id);
         if (expandedIds.has(node.id)) queue.push(node.id);
       }
     }
-  }
-
-  while (queue.length > 0) {
-    const parentId = queue.shift()!;
-    const children = childrenMap.get(parentId);
-    if (children) {
-      for (const childId of children) {
-        visibleIds.add(childId);
-        if (expandedIds.has(childId)) {
-          queue.push(childId);
+    while (queue.length > 0) {
+      const parentId = queue.shift()!;
+      const children = childrenMap.get(parentId);
+      if (children) {
+        for (const childId of children) {
+          visibleIds.add(childId);
+          if (expandedIds.has(childId)) queue.push(childId);
         }
       }
     }
@@ -76,8 +86,10 @@ export function buildDagreLayout(
     graph.setNode(node.id, { width: dims.width, height: dims.height });
   }
   for (const node of visibleNodes) {
-    if (node.parent_id && visibleIds.has(node.parent_id)) {
-      graph.setEdge(node.parent_id, node.id);
+    // In focus mode, the focused node has no parent edge (it IS the root visually)
+    const effectiveParentId = focusedNodeId && node.id === focusedNodeId ? null : node.parent_id;
+    if (effectiveParentId && visibleIds.has(effectiveParentId)) {
+      graph.setEdge(effectiveParentId, node.id);
     }
   }
 
@@ -93,7 +105,8 @@ export function buildDagreLayout(
       data: {
         ...node,
         hasChildren,
-        isExpanded: expandedIds.has(node.id),
+        // In focus mode all visible nodes are shown as expanded
+        isExpanded: focusedNodeId ? hasChildren : expandedIds.has(node.id),
         nodeWidth: dims.width,
         displayMode: mode,
         layoutDir,
