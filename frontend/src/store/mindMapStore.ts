@@ -87,11 +87,11 @@ function reLayout(
   rawNodes: MindMapNodeData[],
   expandedIds: Set<string>,
   mode: DisplayMode,
-  dir: LayoutDir
+  dir: LayoutDir,
+  focusedNodeId?: string | null
 ) {
-  // Use getState to avoid modifying all call sites
-  const focusedNodeId = useMindMapStore.getState ? useMindMapStore.getState().focusedNodeId : null;
-  return buildDagreLayout(rawNodes, expandedIds, mode, dir, focusedNodeId, _edgeColors);
+  const finalFocus = focusedNodeId !== undefined ? focusedNodeId : (useMindMapStore.getState ? useMindMapStore.getState().focusedNodeId : null);
+  return buildDagreLayout(rawNodes, expandedIds, mode, dir, finalFocus, _edgeColors);
 }
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
@@ -136,7 +136,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   async loadProject(id) {
-    set({ loading: true, error: null, selectedNodeId: null, detailPanelOpen: false });
+    set({ loading: true, error: null, selectedNodeId: null, focusedNodeId: null, detailPanelOpen: false });
     try {
       const { nodes, ...project } = await api.getProjectWithNodes(id);
       const expandedIds = new Set(nodes.filter((n) => !n.parent_id).map((n) => n.id));
@@ -468,11 +468,11 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setFocusedNodeId(id) {
     const { rawNodes, expandedIds, displayMode, layoutDir } = get();
-    // We update focusedNodeId first, then call reLayout so it picks up the new value via getState()
+    // We update focusedNodeId first, then call reLayout explicitly with the new id
     set({ focusedNodeId: id, pendingFitView: true });
-    // setTimeout to ensure Zustand state is updated before reLayout reads it
+    // setTimeout to ensure Zustand state is updated before reLayout renders
     setTimeout(() => {
-      const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir);
+      const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir, id);
       set({ rfNodes, rfEdges });
     }, 0);
   },

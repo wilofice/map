@@ -458,7 +458,7 @@ function GenerateChildrenSection({ nodeId }: { nodeId: string }) {
 // ─── Main panel ──────────────────────────────────────────────────────────────
 
 export default function DetailPanel() {
-  const { rawNodes, selectedNodeId, cycleStatus, updateNodeField, setDetailPanelOpen } = useMindMapStore();
+  const { rawNodes, selectedNodeId, cycleStatus, updateNodeField, setDetailPanelOpen, setFocusedNodeId } = useMindMapStore();
 
   if (!selectedNodeId) return null;
   const node = rawNodes.find((n) => n.id === selectedNodeId);
@@ -480,7 +480,7 @@ export default function DetailPanel() {
         <span className="text-xs font-semibold text-[#6f6f6f] uppercase tracking-wide">Node detail</span>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => useMindMapStore.getState().setFocusedNodeId(node.id)}
+            onClick={() => setFocusedNodeId(node.id)}
             className="text-[10px] text-[#f1c21b] border border-[#f1c21b] px-2 py-0.5 rounded hover:bg-[#f1c21b20] transition-colors"
             title="Isolate this node and its children"
           >
