@@ -485,12 +485,31 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setFocusedNodeId(id) {
     const { rawNodes, expandedIds, displayMode, layoutDir } = get();
-    // We update focusedNodeId first, then call reLayout explicitly with the new id
+    // Snapshot IDs currently on screen before switching mode
+    const prevIds = new Set(get().rfNodes.map((n) => n.id));
     set({ focusedNodeId: id, pendingFitView: true });
-    // setTimeout to ensure Zustand state is updated before reLayout renders
     setTimeout(() => {
-      const { rfNodes, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir, id);
-      set({ rfNodes, rfEdges });
+      const { rfNodes: laid, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir, id);
+
+      if (id !== null) {
+        // Entering focus mode — animate nodes that weren't visible before
+        const newNodes = laid.filter((n) => !prevIds.has(n.id));
+        newNodes.sort((a, b) =>
+          layoutDir === 'LR' || layoutDir === 'RL'
+            ? a.position.y - b.position.y
+            : a.position.x - b.position.x
+        );
+        const staggerMap = new Map(newNodes.map((n, i) => [n.id, i]));
+        const rfNodes = laid.map((n) =>
+          prevIds.has(n.id)
+            ? n
+            : { ...n, data: { ...n.data, staggerIndex: staggerMap.get(n.id) ?? 0 } }
+        );
+        set({ rfNodes, rfEdges, sequentialStep: 0 });
+      } else {
+        // Exiting focus mode — restore full map, no stagger (instant)
+        set({ rfNodes: laid, rfEdges });
+      }
     }, 0);
   },
 
