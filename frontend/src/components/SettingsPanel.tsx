@@ -102,6 +102,8 @@ export default function SettingsPanel() {
     animSpringDuration, setAnimSpringDuration,
     typewriterEnabled, setTypewriterEnabled,
     typewriterSpeedMs, setTypewriterSpeedMs,
+    sequentialAutoPlay, setSequentialAutoPlay,
+    sequentialAutoDelayMs, setSequentialAutoDelayMs,
     setSettingsPanelOpen,
   } = useMindMapStore();
   const t = themes[theme];
@@ -207,6 +209,27 @@ export default function SettingsPanel() {
               onChange={setAnimStaggerMs}
               t={t}
             />
+          )}
+
+          {/* Auto-play — sequential only */}
+          {animEntranceMode === 'sequential' && (
+            <div className="space-y-2 mt-1">
+              <ToggleRow
+                label="Auto advance"
+                value={sequentialAutoPlay}
+                onChange={setSequentialAutoPlay}
+                t={t}
+              />
+              {sequentialAutoPlay && (
+                <SliderRow
+                  label={`Step delay — ${sequentialAutoDelayMs} ms`}
+                  value={sequentialAutoDelayMs}
+                  min={200} max={3000} step={100}
+                  onChange={setSequentialAutoDelayMs}
+                  t={t}
+                />
+              )}
+            </div>
           )}
 
           {/* Spring duration */}

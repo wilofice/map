@@ -34,7 +34,8 @@ function FlowCanvas() {
     clickOpensPanel, mapLocked, theme,
     pendingFitView, clearPendingFitView,
     setSelectedNodeId, toggleExpand, toggleDetailPanel, setDetailPanelOpen,
-    undoLast, redoLast, incrementSequentialStep
+    undoLast, redoLast, incrementSequentialStep,
+    animEntranceMode, sequentialStep, sequentialAutoPlay, sequentialAutoDelayMs,
   } = useMindMapStore();
 
   const t = themes[theme];
@@ -63,6 +64,15 @@ function FlowCanvas() {
       }, 50);
     }
   }, [storeNodes, storeEdges, pendingFitView, setNodes, setEdges, fitView, clearPendingFitView]);
+
+  // Auto-advance sequential animation — fires on a timer while autoPlay is on
+  useEffect(() => {
+    if (!sequentialAutoPlay || animEntranceMode !== 'sequential') return;
+    // Stop once every node has been revealed
+    if (sequentialStep >= storeNodes.length) return;
+    const timer = setTimeout(() => incrementSequentialStep(), sequentialAutoDelayMs);
+    return () => clearTimeout(timer);
+  }, [sequentialAutoPlay, animEntranceMode, sequentialStep, storeNodes.length, sequentialAutoDelayMs, incrementSequentialStep]);
 
   useEffect(() => {
     const PAN_STEP = 150;

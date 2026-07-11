@@ -78,6 +78,10 @@ interface MindMapState {
   sequentialStep: number;
   incrementSequentialStep: () => void;
   resetSequentialStep: () => void;
+  sequentialAutoPlay: boolean;
+  sequentialAutoDelayMs: number;
+  setSequentialAutoPlay: (v: boolean) => void;
+  setSequentialAutoDelayMs: (ms: number) => void;
 }
 
 // Tracks the active theme's edge colors so every reLayout call gets them automatically.
@@ -124,6 +128,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   sequentialStep: 0,
   incrementSequentialStep: () => set((s) => ({ sequentialStep: s.sequentialStep + 1 })),
   resetSequentialStep: () => set({ sequentialStep: 0 }),
+  sequentialAutoPlay: (localStorage.getItem('mm-seq-auto') ?? 'false') === 'true',
+  sequentialAutoDelayMs: Number(localStorage.getItem('mm-seq-auto-delay-ms') ?? 800),
   undoStack: [] as UndoEntry[],
   redoStack: [] as UndoEntry[],
 
@@ -531,5 +537,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setAnimSpringDuration(s) { localStorage.setItem('mm-anim-spring-s', String(s)); set({ animSpringDuration: s }); },
   setTypewriterEnabled(v) { localStorage.setItem('mm-typewriter-enabled', String(v)); set({ typewriterEnabled: v }); },
   setTypewriterSpeedMs(ms) { localStorage.setItem('mm-typewriter-speed-ms', String(ms)); set({ typewriterSpeedMs: ms }); },
+  setSequentialAutoPlay(v) { localStorage.setItem('mm-seq-auto', String(v)); set({ sequentialAutoPlay: v }); },
+  setSequentialAutoDelayMs(ms) { localStorage.setItem('mm-seq-auto-delay-ms', String(ms)); set({ sequentialAutoDelayMs: ms }); },
   setSettingsPanelOpen(v) { set({ settingsPanelOpen: v }); },
 }));
