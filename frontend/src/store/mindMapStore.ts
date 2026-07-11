@@ -493,9 +493,14 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     const { rawNodes, expandedIds, displayMode, layoutDir } = get();
     // Snapshot IDs currently on screen before switching mode
     const prevIds = new Set(get().rfNodes.map((n) => n.id));
+    
+    // Ensure the focused node itself is expanded so we see its children
+    const nextExpandedIds = new Set(expandedIds);
+    if (id !== null) nextExpandedIds.add(id);
+
     set({ focusedNodeId: id, pendingFitView: true });
     setTimeout(() => {
-      const { rfNodes: laid, rfEdges } = reLayout(rawNodes, expandedIds, displayMode, layoutDir, id);
+      const { rfNodes: laid, rfEdges } = reLayout(rawNodes, nextExpandedIds, displayMode, layoutDir, id);
 
       if (id !== null) {
         // Entering focus mode — animate nodes that weren't visible before
@@ -511,10 +516,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
             ? n
             : { ...n, data: { ...n.data, staggerIndex: staggerMap.get(n.id) ?? 0 } }
         );
-        set({ rfNodes, rfEdges, sequentialStep: 0 });
+        set({ expandedIds: nextExpandedIds, rfNodes, rfEdges, sequentialStep: 0 });
       } else {
         // Exiting focus mode — restore full map, no stagger (instant)
-        set({ rfNodes: laid, rfEdges });
+        set({ expandedIds: nextExpandedIds, rfNodes: laid, rfEdges });
       }
     }, 0);
   },

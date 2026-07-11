@@ -44,11 +44,13 @@ export function buildDagreLayout(
   const queue: string[] = [];
 
   if (focusedNodeId) {
-    // Focus mode: show the focused node and ALL its descendants, ignoring expandedIds
+    // Focus mode: show the focused node and its expanded descendants
     const focusedNode = nodes.find(n => n.id === focusedNodeId);
     if (focusedNode) {
       visibleIds.add(focusedNode.id);
-      queue.push(focusedNode.id);
+      if (expandedIds.has(focusedNode.id)) {
+        queue.push(focusedNode.id);
+      }
     }
     while (queue.length > 0) {
       const parentId = queue.shift()!;
@@ -56,7 +58,9 @@ export function buildDagreLayout(
       if (children) {
         for (const childId of children) {
           visibleIds.add(childId);
-          queue.push(childId);
+          if (expandedIds.has(childId)) {
+            queue.push(childId);
+          }
         }
       }
     }
