@@ -36,14 +36,19 @@ A mind-mapping tool intended for commercial release. Data is stored in SQLite (p
 **Key capabilities:**
 - Hierarchical mind maps with unlimited depth
 - Per-node: status, priority, dates, comments, code blocks, AI prompts, CLI commands, audio recordings
-- Expand / collapse tree branches
+- Expand / collapse tree branches with Focus Mode for drilling down into specific subtrees
 - Automatic Dagre layout (LR, RL, or TB direction — persisted per project)
+- Node Splitting: atomic operations to evenly divide large nodes (≥4 children)
 - Detail panel for full node inspection (keyboard-driven: Enter to open, Escape to close)
 - Map locking: nodes cannot be dragged when locked (default: locked)
 - Progress badge (completion %) and header progress bar
 - Three visual themes: IBM Carbon dark, Dusk (navy/blue-gray node-editor style), and Light (crisp graph-paper grid)
-- Keyboard-driven sequential animation mode for presentations
+- Keyboard-driven sequential animation mode with Auto-Play support, plus Cascade animations
+- Interactive Mini Map overlay for large workspace navigation
+- MCP Server integration allowing direct, secure DB access for AI clients (Claude Desktop, Cursor)
 - Accessible over LAN for multi-device use
+
+*See [docs/CHANGELOG.md](docs/CHANGELOG.md) for the latest updates.*
 
 ---
 
