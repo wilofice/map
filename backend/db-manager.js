@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 class DatabaseManager {
-    constructor(dbPath = './mind_maps.db') {
-        this.dbPath = dbPath;
+    constructor(dbPath = null) {
+        this.dbPath = dbPath || path.join(__dirname, '..', 'mind_maps.db');
         this.db = null;
         this.init();
     }
@@ -32,7 +32,7 @@ class DatabaseManager {
             // Ensure Default collection exists
             this.ensureDefaultCollection();
             
-            console.log(`✅ Database initialized: ${this.dbPath}`);
+            console.error(`✅ Database initialized: ${this.dbPath}`);
         } catch (error) {
             console.error('❌ Database initialization failed:', error);
             throw error;
@@ -316,9 +316,9 @@ class DatabaseManager {
             if (!existing) {
                 // Create Default collection
                 this.stmts.insertCollection.run(defaultId, 'Default', 'Default collection for imported projects');
-                console.log('✅ Created Default collection');
+                console.error('✅ Created Default collection');
             } else {
-                console.log('✅ Default collection already exists');
+                console.error('✅ Default collection already exists');
             }
         } catch (error) {
             console.error('❌ Error ensuring Default collection:', error);
@@ -958,7 +958,7 @@ class DatabaseManager {
     close() {
         if (this.db) {
             this.db.close();
-            console.log('✅ Database connection closed');
+            console.error('✅ Database connection closed');
         }
     }
 }

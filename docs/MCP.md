@@ -22,9 +22,8 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "mindmap": {
-      "command": "node",
-      "args": ["/Users/genereux/dev/map/mcp.mjs"],
-      "cwd": "/Users/genereux/dev/map"
+      "command": "/Users/genereux/dev/map/run-mcp.sh",
+      "args": []
     }
   }
 }
@@ -36,9 +35,8 @@ Open **Cursor Settings → Features → MCP → + Add New MCP Server**, or edit 
 {
   "mcpServers": {
     "mindmap": {
-      "command": "node",
-      "args": ["/Users/genereux/dev/map/mcp.mjs"],
-      "cwd": "/Users/genereux/dev/map"
+      "command": "/Users/genereux/dev/map/run-mcp.sh",
+      "args": []
     }
   }
 }
@@ -50,8 +48,8 @@ Edit `~/.gemini/config/mcp_config.json` (or `.agents/plugins/mindmap/mcp_config.
 {
   "mcpServers": {
     "mindmap": {
-      "command": "node",
-      "args": ["/Users/genereux/dev/map/mcp.mjs"]
+      "command": "/Users/genereux/dev/map/run-mcp.sh",
+      "args": []
     }
   }
 }
@@ -66,8 +64,7 @@ If you are running the AI (Claude/Cursor/Antigravity) on a *second computer* (e.
       "command": "ssh",
       "args": [
         "genereux@192.168.1.18",
-        "node",
-        "/Users/genereux/dev/map/mcp.mjs"
+        "/Users/genereux/dev/map/run-mcp.sh"
       ]
     }
   }
