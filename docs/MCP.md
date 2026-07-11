@@ -43,11 +43,31 @@ Open **Cursor Settings → Features → MCP → + Add New MCP Server**, or edit 
 }
 ```
 
-**Step 4: Prime the AI with Context**
+**Step 4: Connect Remotely via SSH (Multi-device setup)**
+If you are running Claude Desktop on a *second computer* (e.g. a laptop) but want to manage the Mind Map on your main development machine, you don't need an HTTP server. You can use SSH as the command transport!
+
+On your second computer, set up the config like this:
+```json
+{
+  "mcpServers": {
+    "mindmap-remote": {
+      "command": "ssh",
+      "args": [
+        "genereux@your-main-machine-ip.local",
+        "node",
+        "/Users/genereux/dev/map/mcp.mjs"
+      ]
+    }
+  }
+}
+```
+*Note: This requires SSH keys to be set up so it doesn't prompt for a password.*
+
+**Step 5: Prime the AI with Context**
 When you start a new chat with your AI, explicitly feed it the bundle endpoint so it learns the project rules *before* using the tools.
 > *"Before we begin, please fetch http://localhost:3000/api/docs/bundle to read the project file guide and system prompt rules."*
 
-**Step 5: Command the AI to Invoke Tools**
+**Step 6: Command the AI to Invoke Tools**
 Instead of asking for JSON or CLI commands, simply tell the AI what you want to achieve.
 > *"Review the frontend components for the Mind Map project. Add 3 new tasks under the existing 'UI Refactor' node."*
 
