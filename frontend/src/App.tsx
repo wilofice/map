@@ -5,7 +5,6 @@ import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
 import SettingsPanel from './components/SettingsPanel';
-import ProgressBadge from './components/ProgressBadge';
 import CollectionsSidebar from './components/CollectionsSidebar';
 import CollectionsManager from './pages/CollectionsManager';
 
@@ -129,23 +128,35 @@ function CanvasView() {
                 if (total === 0) return null;
                 const done  = rawNodes.filter(n => n.status === 'completed').length;
                 const inProg = rawNodes.filter(n => n.status === 'in-progress').length;
+                const pending = total - done - inProg;
                 const pct   = Math.round((done / total) * 100);
                 const color = pct === 100 ? '#42be65' : '#4589ff';
                 return (
-                  <div className="flex items-center gap-2 ml-1">
-                    <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: t.progressTrack }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%`, background: color }}
-                      />
+                  <div className="flex items-center gap-4 ml-1 pl-3 border-l" style={{ borderColor: t.border }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-1.5 rounded-full overflow-hidden" style={{ background: t.progressTrack }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: color }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold tabular-nums" style={{ color }}>{pct}%</span>
                     </div>
-                    <span className="text-[11px] tabular-nums" style={{ color }}>
-                      {pct}%
-                    </span>
-                    <span className="text-[10px] tabular-nums" style={{ color: t.textUI }}>
-                      {done}/{total}
-                      {inProg > 0 && <span style={{ color: t.bgAccent }}> · {inProg} active</span>}
-                    </span>
+
+                    <div className="flex items-center gap-3 text-[10px] tabular-nums uppercase tracking-wide font-medium" style={{ color: t.textMuted }}>
+                      <div className="flex items-center gap-1" title="Completed">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#42be65]"></span>
+                        <span>{done}</span>
+                      </div>
+                      <div className="flex items-center gap-1" title="In Progress">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4589ff] animate-pulse"></span>
+                        <span style={{ color: inProg > 0 ? t.textSecondary : t.textMuted }}>{inProg}</span>
+                      </div>
+                      <div className="flex items-center gap-1" title="Pending">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#8d8d8d]"></span>
+                        <span>{pending}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })()}
@@ -187,7 +198,6 @@ function CanvasView() {
             ) : (
               <MindMapFlow />
             )}
-            {currentProject && !loading && <ProgressBadge />}
           </div>
 
           {detailPanelOpen && selectedNodeId && currentProject && <DetailPanel />}
