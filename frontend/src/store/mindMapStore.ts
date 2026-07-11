@@ -54,6 +54,7 @@ interface MindMapState {
   setLayoutDir: (dir: LayoutDir) => void;
   setSelectedNodeId: (id: string | null) => void;
   setFocusedNodeId: (id: string | null) => void;
+  splitNode: (nodeId: string, groupATitle: string, groupAContent: string, groupBTitle: string, groupBContent: string) => Promise<void>;
   setDetailPanelOpen: (open: boolean) => void;
   toggleDetailPanel: () => void;
   setClickOpensPanel: (v: boolean) => void;
@@ -464,6 +465,22 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setSelectedNodeId(id) {
     set({ selectedNodeId: id });
+  },
+
+  async splitNode(nodeId, groupATitle, groupAContent, groupBTitle, groupBContent) {
+    const { expandedIds, displayMode, layoutDir } = get();
+    try {
+      const result = await api.splitNode(nodeId, groupATitle, groupAContent, groupBTitle, groupBContent);
+      // Backend returns the authoritative node list — use it directly
+      const next = new Set(expandedIds);
+      next.add(nodeId);           // keep the parent expanded
+      next.add(result.groupA.id); // expand Group A
+      next.add(result.groupB.id); // expand Group B
+      const { rfNodes, rfEdges } = reLayout(result.nodes, next, displayMode, layoutDir);
+      set({ rawNodes: result.nodes, expandedIds: next, rfNodes, rfEdges });
+    } catch (e) {
+      set({ error: String(e) });
+    }
   },
 
   setFocusedNodeId(id) {

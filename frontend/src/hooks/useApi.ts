@@ -46,6 +46,19 @@ export const api = {
     return request(`/api/db/nodes/${id}`, { method: 'DELETE' });
   },
 
+  splitNode(
+    nodeId: string,
+    groupATitle: string,
+    groupAContent: string,
+    groupBTitle: string,
+    groupBContent: string,
+  ): Promise<{ groupA: MindMapNodeData; groupB: MindMapNodeData; nodes: MindMapNodeData[] }> {
+    return request(`/api/db/nodes/${nodeId}/split`, {
+      method: 'POST',
+      body: JSON.stringify({ groupATitle, groupAContent, groupBTitle, groupBContent }),
+    });
+  },
+
   updateProject(id: string, patch: Record<string, unknown>): Promise<Project> {
     return request(`/api/db/projects/${id}`, {
       method: 'PUT',

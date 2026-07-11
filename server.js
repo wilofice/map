@@ -2173,6 +2173,41 @@ app.delete('/api/db/nodes/:id', (req, res) => {
     }
 });
 
+// Split a node: inserts two group nodes and redistributes children evenly
+app.post('/api/db/nodes/:id/split', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const nodeId = req.params.id;
+        const { groupATitle, groupAContent, groupBTitle, groupBContent } = req.body;
+
+        if (!groupATitle || !groupBTitle) {
+            return res.status(400).json({ error: 'groupATitle and groupBTitle are required' });
+        }
+
+        const result = db.splitNode(
+            nodeId,
+            groupATitle,
+            groupAContent || `First half of the subtasks.`,
+            groupBTitle,
+            groupBContent || `Second half of the subtasks.`
+        );
+
+        // Return the updated full node list so the frontend can re-sync without a reload
+        const project = db.getProjectWithNodes(result.groupA.project_id);
+
+        db.logActivity(result.groupA.project_id, 'node_split', {
+            node_id: nodeId,
+            groupA: result.groupA.id,
+            groupB: result.groupB.id,
+        }, null, req.get('User-Agent'), req.ip);
+
+        res.json({ groupA: result.groupA, groupB: result.groupB, nodes: project.nodes });
+    } catch (error) {
+        console.error('Error splitting node:', error);
+        res.status(500).json({ error: error.message || 'Failed to split node' });
+    }
+});
+
 // ===== AUDIO FILE ENDPOINTS =====
 
 // List audio files for a node (with on-disk existence check)

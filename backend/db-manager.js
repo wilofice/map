@@ -872,6 +872,89 @@ class DatabaseManager {
         }
     }
 
+    // ── Split a node ─────────────────────────────────────────────────────────────
+    // Creates two new intermediate "group" nodes as direct children of `nodeId`,
+    // then reparents the existing children evenly between them.
+    // Requires at least 4 direct children. Atomic — rolls back on any error.
+    splitNode(nodeId, groupATitle, groupAContent, groupBTitle, groupBContent) {
+        const { v4: uuidv4 } = require('uuid');
+
+        const node = this.getNode(nodeId);
+        if (!node) throw new Error(`Node '${nodeId}' not found`);
+
+        const children = this.db.prepare(
+            `SELECT * FROM nodes WHERE parent_id = ? ORDER BY sort_order ASC, created_at ASC`
+        ).all(nodeId);
+
+        if (children.length < 4) {
+            throw new Error(`Node must have at least 4 children to split (has ${children.length})`);
+        }
+
+        const midpoint = Math.ceil(children.length / 2);
+        const groupAChildren = children.slice(0, midpoint);
+        const groupBChildren = children.slice(midpoint);
+
+        const groupAId = uuidv4();
+        const groupBId = uuidv4();
+        const groupDepth = (node.depth_level ?? 0) + 1;
+
+        // Prepared statements for reparenting
+        const reparentStmt   = this.db.prepare(`UPDATE nodes SET parent_id  = ? WHERE id = ?`);
+        const depthDeltaStmt = this.db.prepare(`UPDATE nodes SET depth_level = depth_level + ? WHERE id = ?`);
+        const getChildrenIds = this.db.prepare(`SELECT id FROM nodes WHERE parent_id = ?`);
+
+        // Recursively increment depth_level by `delta` for a node and all its descendants
+        const bumpSubtreeDepth = (rootId, delta) => {
+            const queue = [rootId];
+            while (queue.length > 0) {
+                const id = queue.shift();
+                depthDeltaStmt.run(delta, id);
+                for (const row of getChildrenIds.all(id)) queue.push(row.id);
+            }
+        };
+
+        const tx = this.db.transaction(() => {
+            // Insert Group A
+            this.stmts.insertNode.run(
+                groupAId, node.project_id, nodeId,
+                groupATitle, groupAContent,
+                'pending', 'medium',
+                null, null, 0, null, null, null, null,
+                0, groupDepth
+            );
+
+            // Insert Group B
+            this.stmts.insertNode.run(
+                groupBId, node.project_id, nodeId,
+                groupBTitle, groupBContent,
+                'pending', 'medium',
+                null, null, 0, null, null, null, null,
+                1, groupDepth
+            );
+
+            // Reparent Group A's children and bump their entire subtree depth by +1
+            groupAChildren.forEach((child) => {
+                reparentStmt.run(groupAId, child.id);
+                bumpSubtreeDepth(child.id, 1);
+            });
+
+            // Reparent Group B's children and bump their entire subtree depth by +1
+            groupBChildren.forEach((child) => {
+                reparentStmt.run(groupBId, child.id);
+                bumpSubtreeDepth(child.id, 1);
+            });
+
+            return {
+                groupA: this.getNode(groupAId),
+                groupB: this.getNode(groupBId),
+                groupACount: groupAChildren.length,
+                groupBCount: groupBChildren.length,
+            };
+        });
+
+        return tx();
+    }
+
     close() {
         if (this.db) {
             this.db.close();

@@ -455,6 +455,131 @@ function GenerateChildrenSection({ nodeId }: { nodeId: string }) {
   );
 }
 
+// ─── Split Node section ──────────────────────────────────────────────────────
+
+function SplitNodeSection({ nodeId, nodeTitle }: { nodeId: string; nodeTitle: string }) {
+  const { rawNodes, splitNode } = useMindMapStore();
+
+  const children = rawNodes.filter(n => n.parent_id === nodeId);
+  const childCount = children.length;
+
+  const midpoint = Math.ceil(childCount / 2);
+  const half1 = childCount - (childCount - midpoint); // = midpoint
+  const half2 = childCount - midpoint;
+
+  const [groupATitle, setGroupATitle] = useState(`${nodeTitle} — Part 1`);
+  const [groupBTitle, setGroupBTitle] = useState(`${nodeTitle} — Part 2`);
+  const [groupAContent, setGroupAContent] = useState('');
+  const [groupBContent, setGroupBContent] = useState('');
+  const [splitting, setSplitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (childCount < 4) {
+    return (
+      <div className="text-[10px] text-[#525252] italic">
+        Available when the node has ≥ 4 children (currently {childCount}).
+      </div>
+    );
+  }
+
+  const handleSplit = async () => {
+    if (!groupATitle.trim() || !groupBTitle.trim()) {
+      setError('Both group names are required.');
+      return;
+    }
+    setSplitting(true);
+    setError(null);
+    try {
+      await splitNode(
+        nodeId,
+        groupATitle.trim(),
+        groupAContent.trim() || `First half of "${nodeTitle}" subtasks.`,
+        groupBTitle.trim(),
+        groupBContent.trim() || `Second half of "${nodeTitle}" subtasks.`,
+      );
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSplitting(false);
+    }
+  };
+
+  const inputCls = `w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 h-7 text-xs
+    text-[#c6c6c6] placeholder-[#525252] outline-none focus:border-[#a56eff] transition-colors`;
+
+  return (
+    <div className="space-y-3">
+      {/* Preview banner */}
+      <div className="flex items-center gap-2 text-[10px] text-[#8d8d8d] bg-[#1a1a2e] border border-[#a56eff22] rounded px-2 py-1.5">
+        <span className="text-[#a56eff] font-semibold">{childCount} children</span>
+        <span>→</span>
+        <span className="text-[#c6c6c6]">{half1}</span>
+        <span className="text-[#525252]">+</span>
+        <span className="text-[#c6c6c6]">{half2}</span>
+      </div>
+
+      {/* Group A */}
+      <div>
+        <div className="text-[10px] text-[#a56eff] font-semibold mb-1">Group A — {half1} children</div>
+        <input
+          value={groupATitle}
+          onChange={e => setGroupATitle(e.target.value)}
+          placeholder="Group A name…"
+          className={inputCls}
+        />
+        <textarea
+          value={groupAContent}
+          onChange={e => setGroupAContent(e.target.value)}
+          placeholder={`First half of "${nodeTitle}" subtasks.`}
+          rows={2}
+          className="mt-1 w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 py-1.5 text-xs
+            text-[#c6c6c6] placeholder-[#525252] resize-none outline-none focus:border-[#a56eff] transition-colors"
+        />
+      </div>
+
+      {/* Group B */}
+      <div>
+        <div className="text-[10px] text-[#a56eff] font-semibold mb-1">Group B — {half2} children</div>
+        <input
+          value={groupBTitle}
+          onChange={e => setGroupBTitle(e.target.value)}
+          placeholder="Group B name…"
+          className={inputCls}
+        />
+        <textarea
+          value={groupBContent}
+          onChange={e => setGroupBContent(e.target.value)}
+          placeholder={`Second half of "${nodeTitle}" subtasks.`}
+          rows={2}
+          className="mt-1 w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded px-2 py-1.5 text-xs
+            text-[#c6c6c6] placeholder-[#525252] resize-none outline-none focus:border-[#a56eff] transition-colors"
+        />
+      </div>
+
+      {error && (
+        <div className="text-[10px] text-[#fa4d56] bg-[#2d0709] border border-[#fa4d5633] rounded px-2 py-1.5">
+          {error}
+        </div>
+      )}
+
+      <button
+        onClick={handleSplit}
+        disabled={splitting}
+        className="w-full py-1.5 rounded text-[11px] font-semibold transition-colors
+          bg-[rgba(165,110,255,0.15)] border border-[#a56eff55] text-[#c4a3ff]
+          hover:bg-[rgba(165,110,255,0.25)] disabled:opacity-40 disabled:cursor-not-allowed
+          flex items-center justify-center gap-1.5"
+      >
+        {splitting ? (
+          <><span className="w-2 h-2 rounded-full border border-[#a56eff] border-t-transparent animate-spin inline-block" />Splitting…</>
+        ) : (
+          <>⟨⟩ Split into 2 groups</>
+        )}
+      </button>
+    </div>
+  );
+}
+
 // ─── Main panel ──────────────────────────────────────────────────────────────
 
 export default function DetailPanel() {
@@ -665,6 +790,11 @@ export default function DetailPanel() {
               focus:border-[#198038] transition-colors"
             onBlur={(e) => save({ cli_command: e.target.value || undefined })}
           />
+        </CollapsibleSection>
+
+        {/* Split */}
+        <CollapsibleSection title="⟨⟩ Split Node">
+          <SplitNodeSection nodeId={node.id} nodeTitle={node.title} />
         </CollapsibleSection>
 
         {/* Audio */}
