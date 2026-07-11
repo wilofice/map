@@ -2,24 +2,62 @@
 
 The MCP (Model Context Protocol) server gives any compatible AI assistant (Claude Desktop, Cursor, etc.) direct, typed read/write access to the Mind Map database — without going through the REST API.
 
-## How it works
+## The Dual Strategy: Action + Context
 
-`mcp.mjs` is a **stdio MCP server**. The AI client (Claude Desktop, Cursor…) spawns it as a subprocess and communicates over standard input/output using the MCP JSON-RPC protocol. No separate HTTP port is needed; the server is started on-demand by the AI client.
+To get the absolute best results from an AI assistant, you should combine **two** powerful mechanisms. This entirely replaces the old method of manually asking the LLM to write JSON files or generate CLI commands.
 
+1. **The Bundle (`/api/docs/bundle`)**: Provides the AI with the *instructions, rules, and schemas*.
+2. **The MCP Server (`mcp.mjs`)**: Provides the AI with the *tools* to execute actions on your database.
+
+### Step-by-Step Guide for AI Assistants
+
+**Step 1: Start the MCP Server locally**
+The AI client needs a running instance of your backend. You don't need to start a separate port; the AI will run `mcp.mjs` as a subprocess.
+
+**Step 2: Connect Claude Desktop**
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "mindmap": {
+      "command": "node",
+      "args": ["/Users/genereux/dev/map/mcp.mjs"],
+      "cwd": "/Users/genereux/dev/map"
+    }
+  }
+}
 ```
-AI Client (Claude / Cursor)
-    │  stdin/stdout (JSON-RPC)
-    ▼
-node mcp.mjs          ← this file
-    │  direct import
-    ▼
-backend/db-manager.js ← SQLite via better-sqlite3
-    │
-    ▼
-mind_maps.db
+*Restart Claude Desktop. A 🔨 tool icon will appear in the chat.*
+
+**Step 3: Connect Cursor (Alternative)**
+Open **Cursor Settings → Features → MCP → + Add New MCP Server**, or edit `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "mindmap": {
+      "command": "node",
+      "args": ["/Users/genereux/dev/map/mcp.mjs"],
+      "cwd": "/Users/genereux/dev/map"
+    }
+  }
+}
 ```
 
-## Tools exposed
+**Step 4: Prime the AI with Context**
+When you start a new chat with your AI, explicitly feed it the bundle endpoint so it learns the project rules *before* using the tools.
+> *"Before we begin, please fetch http://localhost:3000/api/docs/bundle to read the project file guide and system prompt rules."*
+
+**Step 5: Command the AI to Invoke Tools**
+Instead of asking for JSON or CLI commands, simply tell the AI what you want to achieve.
+> *"Review the frontend components for the Mind Map project. Add 3 new tasks under the existing 'UI Refactor' node."*
+
+The AI will now autonomously invoke `get_project_context` to see the current state, and then invoke `bulk_create_nodes` to insert the new tasks. No JSON copy-pasting required!
+
+---
+
+## Tools Exposed by the Server
+
+Once connected, your AI has access to these native database actions:
 
 | Tool | Description |
 |------|-------------|
@@ -35,61 +73,7 @@ mind_maps.db
 | `add_progress_note` | Log AI work to a node without overwriting content |
 | `get_stats` | DB-level totals and file size |
 
-**Resource:** `mindmap://projects` — always-fresh project list  
-**Prompt:** `mindmap-assistant` — system instructions that enforce the Mind Map conventions
-
-## Quick start
-
-```bash
-# From the project root
-npm run mcp
-# or
-node mcp.mjs
-```
-
-The server logs to **stderr** only. Stdout is reserved for MCP JSON-RPC frames.
-
-## Connecting to Claude Desktop
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "mindmap": {
-      "command": "node",
-      "args": ["/Users/genereux/dev/map/mcp.mjs"],
-      "cwd": "/Users/genereux/dev/map"
-    }
-  }
-}
-```
-
-Restart Claude Desktop. The 🔨 tool icon will appear in the chat input bar.
-
-## Connecting to Cursor
-
-Open **Cursor Settings → Features → MCP → + Add New MCP Server**, or edit `.cursor/mcp.json` in your workspace:
-
-```json
-{
-  "mcpServers": {
-    "mindmap": {
-      "command": "node",
-      "args": ["/Users/genereux/dev/map/mcp.mjs"],
-      "cwd": "/Users/genereux/dev/map"
-    }
-  }
-}
-```
-
-## Verify connection
-
-In the AI chat:
-
-> *Use the MindMap tools to list my projects and show me the stats.*
-
-The assistant will call `list_projects` and `get_stats` and respond with your real data. It will **not** dump raw JSON into the chat — the built-in `mindmap-assistant` prompt forbids it.
+---
 
 ## Node field reference
 
