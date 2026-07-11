@@ -2844,14 +2844,21 @@ async function getAllDocs() {
     const files = new Map();
     files.set('README.md', README_PATH);
     
-    try {
-        const docsFiles = (await fs.readdir(DOCS_DIR)).filter(f => f.endsWith('.md'));
-        for (const f of docsFiles) files.set(f, path.join(DOCS_DIR, f));
-    } catch (e) {}
+    // Explicitly add CHANGELOG and MCP guides if they exist
+    const explicitDocs = ['CHANGELOG.md', 'MCP.md'];
+    for (const doc of explicitDocs) {
+        const docPath = path.join(DOCS_DIR, doc);
+        try {
+            await fs.access(docPath);
+            files.set(doc, docPath);
+        } catch (e) {}
+    }
 
+    // Only serve Artefacts (AI guidelines, prompts, etc) — skip technical feature docs
     try {
         const artFiles = (await fs.readdir(ARTEFACTS_DIR)).filter(f => f.endsWith('.md'));
-        for (const f of artFiles) files.set(f, path.join(ARTEFACTS_DIR, f)); // Artefacts overrides root docs if collision
+        for (const f of artFiles) files.set(f, path.join(ARTEFACTS_DIR, f));
+
     } catch (e) {}
     
     return files;
