@@ -104,6 +104,13 @@ export const api = {
     });
   },
 
+  updateCollection(id: string, patch: Partial<Collection>): Promise<Collection> {
+    return request(`/api/db/collections/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+  },
+
   deleteCollection(id: string): Promise<void> {
     return request(`/api/db/collections/${id}`, { method: 'DELETE' });
   },

@@ -3,7 +3,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { api } from '../hooks/useApi';
 import { buildDagreLayout } from '../layout/dagreLayout';
 import { STATUS_CYCLE } from '../types/NodeTypes';
-import type { MindMapNodeData, NodeStatus, Project } from '../types/NodeTypes';
+import type { MindMapNodeData, NodeStatus, Project, ProjectWithNodes, Collection } from '../types/NodeTypes';
 import type { AiSuggestion } from '../hooks/useApi';
 
 type UndoEntry =
@@ -16,7 +16,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface MindMapState {
   projects: Project[];
-  currentProject: Project | null;
+  collections: Collection[];
+  currentProject: ProjectWithNodes | null;
   rawNodes: MindMapNodeData[];
   expandedIds: Set<string>;
   rfNodes: Node[];
@@ -32,6 +33,11 @@ interface MindMapState {
   mapLocked: boolean;
   theme: ThemeKey;
   pendingFitView: boolean;
+
+  loadCollections: () => Promise<void>;
+  createCollection: (name: string, description?: string) => Promise<void>;
+  updateCollection: (id: string, patch: Partial<Collection>) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
 
   loadProjects: () => Promise<void>;
   clearPendingFitView: () => void;
@@ -101,6 +107,7 @@ function reLayout(
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
   projects: [],
+  collections: [],
   currentProject: null,
   rawNodes: [],
   expandedIds: new Set(),
@@ -124,6 +131,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   typewriterEnabled: (localStorage.getItem('mm-typewriter-enabled') ?? 'true') === 'true',
   typewriterSpeedMs: Number(localStorage.getItem('mm-typewriter-speed-ms') ?? 25),
   settingsPanelOpen: false,
+  setSettingsPanelOpen: (v) => set({ settingsPanelOpen: v }),
 
   sequentialStep: 0,
   incrementSequentialStep: () => set((s) => ({ sequentialStep: s.sequentialStep + 1 })),
@@ -132,6 +140,47 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   sequentialAutoDelayMs: Number(localStorage.getItem('mm-seq-auto-delay-ms') ?? 800),
   undoStack: [] as UndoEntry[],
   redoStack: [] as UndoEntry[],
+
+  loadCollections: async () => {
+    try {
+      const collections = await api.getCollections();
+      set({ collections });
+    } catch (error) {
+      console.error('Failed to load collections:', error);
+    }
+  },
+
+  createCollection: async (name, description) => {
+    try {
+      const coll = await api.createCollection(name, description);
+      set((s) => ({ collections: [...s.collections, coll] }));
+    } catch (error) {
+      console.error('Failed to create collection:', error);
+    }
+  },
+
+  updateCollection: async (id, patch) => {
+    try {
+      const coll = await api.updateCollection(id, patch);
+      set((s) => ({
+        collections: s.collections.map((c) => (c.id === id ? coll : c)),
+      }));
+    } catch (error) {
+      console.error('Failed to update collection:', error);
+    }
+  },
+
+  deleteCollection: async (id) => {
+    try {
+      await api.deleteCollection(id);
+      set((s) => ({
+        collections: s.collections.filter((c) => c.id !== id),
+        projects: s.projects.map((p) => p.collection_id === id ? { ...p, collection_id: 'default-collection' } : p),
+      }));
+    } catch (error) {
+      console.error('Failed to delete collection:', error);
+    }
+  },
 
   async loadProjects() {
     try {
@@ -150,7 +199,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const displayMode = (project.display_mode as DisplayMode) ?? get().displayMode;
       const layoutDir   = (project.layout_dir  as LayoutDir)   ?? get().layoutDir;
       const { rfNodes, rfEdges } = reLayout(nodes, expandedIds, displayMode, layoutDir);
-      set({ currentProject: project, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false, displayMode, layoutDir, pendingFitView: true });
+      set({ currentProject: { ...project, nodes }, rawNodes: nodes, expandedIds, rfNodes, rfEdges, loading: false, displayMode, layoutDir, pendingFitView: true });
       api.selectProject(id).catch(() => {});
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -544,5 +593,4 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   setTypewriterSpeedMs(ms) { localStorage.setItem('mm-typewriter-speed-ms', String(ms)); set({ typewriterSpeedMs: ms }); },
   setSequentialAutoPlay(v) { localStorage.setItem('mm-seq-auto', String(v)); set({ sequentialAutoPlay: v }); },
   setSequentialAutoDelayMs(ms) { localStorage.setItem('mm-seq-auto-delay-ms', String(ms)); set({ sequentialAutoDelayMs: ms }); },
-  setSettingsPanelOpen(v) { set({ settingsPanelOpen: v }); },
 }));

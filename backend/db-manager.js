@@ -51,6 +51,7 @@ class DatabaseManager {
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     description TEXT,
+                    color TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
@@ -135,6 +136,7 @@ class DatabaseManager {
         const addCol = (sql) => { try { this.db.exec(sql); } catch (_) {} };
         addCol("ALTER TABLE projects ADD COLUMN layout_dir TEXT DEFAULT 'LR'");
         addCol("ALTER TABLE projects ADD COLUMN display_mode TEXT DEFAULT 'comfortable'");
+        addCol("ALTER TABLE collections ADD COLUMN color TEXT");
     }
 
     prepareStatements() {
@@ -157,7 +159,7 @@ class DatabaseManager {
                 ORDER BY c.updated_at DESC
             `),
             updateCollection: this.db.prepare(`
-                UPDATE collections SET name = COALESCE(?, name), description = COALESCE(?, description), updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                UPDATE collections SET name = COALESCE(?, name), description = COALESCE(?, description), color = COALESCE(?, color), updated_at = CURRENT_TIMESTAMP WHERE id = ?
             `),
             deleteCollection: this.db.prepare(`
                 DELETE FROM collections WHERE id = ?
@@ -355,9 +357,9 @@ class DatabaseManager {
     }
 
     updateCollection(id, updates) {
+        const { name = null, description = null, color = null } = updates;
         try {
-            const { name, description } = updates;
-            this.stmts.updateCollection.run(name, description, id);
+            this.stmts.updateCollection.run(name, description, color, id);
             return this.getCollection(id);
         } catch (error) {
             console.error('Error updating collection:', error);

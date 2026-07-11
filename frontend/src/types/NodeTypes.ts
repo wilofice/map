@@ -42,6 +42,7 @@ export interface Collection {
   id: string;
   name: string;
   description?: string;
+  color?: string;
 }
 
 // The server returns { ...projectFields, nodes } (flat object, not nested)

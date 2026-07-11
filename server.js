@@ -1488,8 +1488,8 @@ app.put('/api/db/collections/:id', (req, res) => {
     }
     
     try {
-        const { name, description } = req.body;
-        const updatedCollection = db.updateCollection(req.params.id, { name, description });
+        const { name, description, color } = req.body;
+        const updatedCollection = db.updateCollection(req.params.id, { name, description, color });
         
         if (!updatedCollection) {
             return res.status(404).json({ error: 'Collection not found' });
