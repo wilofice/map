@@ -46,6 +46,13 @@ export const api = {
     return request(`/api/db/nodes/${id}`, { method: 'DELETE' });
   },
 
+  reorderNodes(updates: { id: string; sort_order: number }[]): Promise<void> {
+    return request('/api/db/nodes/reorder', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
   splitNode(
     nodeId: string,
     groupATitle: string,

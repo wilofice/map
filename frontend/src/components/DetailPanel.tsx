@@ -583,7 +583,7 @@ function SplitNodeSection({ nodeId, nodeTitle }: { nodeId: string; nodeTitle: st
 // ─── Main panel ──────────────────────────────────────────────────────────────
 
 export default function DetailPanel() {
-  const { rawNodes, selectedNodeId, cycleStatus, updateNodeField, setDetailPanelOpen, setFocusedNodeId } = useMindMapStore();
+  const { rawNodes, selectedNodeId, cycleStatus, updateNodeField, setDetailPanelOpen, setFocusedNodeId, moveNodeUp, moveNodeDown, reverseChildren } = useMindMapStore();
 
   if (!selectedNodeId) return null;
   const node = rawNodes.find((n) => n.id === selectedNodeId);
@@ -800,6 +800,40 @@ export default function DetailPanel() {
         {/* Audio */}
         <CollapsibleSection title="🎵 Audio">
           <AudioSection nodeId={node.id} />
+        </CollapsibleSection>
+
+        {/* Ordering */}
+        <CollapsibleSection title="⇕ Ordering">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => moveNodeUp(node.id)}
+                className="flex-1 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded px-3 py-1.5 text-xs text-[#d4d4d4] transition-colors"
+              >
+                ↑ Move Up
+              </button>
+              <button
+                onClick={() => moveNodeDown(node.id)}
+                className="flex-1 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded px-3 py-1.5 text-xs text-[#d4d4d4] transition-colors"
+              >
+                ↓ Move Down
+              </button>
+            </div>
+            
+            {/* Show Reverse Children only if node has children */}
+            {rawNodes.some(n => n.parent_id === node.id) && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Reverse the order of all children?')) {
+                    reverseChildren(node.id);
+                  }
+                }}
+                className="w-full bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded px-3 py-1.5 text-xs text-[#d4d4d4] transition-colors"
+              >
+                ⇅ Reverse Children
+              </button>
+            )}
+          </div>
         </CollapsibleSection>
 
       </div>

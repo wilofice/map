@@ -52,6 +52,9 @@ interface MindMapState {
   deleteProjects: (ids: string[]) => Promise<void>;
   moveToCollection: (projectIds: string[], collectionId: string) => Promise<void>;
   bulkAddChildren: (parentId: string, suggestions: AiSuggestion[]) => Promise<void>;
+  moveNodeUp: (id: string) => Promise<void>;
+  moveNodeDown: (id: string) => Promise<void>;
+  reverseChildren: (parentId: string) => Promise<void>;
   undoStack: UndoEntry[];
   redoStack: UndoEntry[];
   undoLast: () => Promise<void>;
@@ -432,6 +435,98 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         projects: remaining,
         ...(wasCurrent ? { currentProject: null, rawNodes: [], rfNodes: [], rfEdges: [], selectedNodeId: null } : {}),
       });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  async moveNodeUp(id: string) {
+    const { rawNodes, expandedIds, displayMode, layoutDir } = get();
+    const node = rawNodes.find(n => n.id === id);
+    if (!node) return;
+    
+    // Find siblings (same parent)
+    const siblings = rawNodes.filter(n => n.parent_id === node.parent_id).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const idx = siblings.findIndex(n => n.id === id);
+    
+    if (idx > 0) {
+      // Swap sort_order with the previous sibling
+      const prev = siblings[idx - 1];
+      const updates = [
+        { id: node.id, sort_order: prev.sort_order ?? 0 },
+        { id: prev.id, sort_order: node.sort_order ?? 0 }
+      ];
+      
+      try {
+        await api.reorderNodes(updates);
+        // Apply locally
+        const newNodes = rawNodes.map(n => {
+          if (n.id === node.id) return { ...n, sort_order: updates[0].sort_order };
+          if (n.id === prev.id) return { ...n, sort_order: updates[1].sort_order };
+          return n;
+        });
+        const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
+        set({ rawNodes: newNodes, rfNodes, rfEdges });
+      } catch (e) {
+        set({ error: String(e) });
+      }
+    }
+  },
+
+  async moveNodeDown(id: string) {
+    const { rawNodes, expandedIds, displayMode, layoutDir } = get();
+    const node = rawNodes.find(n => n.id === id);
+    if (!node) return;
+    
+    const siblings = rawNodes.filter(n => n.parent_id === node.parent_id).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const idx = siblings.findIndex(n => n.id === id);
+    
+    if (idx !== -1 && idx < siblings.length - 1) {
+      // Swap sort_order with the next sibling
+      const next = siblings[idx + 1];
+      const updates = [
+        { id: node.id, sort_order: next.sort_order ?? 0 },
+        { id: next.id, sort_order: node.sort_order ?? 0 }
+      ];
+      
+      try {
+        await api.reorderNodes(updates);
+        const newNodes = rawNodes.map(n => {
+          if (n.id === node.id) return { ...n, sort_order: updates[0].sort_order };
+          if (n.id === next.id) return { ...n, sort_order: updates[1].sort_order };
+          return n;
+        });
+        const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
+        set({ rawNodes: newNodes, rfNodes, rfEdges });
+      } catch (e) {
+        set({ error: String(e) });
+      }
+    }
+  },
+
+  async reverseChildren(parentId: string) {
+    const { rawNodes, expandedIds, displayMode, layoutDir } = get();
+    const children = rawNodes.filter(n => n.parent_id === parentId).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    if (children.length <= 1) return;
+
+    // Collect the current sorted orders
+    const orders = children.map(c => c.sort_order ?? 0);
+    // Reverse the orders array
+    orders.reverse();
+    
+    // Assign reversed orders back to children
+    const updates = children.map((c, i) => ({ id: c.id, sort_order: orders[i] }));
+    
+    try {
+      await api.reorderNodes(updates);
+      // Apply locally
+      const updateMap = new Map(updates.map(u => [u.id, u.sort_order]));
+      const newNodes = rawNodes.map(n => {
+        if (updateMap.has(n.id)) return { ...n, sort_order: updateMap.get(n.id) };
+        return n;
+      });
+      const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
+      set({ rawNodes: newNodes, rfNodes, rfEdges });
     } catch (e) {
       set({ error: String(e) });
     }

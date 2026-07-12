@@ -232,7 +232,7 @@ class DatabaseManager {
                     title = ?, content = ?, status = ?, priority = ?,
                     start_date = ?, end_date = ?, days_spent = ?,
                     code_language = ?, code_content = ?, task_prompt = ?, cli_command = ?,
-                    updated_at = CURRENT_TIMESTAMP
+                    sort_order = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `),
             deleteNode: this.db.prepare(`
@@ -598,14 +598,15 @@ class DatabaseManager {
                 code_language = node.code_language,
                 code_content = node.code_content,
                 task_prompt = node.task_prompt,
-                cli_command = node.cli_command
+                cli_command = node.cli_command,
+                sort_order = node.sort_order
             } = updates;
 
             this.stmts.updateNode.run(
                 title, content, status, priority,
                 start_date, end_date, days_spent,
                 code_language, code_content, task_prompt, cli_command,
-                id
+                sort_order, id
             );
 
             return this.getNode(id);
@@ -632,6 +633,23 @@ class DatabaseManager {
             return this.stmts.searchNodes.all(searchTerm, searchTerm);
         } catch (error) {
             console.error('Error searching nodes:', error);
+            throw error;
+        }
+    }
+
+    // Bulk Reorder
+    reorderNodes(updates) {
+        try {
+            const stmt = this.db.prepare(`UPDATE nodes SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+            const transaction = this.db.transaction((updatesArray) => {
+                for (const update of updatesArray) {
+                    stmt.run(update.sort_order, update.id);
+                }
+            });
+            transaction(updates);
+            return { success: true };
+        } catch (error) {
+            console.error('Error reordering nodes:', error);
             throw error;
         }
     }

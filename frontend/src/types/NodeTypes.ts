@@ -17,8 +17,8 @@ export interface MindMapNodeData {
   code_content?: string;
   task_prompt?: string;
   cli_command?: string;
-  sort_order: number;
-  depth_level: number;
+  sort_order?: number;
+  depth_level?: number;
   created_at?: string;
   updated_at?: string;
 }

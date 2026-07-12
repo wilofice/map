@@ -2102,6 +2102,21 @@ app.post('/api/db/nodes', (req, res) => {
     }
 });
 
+// Bulk reorder nodes
+app.put('/api/db/nodes/reorder', (req, res) => {
+    try {
+        const updates = req.body; // Array of { id, sort_order }
+        if (!Array.isArray(updates)) {
+            return res.status(400).json({ error: 'Expected array of updates' });
+        }
+        db.reorderNodes(updates);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('API Error updating node order:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Update existing node
 app.put('/api/db/nodes/:id', (req, res) => {
     if (!db) {
