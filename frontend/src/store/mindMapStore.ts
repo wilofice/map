@@ -464,7 +464,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
           if (n.id === node.id) return { ...n, sort_order: updates[0].sort_order };
           if (n.id === prev.id) return { ...n, sort_order: updates[1].sort_order };
           return n;
-        });
+        }).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
         set({ rawNodes: newNodes, rfNodes, rfEdges });
       } catch (e) {
@@ -495,7 +495,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
           if (n.id === node.id) return { ...n, sort_order: updates[0].sort_order };
           if (n.id === next.id) return { ...n, sort_order: updates[1].sort_order };
           return n;
-        });
+        }).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
         set({ rawNodes: newNodes, rfNodes, rfEdges });
       } catch (e) {
@@ -524,7 +524,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const newNodes = rawNodes.map(n => {
         if (updateMap.has(n.id)) return { ...n, sort_order: updateMap.get(n.id) };
         return n;
-      });
+      }).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       const { rfNodes, rfEdges } = reLayout(newNodes, expandedIds, displayMode, layoutDir);
       set({ rawNodes: newNodes, rfNodes, rfEdges });
     } catch (e) {
