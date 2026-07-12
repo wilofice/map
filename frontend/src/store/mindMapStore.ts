@@ -123,8 +123,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   selectedNodeId: null,
   focusedNodeId: null,
   detailPanelOpen: false,
-  clickOpensPanel: false,
-  mapLocked: true,
+  clickOpensPanel: (localStorage.getItem('mm-click-opens-panel') ?? 'false') === 'true',
+  mapLocked: (localStorage.getItem('mm-map-locked') ?? 'true') === 'true',
   theme: ((localStorage.getItem('mm-theme') as ThemeKey | null) ?? 'ibm'),
   pendingFitView: true,
 
@@ -676,8 +676,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     set((s) => ({ detailPanelOpen: !s.detailPanelOpen }));
   },
 
-  setClickOpensPanel(v) { set({ clickOpensPanel: v }); },
-  setMapLocked(v) { set({ mapLocked: v }); },
+  setClickOpensPanel(v) { localStorage.setItem('mm-click-opens-panel', String(v)); set({ clickOpensPanel: v }); },
+  setMapLocked(v) { localStorage.setItem('mm-map-locked', String(v)); set({ mapLocked: v }); },
   setTheme(t) { _edgeColors = themes[t].edgeColors; localStorage.setItem('mm-theme', t); set({ theme: t }); },
   clearPendingFitView() { set({ pendingFitView: false }); },
 
