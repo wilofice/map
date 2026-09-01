@@ -2872,6 +2872,21 @@ async function getAllDocs() {
     return files;
 }
 
+// Cold-start entry point — returns SYSTEM_PROMPT.md as plain text.
+// Give an AI this single URL and it bootstraps itself: reads the prompt,
+// which instructs it to fetch /api/docs/bundle for the full reference.
+app.get('/api/docs/start', async (_req, res) => {
+    try {
+        const docMap = await getAllDocs();
+        const filepath = docMap.get('SYSTEM_PROMPT.md');
+        if (!filepath) return res.status(404).send('SYSTEM_PROMPT.md not found');
+        const content = await fs.readFile(filepath, 'utf8');
+        res.type('text/markdown').send(content);
+    } catch (err) {
+        res.status(500).send(String(err));
+    }
+});
+
 app.get('/api/docs', async (_req, res) => {
     try {
         const docMap = await getAllDocs();

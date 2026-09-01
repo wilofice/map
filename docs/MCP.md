@@ -2,7 +2,7 @@
 
 The MCP (Model Context Protocol) server gives any compatible AI assistant (Claude Desktop, Cursor, etc.) direct, typed read/write access to the **Mind Map** database.
 
-> **Pipeline feature uses REST, not MCP.** The Pipeline Task Dashboard (`/pipeline`) is not exposed through MCP tools. Use the Pipeline REST API (`/api/pipeline/*`) directly from any AI agent or CLI. See [`PIPELINE.md`](./PIPELINE.md) for the full reference.
+> **Pipeline is available via both MCP and REST.** MCP tools (`list_pipeline_tasks`, `update_pipeline_node`, etc.) are the preferred path when an MCP connection is active. The REST API (`/api/pipeline/*`) works from any script or agent without MCP. See [`PIPELINE.md`](./PIPELINE.md) for the full REST reference.
 
 ## The Dual Strategy: Action + Context
 
@@ -97,7 +97,9 @@ By following this loop, you achieve zero-friction, atomic updates to the user's 
 
 ## Tools Exposed by the Server
 
-Once connected, your AI has access to these native database actions:
+Once connected, your AI has access to these native database actions.
+
+### Mind Map tools
 
 | Tool | Description |
 |------|-------------|
@@ -112,6 +114,20 @@ Once connected, your AI has access to these native database actions:
 | `delete_node` | Delete node + all descendants (cascades) |
 | `add_progress_note` | Log AI work to a node without overwriting content |
 | `get_stats` | DB-level totals and file size |
+
+### Pipeline tools
+
+| Tool | Description |
+|------|-------------|
+| `list_pipeline_collections` | List all collections |
+| `list_pipeline_tasks` | List all tasks with node/done counts; optional `collection_id` filter |
+| `get_pipeline_task` | Full task: metadata + nodes + edges — **call before updating** |
+| `create_pipeline_task` | Create a new task |
+| `create_pipeline_node` | Add a step to a task |
+| `update_pipeline_node` | Update status, notes, type, or any field on a node |
+| `delete_pipeline_node` | Delete a node and its edges |
+| `create_pipeline_edge` | Connect two nodes (source must finish before target) |
+| `delete_pipeline_edge` | Remove a dependency edge |
 
 ---
 

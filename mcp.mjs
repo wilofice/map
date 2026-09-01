@@ -11,8 +11,8 @@ const db = new DatabaseManager('./mind_maps.db');
 // ─── Server ───────────────────────────────────────────────────────────────────
 const server = new McpServer({
   name: "modular-mind-map",
-  version: "1.0.0",
-  description: "Direct read/write access to the Mind Map project database. Use these tools to read existing plans and build or update mind map trees on behalf of the user.",
+  version: "1.1.0",
+  description: "Direct read/write access to the Mind Map AND Pipeline databases. Mind Map tools manage hierarchical project trees. Pipeline tools manage directed task graphs with dependency edges.",
 });
 
 // ─── Prompt ───────────────────────────────────────────────────────────────────
@@ -36,7 +36,14 @@ server.prompt(
           "5. When creating a plan, use `bulk_create_nodes` in a single call — avoid one-at-a-time creates for large batches.",
           "6. After any write operation confirm to the user: 'Done — check the map in the web app.'",
           "",
-          "## Node Fields",
+          "## Pipeline Tools",
+          "Use `list_pipeline_tasks` → `get_pipeline_task` to discover the current state.",
+          "Use `update_pipeline_node` to mark steps in-progress or done as you work.",
+          "Use `create_pipeline_node` + `create_pipeline_edge` to add new steps and connect them.",
+          "Always write a `notes` value when marking a node done — record what was produced.",
+          "For `review` type nodes: stop and ask the user for approval before marking done.",
+          "",
+          "## Mind Map Node Fields",
           "- `title` (required): Short label shown on the node card.",
           "- `content` (required): Longer explanation, context, or acceptance criteria. NEVER leave empty.",
           "- `status`: pending | in-progress | completed",
@@ -253,6 +260,166 @@ server.tool(
   async () => {
     const stats = db.getStats();
     return { content: [{ type: "text", text: JSON.stringify(stats, null, 2) }] };
+  }
+);
+
+// ─── Pipeline Tools ───────────────────────────────────────────────────────────
+
+server.tool(
+  "list_pipeline_collections",
+  "List all pipeline collections (id, name, color, description).",
+  {},
+  async () => {
+    const cols = db.getAllPipelineCollections();
+    return { content: [{ type: "text", text: JSON.stringify(cols, null, 2) }] };
+  }
+);
+
+server.tool(
+  "list_pipeline_tasks",
+  "List all pipeline tasks with node counts and done counts. Optionally filter by collection.",
+  {
+    collection_id: z.string().optional().describe("Filter to a specific collection ID"),
+  },
+  async ({ collection_id }) => {
+    const tasks = db.getAllPipelineTasks(collection_id || null);
+    return { content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }] };
+  }
+);
+
+server.tool(
+  "get_pipeline_task",
+  "Get a full pipeline task: its metadata, all nodes, and all dependency edges. Call this before updating any nodes.",
+  {
+    task_id: z.string().describe("Task ID (from list_pipeline_tasks)"),
+  },
+  async ({ task_id }) => {
+    const task = db.getPipelineTask(task_id);
+    if (!task) return { content: [{ type: "text", text: `Task '${task_id}' not found.` }], isError: true };
+    return { content: [{ type: "text", text: JSON.stringify(task, null, 2) }] };
+  }
+);
+
+server.tool(
+  "create_pipeline_task",
+  "Create a new pipeline task.",
+  {
+    name: z.string().describe("Task name"),
+    description: z.string().optional(),
+    type: z.enum(["general", "code", "video", "design", "research", "review"]).optional().default("general"),
+    priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
+    collection_id: z.string().optional().describe("Assign to a collection"),
+    due_date: z.string().optional().describe("ISO date YYYY-MM-DD"),
+  },
+  async ({ name, description, type, priority, collection_id, due_date }) => {
+    try {
+      const id = randomUUID();
+      const task = db.createPipelineTask(id, name, description, type, priority, collection_id, due_date);
+      return { content: [{ type: "text", text: `Created pipeline task '${name}' with id: ${id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "create_pipeline_node",
+  "Add a new node (step) to a pipeline task.",
+  {
+    task_id: z.string(),
+    title: z.string().describe("Short imperative label, e.g. 'Record voiceover'"),
+    description: z.string().optional(),
+    type: z.enum(["step", "decision", "milestone", "review"]).optional().default("step"),
+    status: z.enum(["pending", "in-progress", "done"]).optional().default("pending"),
+    notes: z.string().optional(),
+    cli_command: z.string().optional(),
+    position_x: z.number().optional().default(0),
+    position_y: z.number().optional().default(0),
+    sort_order: z.number().int().optional().default(0),
+  },
+  async ({ task_id, title, description, type, status, notes, cli_command, position_x, position_y, sort_order }) => {
+    try {
+      const id = randomUUID();
+      const node = db.createPipelineNode(id, task_id, title, description, type, sort_order, position_x, position_y);
+      if (status !== "pending" || notes || cli_command) {
+        db.updatePipelineNode(id, { status, notes, cli_command });
+      }
+      return { content: [{ type: "text", text: `Created node '${title}' (${id}) in task ${task_id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "update_pipeline_node",
+  "Update a pipeline node — status, notes, type, title, or any other field. Use this to mark work in-progress or done.",
+  {
+    node_id: z.string(),
+    status: z.enum(["pending", "in-progress", "done"]).optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    notes: z.string().optional().describe("Write a completion note when marking done"),
+    type: z.enum(["step", "decision", "milestone", "review"]).optional(),
+    cli_command: z.string().optional(),
+    due_date: z.string().optional().describe("ISO date YYYY-MM-DD"),
+  },
+  async ({ node_id, ...patch }) => {
+    try {
+      const node = db.updatePipelineNode(node_id, patch);
+      if (!node) return { content: [{ type: "text", text: `Node '${node_id}' not found.` }], isError: true };
+      return { content: [{ type: "text", text: `Updated node '${node.title}' → status: ${node.status}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "delete_pipeline_node",
+  "Delete a pipeline node and all its edges. Confirm with the user before calling.",
+  { node_id: z.string() },
+  async ({ node_id }) => {
+    try {
+      db.deletePipelineNode(node_id);
+      return { content: [{ type: "text", text: `Deleted node ${node_id} and its edges.` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "create_pipeline_edge",
+  "Create a dependency edge between two pipeline nodes. Source must finish before target can start.",
+  {
+    task_id: z.string(),
+    source_id: z.string().describe("The prerequisite node ID"),
+    target_id: z.string().describe("The dependent node ID"),
+    label: z.string().optional().default(""),
+  },
+  async ({ task_id, source_id, target_id, label }) => {
+    try {
+      const id = randomUUID();
+      db.createPipelineEdge(id, task_id, source_id, target_id, label);
+      return { content: [{ type: "text", text: `Created edge ${source_id} → ${target_id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "delete_pipeline_edge",
+  "Remove a dependency edge between two pipeline nodes.",
+  { edge_id: z.string() },
+  async ({ edge_id }) => {
+    try {
+      db.deletePipelineEdge(edge_id);
+      return { content: [{ type: "text", text: `Deleted edge ${edge_id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
   }
 );
 
