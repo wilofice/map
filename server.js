@@ -2902,6 +2902,7 @@ app.get('/api/docs/bundle', async (_req, res) => {
             'AI-COPILOT-GUIDE.md',
             'PROJECT_FILE_GUIDE_JSON.md',
             'SYSTEM_PROMPT.md',
+            'PIPELINE_SYSTEM_PROMPT.md',
             'PIPELINE.md',
             'MCP.md'
         ];
