@@ -26,7 +26,7 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
       style: {
         'width':  labeled ? 210 : 52,
         'height': labeled ? 84  : 52,
-        'shape': labeled ? 'roundrectangle' : 'ellipse',
+        'shape': 'roundrectangle',
         'background-color': t.nodePendingBg,
         'border-color': t.nodePendingBorder, 'border-width': 2,
         'label': labeled ? 'data(label)' : '',
@@ -162,15 +162,10 @@ export default function PipelineGraph() {
     const cy = cyRef.current;
     if (!cy) return;
     cy.style(buildCyStyle(t, displayMode)).update();
-    // In dots mode, shapes are always ellipse regardless of type
-    if (displayMode === 'dots') {
-      cy.nodes().style('shape', 'ellipse');
-    } else {
-      cy.nodes().forEach(n => {
-        const type = n.data('type') as string || 'step';
-        n.style('shape', (TYPE_SHAPE[type] || 'roundrectangle') as cytoscape.Css.NodeShape);
-      });
-    }
+    cy.nodes().forEach(n => {
+      const type = n.data('type') as string || 'step';
+      n.style('shape', (TYPE_SHAPE[type] || 'roundrectangle') as cytoscape.Css.NodeShape);
+    });
   }, [t, displayMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sync task data ───────────────────────────────────────────────────────
@@ -187,9 +182,7 @@ export default function PipelineGraph() {
       });
 
       currentTask.nodes.forEach(n => {
-        const shp = displayMode === 'dots'
-          ? 'ellipse'
-          : (TYPE_SHAPE[n.type] || 'roundrectangle') as cytoscape.Css.NodeShape;
+        const shp = (TYPE_SHAPE[n.type] || 'roundrectangle') as cytoscape.Css.NodeShape;
         const existing = cy.getElementById(n.id);
         if (existing.length === 0) {
           cy.add({
