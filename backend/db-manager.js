@@ -138,6 +138,68 @@ class DatabaseManager {
         addCol("ALTER TABLE projects ADD COLUMN display_mode TEXT DEFAULT 'comfortable'");
         addCol("ALTER TABLE collections ADD COLUMN color TEXT");
 
+        // Pipeline task management tables
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS pipeline_collections (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                color TEXT DEFAULT '#6366f1',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS pipeline_tasks (
+                id TEXT PRIMARY KEY,
+                collection_id TEXT,
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                type TEXT DEFAULT 'general',
+                status TEXT DEFAULT 'pending',
+                priority TEXT DEFAULT 'medium',
+                due_date DATE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (collection_id) REFERENCES pipeline_collections(id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS pipeline_nodes (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                type TEXT DEFAULT 'step',
+                notes TEXT DEFAULT '',
+                cli_command TEXT DEFAULT '',
+                due_date DATE,
+                position_x REAL DEFAULT 0,
+                position_y REAL DEFAULT 0,
+                sort_order INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES pipeline_tasks(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS pipeline_edges (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                label TEXT DEFAULT '',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES pipeline_tasks(id) ON DELETE CASCADE,
+                FOREIGN KEY (source_id) REFERENCES pipeline_nodes(id) ON DELETE CASCADE,
+                FOREIGN KEY (target_id) REFERENCES pipeline_nodes(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_pipeline_tasks_collection ON pipeline_tasks(collection_id);
+            CREATE INDEX IF NOT EXISTS idx_pipeline_nodes_task ON pipeline_nodes(task_id);
+            CREATE INDEX IF NOT EXISTS idx_pipeline_edges_task ON pipeline_edges(task_id);
+            CREATE INDEX IF NOT EXISTS idx_pipeline_edges_source ON pipeline_edges(source_id);
+            CREATE INDEX IF NOT EXISTS idx_pipeline_edges_target ON pipeline_edges(target_id);
+        `);
+
         // Graph view settings table
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS graph_settings (
@@ -995,6 +1057,90 @@ class DatabaseManager {
             this.db.close();
             console.error('✅ Database connection closed');
         }
+    }
+
+    // ===== PIPELINE COLLECTIONS =====
+
+    getAllPipelineCollections() {
+        return this.db.prepare(`SELECT * FROM pipeline_collections ORDER BY created_at ASC`).all();
+    }
+    createPipelineCollection(id, name, description, color) {
+        this.db.prepare(`INSERT INTO pipeline_collections (id, name, description, color) VALUES (?, ?, ?, ?)`).run(id, name, description || '', color || '#6366f1');
+        return this.db.prepare(`SELECT * FROM pipeline_collections WHERE id = ?`).get(id);
+    }
+    updatePipelineCollection(id, patch) {
+        const fields = [], vals = [];
+        if (patch.name        !== undefined) { fields.push('name = ?');        vals.push(patch.name); }
+        if (patch.description !== undefined) { fields.push('description = ?'); vals.push(patch.description); }
+        if (patch.color       !== undefined) { fields.push('color = ?');       vals.push(patch.color); }
+        if (!fields.length) return this.db.prepare(`SELECT * FROM pipeline_collections WHERE id = ?`).get(id);
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        this.db.prepare(`UPDATE pipeline_collections SET ${fields.join(', ')} WHERE id = ?`).run(...vals, id);
+        return this.db.prepare(`SELECT * FROM pipeline_collections WHERE id = ?`).get(id);
+    }
+    deletePipelineCollection(id) {
+        this.db.prepare(`DELETE FROM pipeline_collections WHERE id = ?`).run(id);
+    }
+
+    // ===== PIPELINE TASKS =====
+
+    getAllPipelineTasks(collectionId) {
+        const rows = collectionId
+            ? this.db.prepare(`SELECT * FROM pipeline_tasks WHERE collection_id = ? ORDER BY created_at DESC`).all(collectionId)
+            : this.db.prepare(`SELECT * FROM pipeline_tasks ORDER BY created_at DESC`).all();
+        return rows.map(t => ({ ...t, node_count: this.db.prepare(`SELECT COUNT(*) as c FROM pipeline_nodes WHERE task_id = ?`).get(t.id).c, done_count: this.db.prepare(`SELECT COUNT(*) as c FROM pipeline_nodes WHERE task_id = ? AND status = 'done'`).get(t.id).c }));
+    }
+    getPipelineTask(id) {
+        const task = this.db.prepare(`SELECT * FROM pipeline_tasks WHERE id = ?`).get(id);
+        if (!task) return null;
+        const nodes = this.db.prepare(`SELECT * FROM pipeline_nodes WHERE task_id = ? ORDER BY sort_order ASC`).all(id);
+        const edges = this.db.prepare(`SELECT * FROM pipeline_edges WHERE task_id = ?`).all(id);
+        return { ...task, nodes, edges };
+    }
+    createPipelineTask(id, name, description, type, priority, collectionId, dueDate) {
+        this.db.prepare(`INSERT INTO pipeline_tasks (id, name, description, type, priority, collection_id, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, name, description || '', type || 'general', priority || 'medium', collectionId || null, dueDate || null);
+        return this.getPipelineTask(id);
+    }
+    updatePipelineTask(id, patch) {
+        const allowed = ['name', 'description', 'type', 'status', 'priority', 'collection_id', 'due_date'];
+        const fields = [], vals = [];
+        for (const k of allowed) if (patch[k] !== undefined) { fields.push(`${k} = ?`); vals.push(patch[k]); }
+        if (!fields.length) return this.getPipelineTask(id);
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        this.db.prepare(`UPDATE pipeline_tasks SET ${fields.join(', ')} WHERE id = ?`).run(...vals, id);
+        return this.getPipelineTask(id);
+    }
+    deletePipelineTask(id) {
+        this.db.prepare(`DELETE FROM pipeline_tasks WHERE id = ?`).run(id);
+    }
+
+    // ===== PIPELINE NODES =====
+
+    createPipelineNode(id, taskId, title, description, type, sortOrder, posX, posY) {
+        this.db.prepare(`INSERT INTO pipeline_nodes (id, task_id, title, description, type, sort_order, position_x, position_y) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(id, taskId, title, description || '', type || 'step', sortOrder || 0, posX || 0, posY || 0);
+        return this.db.prepare(`SELECT * FROM pipeline_nodes WHERE id = ?`).get(id);
+    }
+    updatePipelineNode(id, patch) {
+        const allowed = ['title', 'description', 'status', 'type', 'notes', 'cli_command', 'due_date', 'position_x', 'position_y', 'sort_order'];
+        const fields = [], vals = [];
+        for (const k of allowed) if (patch[k] !== undefined) { fields.push(`${k} = ?`); vals.push(patch[k]); }
+        if (!fields.length) return this.db.prepare(`SELECT * FROM pipeline_nodes WHERE id = ?`).get(id);
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        this.db.prepare(`UPDATE pipeline_nodes SET ${fields.join(', ')} WHERE id = ?`).run(...vals, id);
+        return this.db.prepare(`SELECT * FROM pipeline_nodes WHERE id = ?`).get(id);
+    }
+    deletePipelineNode(id) {
+        this.db.prepare(`DELETE FROM pipeline_nodes WHERE id = ?`).run(id);
+    }
+
+    // ===== PIPELINE EDGES =====
+
+    createPipelineEdge(id, taskId, sourceId, targetId, label) {
+        this.db.prepare(`INSERT OR IGNORE INTO pipeline_edges (id, task_id, source_id, target_id, label) VALUES (?, ?, ?, ?, ?)`).run(id, taskId, sourceId, targetId, label || '');
+        return this.db.prepare(`SELECT * FROM pipeline_edges WHERE id = ?`).get(id);
+    }
+    deletePipelineEdge(id) {
+        this.db.prepare(`DELETE FROM pipeline_edges WHERE id = ?`).run(id);
     }
 
     // ===== GRAPH SETTINGS =====

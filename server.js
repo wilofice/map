@@ -3073,6 +3073,88 @@ if (fsSync.existsSync(certFile) && fsSync.existsSync(keyFile)) {
     }
 }
 
+// ===== PIPELINE API =====
+
+app.get('/api/pipeline/collections', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllPipelineCollections()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/pipeline/collections', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { name, description, color } = req.body;
+        if (!name) return res.status(400).json({ error: 'name required' });
+        res.status(201).json(db.createPipelineCollection(uuidv4(), name, description, color));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/pipeline/collections/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.updatePipelineCollection(req.params.id, req.body)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/pipeline/collections/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deletePipelineCollection(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/pipeline/tasks', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllPipelineTasks(req.query.collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/pipeline/tasks', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { name, description, type, priority, collection_id, due_date } = req.body;
+        if (!name) return res.status(400).json({ error: 'name required' });
+        res.status(201).json(db.createPipelineTask(uuidv4(), name, description, type, priority, collection_id, due_date));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/pipeline/tasks/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const task = db.getPipelineTask(req.params.id);
+        if (!task) return res.status(404).json({ error: 'Task not found' });
+        res.json(task);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/pipeline/tasks/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.updatePipelineTask(req.params.id, req.body)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/pipeline/tasks/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deletePipelineTask(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/pipeline/nodes', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { task_id, title, description, type, sort_order, position_x, position_y } = req.body;
+        if (!task_id || !title) return res.status(400).json({ error: 'task_id and title required' });
+        res.status(201).json(db.createPipelineNode(uuidv4(), task_id, title, description, type, sort_order, position_x, position_y));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/pipeline/nodes/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.updatePipelineNode(req.params.id, req.body)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/pipeline/nodes/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deletePipelineNode(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/pipeline/edges', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { task_id, source_id, target_id, label } = req.body;
+        if (!task_id || !source_id || !target_id) return res.status(400).json({ error: 'task_id, source_id, target_id required' });
+        res.status(201).json(db.createPipelineEdge(uuidv4(), task_id, source_id, target_id, label));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/pipeline/edges/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deletePipelineEdge(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== GRAPH VIEW API =====
 
 app.get('/api/graph/projects/:id', (req, res) => {

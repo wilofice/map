@@ -8,6 +8,8 @@ import SettingsPanel from './components/SettingsPanel';
 import CollectionsSidebar from './components/CollectionsSidebar';
 import CollectionsManager from './pages/CollectionsManager';
 import GraphView from './graph/GraphView';
+import PipelineHome from './pipeline/PipelineHome';
+import PipelineGraph from './pipeline/PipelineGraph';
 
 function CanvasView() {
   const {
@@ -172,6 +174,7 @@ function CanvasView() {
               title="Settings"
             >⚙</button>
             <GraphViewLink t={t} />
+            <PipelineLink t={t} />
           </div>
         </header>
 
@@ -223,6 +226,20 @@ function GraphViewLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function PipelineLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/pipeline')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Pipeline task dashboard"
+    >
+      ⬡ Pipeline
+    </button>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
 
@@ -236,6 +253,8 @@ export default function App() {
       <Route path="/" element={<CanvasView />} />
       <Route path="/graph" element={<GraphView />} />
       <Route path="/collections" element={<CollectionsManager />} />
+      <Route path="/pipeline" element={<PipelineHome />} />
+      <Route path="/pipeline/:taskId" element={<PipelineGraph />} />
     </Routes>
   );
 }
