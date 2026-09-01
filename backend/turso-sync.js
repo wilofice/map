@@ -153,34 +153,44 @@ class TursoSync {
 
     /**
      * Pull every row from Turso and UPSERT into local SQLite.
+     * FK constraints are disabled during the bulk insert to handle
+     * self-referential tables (nodes.parent_id) and insertion ordering.
      * Returns total row count synced.
      */
     async pullFromCloud() {
         if (!this.ready || !this.localDb) return 0;
         let total = 0;
 
-        for (const table of SYNC_TABLES) {
-            try {
-                const rs = await this.client.execute(`SELECT * FROM ${table}`);
-                if (!rs.rows.length) continue;
+        // Disable FK checks for the duration of the pull
+        this.localDb.pragma('foreign_keys = OFF');
 
-                const cols = rs.columns;
-                const placeholders = cols.map(() => '?').join(', ');
-                const sql = `INSERT OR REPLACE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`;
-                const stmt = this.localDb.prepare(sql);
-                const insertMany = this.localDb.transaction(rows => {
-                    for (const row of rows) {
-                        stmt.run(...cols.map(c => row[c] ?? null));
+        try {
+            for (const table of SYNC_TABLES) {
+                try {
+                    const rs = await this.client.execute(`SELECT * FROM ${table}`);
+                    if (!rs.rows.length) continue;
+
+                    const cols = rs.columns;
+                    const placeholders = cols.map(() => '?').join(', ');
+                    const sql = `INSERT OR REPLACE INTO ${table} (${cols.join(', ')}) VALUES (${placeholders})`;
+                    const stmt = this.localDb.prepare(sql);
+                    const insertMany = this.localDb.transaction(rows => {
+                        for (const row of rows) {
+                            stmt.run(...cols.map(c => row[c] ?? null));
+                        }
+                    });
+                    insertMany(rs.rows);
+                    total += rs.rows.length;
+                } catch (e) {
+                    // Table may not exist on cloud yet (first run) — skip silently
+                    if (!e.message?.includes('no such table')) {
+                        console.error(`[turso] pull error for ${table}:`, e.message);
                     }
-                });
-                insertMany(rs.rows);
-                total += rs.rows.length;
-            } catch (e) {
-                // Table may not exist on cloud yet (first run) — skip silently
-                if (!e.message?.includes('no such table')) {
-                    console.error(`[turso] pull error for ${table}:`, e.message);
                 }
             }
+        } finally {
+            // Always re-enable FK constraints
+            this.localDb.pragma('foreign_keys = ON');
         }
 
         return total;
