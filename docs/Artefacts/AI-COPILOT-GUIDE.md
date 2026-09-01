@@ -163,18 +163,101 @@ The suggestions are previewed in the UI (Detail Panel → ✨ Generate Children)
 ### Documentation API
 
 ```bash
-# List all docs in docs/Artefacts/
+# List all docs in docs/ and docs/Artefacts/
 GET /api/docs
 # → { "docs": [{ "filename": "AI-COPILOT-GUIDE.md", "title": "...", "bytes": 4200, "url": "/api/docs/AI-COPILOT-GUIDE.md" }, ...] }
 
 # Get a specific doc as markdown text
 GET /api/docs/AI-COPILOT-GUIDE.md
 GET /api/docs/PROJECT_FILE_GUIDE_JSON.md
+GET /api/docs/PIPELINE.md
+GET /api/docs/MCP.md
 
-# Get all docs as a single JSON bundle
+# Get all docs as a single JSON bundle (AI-optimized: all guides in one request)
 GET /api/docs/bundle
-# → { "AI-COPILOT-GUIDE.md": "...", "PROJECT_FILE_GUIDE_JSON.md": "...", ... }
+# → { "AI-COPILOT-GUIDE.md": "...", "PROJECT_FILE_GUIDE_JSON.md": "...", "PIPELINE.md": "...", "MCP.md": "..." }
 ```
+
+---
+
+## Pipeline REST API (Task Dashboard)
+
+The Pipeline is a separate task management dashboard at `/pipeline`. It does **not** use MCP tools — use the REST API below directly.
+
+### Collections
+
+```bash
+GET  /api/pipeline/collections
+POST /api/pipeline/collections       { "name": "Sprint 42", "color": "#7c3aed", "description": "" }
+PUT  /api/pipeline/collections/:id   { "name": "...", "color": "..." }
+DELETE /api/pipeline/collections/:id
+```
+
+### Tasks
+
+```bash
+GET  /api/pipeline/tasks                    # list all tasks
+GET  /api/pipeline/tasks?collection_id=<id> # filter by collection
+GET  /api/pipeline/tasks/:id                # get task with nodes + edges
+POST /api/pipeline/tasks  {
+  "name": "Build LLM video",
+  "type": "video",        # general | code | video | design | research | review
+  "priority": "high",     # low | medium | high
+  "status": "pending",    # pending | in-progress | done
+  "collection_id": "<id>" # optional
+}
+PUT  /api/pipeline/tasks/:id   { "status": "done" }
+DELETE /api/pipeline/tasks/:id
+```
+
+### Nodes
+
+```bash
+POST /api/pipeline/nodes  {
+  "task_id": "<id>",
+  "title": "Record voiceover",
+  "status": "pending",    # pending | in-progress | done
+  "type": "step",         # step | decision | milestone | review
+  "description": "...",
+  "notes": "...",
+  "cli_command": "obs-cli record",
+  "position_x": 400, "position_y": 200
+}
+PUT  /api/pipeline/nodes/:id   { "status": "done", "notes": "saved to ./raw/vo.wav" }
+DELETE /api/pipeline/nodes/:id
+```
+
+### Edges (dependencies)
+
+```bash
+POST /api/pipeline/edges  {
+  "task_id": "<id>",
+  "source_id": "<node-id>",
+  "target_id": "<node-id>"
+}
+DELETE /api/pipeline/edges/:id
+```
+
+### Quick LLM update loop
+
+```bash
+# 1. Discover tasks
+curl http://localhost:3000/api/pipeline/tasks
+
+# 2. Load a task's graph
+curl http://localhost:3000/api/pipeline/tasks/<task-id>
+
+# 3. Start a node
+curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+  -H 'Content-Type: application/json' -d '{"status":"in-progress"}'
+
+# 4. Finish it with notes
+curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"done","notes":"Output: ./build/out.mp4"}'
+```
+
+See `docs/PIPELINE.md` for the full user guide including schema, display modes, and theme details.
 
 ---
 

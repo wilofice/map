@@ -2901,7 +2901,9 @@ app.get('/api/docs/bundle', async (_req, res) => {
         const aiAllowedDocs = [
             'AI-COPILOT-GUIDE.md',
             'PROJECT_FILE_GUIDE_JSON.md',
-            'SYSTEM_PROMPT.md'
+            'SYSTEM_PROMPT.md',
+            'PIPELINE.md',
+            'MCP.md'
         ];
 
         for (const [filename, filepath] of docMap.entries()) {

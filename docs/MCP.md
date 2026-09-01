@@ -1,6 +1,8 @@
 # Mind Map MCP Server
 
-The MCP (Model Context Protocol) server gives any compatible AI assistant (Claude Desktop, Cursor, etc.) direct, typed read/write access to the Mind Map database — without going through the REST API.
+The MCP (Model Context Protocol) server gives any compatible AI assistant (Claude Desktop, Cursor, etc.) direct, typed read/write access to the **Mind Map** database.
+
+> **Pipeline feature uses REST, not MCP.** The Pipeline Task Dashboard (`/pipeline`) is not exposed through MCP tools. Use the Pipeline REST API (`/api/pipeline/*`) directly from any AI agent or CLI. See [`PIPELINE.md`](./PIPELINE.md) for the full reference.
 
 ## The Dual Strategy: Action + Context
 
@@ -84,7 +86,7 @@ You are working in a **Dual Strategy Environment**:
 
 **Step-by-Step Workflow:**
 
-1. **Assimilate Rules**: If you haven't already, request to read or fetch `http://192.168.1.18:3000/api/docs/bundle`. This bundle contains the `PROJECT_FILE_GUIDE_JSON.md` and `AI-COPILOT-GUIDE.md` which dictate the constraints of the map UI (e.g., never put status or markdown in titles, never leave `content` empty).
+1. **Assimilate Rules**: If you haven't already, request to read or fetch `http://192.168.1.18:3000/api/docs/bundle`. This bundle contains `PROJECT_FILE_GUIDE_JSON.md`, `AI-COPILOT-GUIDE.md`, `MCP.md`, and `PIPELINE.md` — all rules, schemas, and API references.
 2. **Contextualize**: Before attempting to add or modify nodes, invoke the `list_projects` tool to find the target project ID, then invoke `get_project_context` to read the live state of the tree.
 3. **Execute via Tools**: Do NOT output raw JSON blocks to the chat asking the user to import them. Instead, autonomously invoke `create_node`, `update_node`, or `bulk_create_nodes` using your tool calling capabilities.
 4. **Verify**: The MCP tools return success or error states. If successful, confirm to the user: *"Done — check the map in the web app."* Do not dump the resulting data into the chat.
