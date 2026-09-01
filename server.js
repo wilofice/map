@@ -15,6 +15,7 @@ const { PureJSONHandler } = require('./backend/pure-json-models');
 
 // SQLite Database Integration
 const DatabaseManager = require('./backend/db-manager');
+const tursoSync = require('./backend/turso-sync');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -22,8 +23,13 @@ const fileModTimes = new Map();
 // Initialize database
 let db = null;
 try {
-    db = new DatabaseManager();
+    const rawDb = new DatabaseManager();
+    // Wrap with Turso sync proxy (no-op if TURSO_DATABASE_URL is not set)
+    db = tursoSync.wrapDb(rawDb);
     console.log('✅ Database connected and ready');
+
+    // Async: pull latest from Turso cloud → local SQLite on startup
+    tursoSync.init(rawDb.db).catch(e => console.error('Turso init error:', e.message));
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
     console.log('ℹ️  Falling back to file-only mode');
