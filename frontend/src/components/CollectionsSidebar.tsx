@@ -169,6 +169,16 @@ export default function CollectionsSidebar({
       <div className="p-3 border-t shrink-0 flex flex-col gap-2" style={{ borderColor: t.border }}>
         <button
           onClick={() => {
+            navigate('/graph');
+            onClose();
+          }}
+          className="w-full py-1.5 rounded text-xs font-medium transition-colors hover:bg-[rgba(128,128,128,0.1)]"
+          style={{ color: t.textSecondary }}
+        >
+          ⬡ Graph View
+        </button>
+        <button
+          onClick={() => {
             navigate('/collections');
             onClose();
           }}

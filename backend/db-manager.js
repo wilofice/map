@@ -137,6 +137,21 @@ class DatabaseManager {
         addCol("ALTER TABLE projects ADD COLUMN layout_dir TEXT DEFAULT 'LR'");
         addCol("ALTER TABLE projects ADD COLUMN display_mode TEXT DEFAULT 'comfortable'");
         addCol("ALTER TABLE collections ADD COLUMN color TEXT");
+
+        // Graph view settings table
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS graph_settings (
+                project_id TEXT PRIMARY KEY,
+                layout_name TEXT NOT NULL DEFAULT 'dagre',
+                positions TEXT NOT NULL DEFAULT '{}',
+                zoom REAL NOT NULL DEFAULT 1,
+                pan_x REAL NOT NULL DEFAULT 0,
+                pan_y REAL NOT NULL DEFAULT 0,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_graph_settings_project ON graph_settings(project_id);
+        `);
     }
 
     prepareStatements() {
@@ -979,6 +994,49 @@ class DatabaseManager {
         if (this.db) {
             this.db.close();
             console.error('✅ Database connection closed');
+        }
+    }
+
+    // ===== GRAPH SETTINGS =====
+
+    getGraphSettings(projectId) {
+        const row = this.db.prepare('SELECT * FROM graph_settings WHERE project_id = ?').get(projectId);
+        if (!row) return { project_id: projectId, layout_name: 'dagre', positions: {}, zoom: 1, pan_x: 0, pan_y: 0 };
+        return { ...row, positions: JSON.parse(row.positions || '{}') };
+    }
+
+    saveGraphSettings(projectId, { layout_name, zoom, pan_x, pan_y }) {
+        const existing = this.db.prepare('SELECT project_id FROM graph_settings WHERE project_id = ?').get(projectId);
+        if (existing) {
+            const fields = [];
+            const vals = [];
+            if (layout_name !== undefined) { fields.push('layout_name = ?'); vals.push(layout_name); }
+            if (zoom !== undefined)        { fields.push('zoom = ?');        vals.push(zoom); }
+            if (pan_x !== undefined)       { fields.push('pan_x = ?');       vals.push(pan_x); }
+            if (pan_y !== undefined)       { fields.push('pan_y = ?');       vals.push(pan_y); }
+            if (fields.length) {
+                fields.push('updated_at = CURRENT_TIMESTAMP');
+                this.db.prepare(`UPDATE graph_settings SET ${fields.join(', ')} WHERE project_id = ?`).run(...vals, projectId);
+            }
+        } else {
+            this.db.prepare(`
+                INSERT INTO graph_settings (project_id, layout_name, positions, zoom, pan_x, pan_y)
+                VALUES (?, ?, '{}', ?, ?, ?)
+            `).run(projectId, layout_name ?? 'dagre', zoom ?? 1, pan_x ?? 0, pan_y ?? 0);
+        }
+        return this.getGraphSettings(projectId);
+    }
+
+    saveGraphPositions(projectId, positions) {
+        const posJson = JSON.stringify(positions);
+        const existing = this.db.prepare('SELECT project_id FROM graph_settings WHERE project_id = ?').get(projectId);
+        if (existing) {
+            this.db.prepare('UPDATE graph_settings SET positions = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?').run(posJson, projectId);
+        } else {
+            this.db.prepare(`
+                INSERT INTO graph_settings (project_id, layout_name, positions, zoom, pan_x, pan_y)
+                VALUES (?, 'manual', ?, 1, 0, 0)
+            `).run(projectId, posJson);
         }
     }
 }

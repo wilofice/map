@@ -3073,6 +3073,46 @@ if (fsSync.existsSync(certFile) && fsSync.existsSync(keyFile)) {
     }
 }
 
+// ===== GRAPH VIEW API =====
+
+app.get('/api/graph/projects/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const settings = db.getGraphSettings(req.params.id);
+        res.json(settings);
+    } catch (error) {
+        console.error('Error getting graph settings:', error);
+        res.status(500).json({ error: 'Failed to get graph settings' });
+    }
+});
+
+app.put('/api/graph/projects/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { layout_name, zoom, pan_x, pan_y } = req.body;
+        const settings = db.saveGraphSettings(req.params.id, { layout_name, zoom, pan_x, pan_y });
+        res.json(settings);
+    } catch (error) {
+        console.error('Error saving graph settings:', error);
+        res.status(500).json({ error: 'Failed to save graph settings' });
+    }
+});
+
+app.post('/api/graph/projects/:id/positions', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { positions } = req.body;
+        if (!positions || typeof positions !== 'object') {
+            return res.status(400).json({ error: 'positions object required' });
+        }
+        db.saveGraphPositions(req.params.id, positions);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error saving graph positions:', error);
+        res.status(500).json({ error: 'Failed to save positions' });
+    }
+});
+
 const serverInstance = app.listen(PORT, HOST, () => {
     const host = HOST || 'localhost';
     console.log(`🚀 Mind Map Server started successfully!`);

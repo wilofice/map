@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useMindMapStore } from './store/mindMapStore';
 import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
@@ -7,6 +7,7 @@ import DetailPanel from './components/DetailPanel';
 import SettingsPanel from './components/SettingsPanel';
 import CollectionsSidebar from './components/CollectionsSidebar';
 import CollectionsManager from './pages/CollectionsManager';
+import GraphView from './graph/GraphView';
 
 function CanvasView() {
   const {
@@ -170,7 +171,7 @@ function CanvasView() {
               style={{ color: settingsPanelOpen ? t.bgAccent : t.textUI }}
               title="Settings"
             >⚙</button>
-            <span className="text-xs" style={{ color: t.textMuted }}>React Flow</span>
+            <GraphViewLink t={t} />
           </div>
         </header>
 
@@ -208,6 +209,20 @@ function CanvasView() {
   );
 }
 
+function GraphViewLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/graph')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Switch to Cytoscape graph view"
+    >
+      ⬡ Graph
+    </button>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
 
@@ -219,6 +234,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<CanvasView />} />
+      <Route path="/graph" element={<GraphView />} />
       <Route path="/collections" element={<CollectionsManager />} />
     </Routes>
   );
