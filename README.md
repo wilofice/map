@@ -1,8 +1,9 @@
 # Modular Mind Map
 
-AI-driven interactive mind mapping and task pipeline application. Built on React Flow + Cytoscape.js with a persistent SQLite backend and MCP server integration.
+AI-driven interactive mind mapping and task pipeline application. Built on React Flow + Cytoscape.js with a persistent SQLite backend, Turso cloud sync, and MCP server integration.
 
-*See [docs/CHANGELOG.md](docs/CHANGELOG.md) for the latest updates.*
+**Live (cloud):** [https://soothing-tenderness-production-60f6.up.railway.app](https://soothing-tenderness-production-60f6.up.railway.app)  
+*See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Railway + Turso setup. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for updates.*
 
 ---
 
@@ -21,19 +22,26 @@ Two fully independent tools share one server:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    Browser (port 5173)               │
+│                    Browser                           │
 │  React 19 + TypeScript + Vite + Tailwind CSS v4      │
 │  Mind Map: React Flow + Zustand + Dagre              │
 │  Pipeline: Cytoscape.js + Zustand (isolated store)   │
 └───────────────────┬─────────────────────────────────┘
-                    │  /api/* (proxied by Vite)
+                    │  /api/*
 ┌───────────────────▼─────────────────────────────────┐
-│              Express.js API (port 3000)              │
-│              Node.js + better-sqlite3                │
-│              mind_maps.db (SQLite — both tools)      │
-│              MCP Server: mcp.mjs (stdio JSON-RPC)    │
+│         Express.js API  (port 3000 / Railway)        │
+│         Node.js + better-sqlite3 (local SQLite)      │
+│         mind_maps.db — all reads/writes              │
+│         MCP Server: mcp.mjs (stdio JSON-RPC)         │
+│                         │  background sync           │
+│                    ┌────▼────────────────────┐       │
+│                    │  Turso (libSQL cloud)    │       │
+│                    │  libsql://map-*.turso.io │       │
+│                    └─────────────────────────┘       │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Data flow:** All reads/writes go through local SQLite (fast, works offline). Every write is asynchronously replicated to Turso in the background. On server startup, the latest cloud state is pulled into local SQLite — so any Railway restart or new clone is immediately up to date.
 
 ---
 
@@ -98,13 +106,12 @@ map/
 
 ### Prerequisites
 
-- Node.js ≥ 18, npm ≥ 9
+- Node.js ≥ 22, npm ≥ 9
 
 ### Install
 
 ```bash
-npm install
-cd frontend && npm install && cd ..
+npm install          # installs root + frontend (npm workspaces)
 ```
 
 ### Run (development)
@@ -115,12 +122,17 @@ npm run dev:all
 
 Opens at [http://localhost:5173](http://localhost:5173). Vite proxies `/api/*` to port 3000.
 
-### Production build
+### Production build (local)
 
 ```bash
-npm run build:ui    # frontend → frontend-dist/
-npm start           # serves API + static files
+npm run build:ui    # compiles React → frontend-dist/
+npm start           # serves API + compiled frontend on port 3000
 ```
+
+### Cloud deployment
+
+The app is deployed on **Railway** and connected to **Turso** (libSQL cloud).  
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for the full setup, environment variables, and redeploy workflow.
 
 ---
 
@@ -195,10 +207,10 @@ Navigate to **`/pipeline`** (click "⬡ Pipeline" in the top bar).
 
 ```bash
 # Get all tasks
-curl http://localhost:3000/api/pipeline/tasks
+curl $BASE_URL/api/pipeline/tasks
 
 # Mark a node done with notes
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{"status":"done","notes":"Output saved to ./build/out.mp4"}'
 ```
@@ -214,7 +226,7 @@ See [docs/PIPELINE.md](docs/PIPELINE.md) for the full REST API reference, schema
 Any LLM can fetch all documentation in one request:
 
 ```bash
-GET http://localhost:3000/api/docs/bundle
+GET $BASE_URL/api/docs/bundle
 ```
 
 Returns: `AI-COPILOT-GUIDE.md`, `PROJECT_FILE_GUIDE_JSON.md`, `MCP.md`, `PIPELINE.md` — everything an AI needs to create, update, and query both tools.
@@ -276,6 +288,8 @@ SQLite (`mind_maps.db`), managed by `backend/db-manager.js`. Migrations run auto
 **Mind Map tables:** `projects`, `nodes`, `node_audio_files`, `collections`, `app_state`
 
 **Pipeline tables:** `pipeline_collections`, `pipeline_tasks`, `pipeline_nodes`, `pipeline_edges`
+
+**Cloud sync (Turso):** every write is replicated to `libsql://map-*.turso.io` in the background via `backend/turso-sync.js`. On startup the server pulls the latest cloud state into local SQLite. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in `.env` to enable — without them the app runs in local-only mode unchanged. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 
