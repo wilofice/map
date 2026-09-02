@@ -22,14 +22,12 @@ const fileModTimes = new Map();
 
 // Initialize database
 let db = null;
+let _rawDb = null;
 try {
-    const rawDb = new DatabaseManager();
+    _rawDb = new DatabaseManager();
     // Wrap with Turso sync proxy (no-op if TURSO_DATABASE_URL is not set)
-    db = tursoSync.wrapDb(rawDb);
+    db = tursoSync.wrapDb(_rawDb);
     console.log('✅ Database connected and ready');
-
-    // Async: pull latest from Turso cloud → local SQLite on startup
-    tursoSync.init(rawDb.db).catch(e => console.error('Turso init error:', e.message));
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
     console.log('ℹ️  Falling back to file-only mode');
@@ -3219,39 +3217,55 @@ app.post('/api/graph/projects/:id/positions', (req, res) => {
     }
 });
 
-const serverInstance = app.listen(PORT, HOST, () => {
-    const host = HOST || 'localhost';
-    console.log(`🚀 Mind Map Server started successfully!`);
-    console.log(`📍 HTTP  server: http://${host}:${PORT}`);
-    console.log(`📂 Working Directory: ${workingRootDir}`);
-    console.log(`💾 Database: ${db ? '✅ Connected' : '❌ Not available (file-only mode)'}`);
-    console.log(`🔧 Debug Mode: ${DEBUG ? 'ON' : 'OFF'}`);
-    console.log('');
-    console.log('💡 Open the server URL in your browser to use the application');
-    
-    if (DEBUG) {
-        console.log('');
-        console.log('📝 Configuration:');
-        console.log(`   PORT: ${PORT}`);
-        console.log(`   HOST: ${HOST || 'all interfaces'}`);
-        console.log(`   WORKING_ROOT_DIR: ${process.env.WORKING_ROOT_DIR || 'default (current directory)'}`);
-        console.log(`   Resolved working path: ${workingRootDir}`);
-        console.log(`   Database status: ${db ? 'Connected' : 'Not available'}`);
-        
-        if (db) {
-            const stats = db.getStats();
-            console.log(`   Database projects: ${stats?.projects || 0}`);
-            console.log(`   Database nodes: ${stats?.nodes || 0}`);
-        }
+// Async startup: pull from Turso first, then open the port.
+// This ensures Railway (and any cloud host) serves fresh data from the first request.
+async function startServer() {
+    if (_rawDb) {
+        await tursoSync.init(_rawDb.db);
     }
-});
 
-serverInstance.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`\n❌  Port ${PORT} is already in use.`);
-        console.error(`    Stop the existing process or run:  npx kill-port ${PORT}\n`);
-        process.exit(1);
-    } else {
-        throw err;
-    }
+    const serverInstance = app.listen(PORT, HOST, () => {
+        const host = HOST || 'localhost';
+        console.log(`🚀 Mind Map Server started successfully!`);
+        console.log(`📍 HTTP  server: http://${host}:${PORT}`);
+        console.log(`📂 Working Directory: ${workingRootDir}`);
+        console.log(`💾 Database: ${db ? '✅ Connected' : '❌ Not available (file-only mode)'}`);
+        console.log(`☁️  Turso sync: ${tursoSync.ready ? '✅ Active' : 'ℹ️  Local-only'}`);
+        console.log(`🔧 Debug Mode: ${DEBUG ? 'ON' : 'OFF'}`);
+        console.log('');
+        console.log('💡 Open the server URL in your browser to use the application');
+
+        if (DEBUG) {
+            console.log('');
+            console.log('📝 Configuration:');
+            console.log(`   PORT: ${PORT}`);
+            console.log(`   HOST: ${HOST || 'all interfaces'}`);
+            console.log(`   WORKING_ROOT_DIR: ${process.env.WORKING_ROOT_DIR || 'default (current directory)'}`);
+            console.log(`   Resolved working path: ${workingRootDir}`);
+            console.log(`   Database status: ${db ? 'Connected' : 'Not available'}`);
+
+            if (db) {
+                const stats = db.getStats();
+                console.log(`   Database projects: ${stats?.projects || 0}`);
+                console.log(`   Database nodes: ${stats?.nodes || 0}`);
+            }
+        }
+    });
+
+    serverInstance.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`\n❌  Port ${PORT} is already in use.`);
+            console.error(`    Stop the existing process or run:  npx kill-port ${PORT}\n`);
+            process.exit(1);
+        } else {
+            throw err;
+        }
+    });
+
+    return serverInstance;
+}
+
+startServer().catch(err => {
+    console.error('❌ Server failed to start:', err);
+    process.exit(1);
 });

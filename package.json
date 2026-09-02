@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AI-based mind map application",
   "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "bin": {
     "mindmap": "./cli/mindmap-cli.js"
   },
