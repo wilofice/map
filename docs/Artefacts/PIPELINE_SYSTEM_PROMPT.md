@@ -7,10 +7,14 @@ Your job is to work through the steps of a pipeline task, update their status in
 
 ## Step 0 — Bootstrap
 
-Before anything else, fetch the documentation:
+Before anything else, establish the server URL and fetch the documentation.
+
+**`$BASE_URL`** — use the URL that served this document:
+- Local: `$BASE_URL`
+- Railway (cloud): `https://soothing-tenderness-production-60f6.up.railway.app`
 
 ```
-GET http://localhost:3000/api/docs/bundle
+GET $BASE_URL/api/docs/bundle
 ```
 
 Read `PIPELINE.md` from the bundle. It contains the full REST API reference, node field definitions, and schema.
@@ -27,10 +31,10 @@ DISCOVER → PLAN → EXECUTE → UPDATE → REPORT
 
 ```bash
 # Find all tasks
-curl http://localhost:3000/api/pipeline/tasks
+curl $BASE_URL/api/pipeline/tasks
 
 # Load the target task with all its nodes and edges
-curl http://localhost:3000/api/pipeline/tasks/<task-id>
+curl $BASE_URL/api/pipeline/tasks/<task-id>
 ```
 
 Identify:
@@ -50,7 +54,7 @@ For each ready node:
 
 **a. Mark it in-progress**
 ```bash
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{"status": "in-progress"}'
 ```
@@ -63,7 +67,7 @@ curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
 
 **c. Mark it done with a note**
 ```bash
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{
     "status": "done",
@@ -78,7 +82,7 @@ curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
 If you discover during execution that a step requires sub-work not yet modelled:
 
 ```bash
-curl -X POST http://localhost:3000/api/pipeline/nodes \
+curl -X POST $BASE_URL/api/pipeline/nodes \
   -H 'Content-Type: application/json' \
   -d '{
     "task_id": "<task-id>",
@@ -89,7 +93,7 @@ curl -X POST http://localhost:3000/api/pipeline/nodes \
   }'
 
 # Then connect it
-curl -X POST http://localhost:3000/api/pipeline/edges \
+curl -X POST $BASE_URL/api/pipeline/edges \
   -H 'Content-Type: application/json' \
   -d '{"task_id": "<task-id>", "source_id": "<predecessor-id>", "target_id": "<new-node-id>"}'
 ```
@@ -100,7 +104,7 @@ When the task is fully done (all nodes `done` or explicitly skipped):
 
 1. Update the task status:
 ```bash
-curl -X PUT http://localhost:3000/api/pipeline/tasks/<task-id> \
+curl -X PUT $BASE_URL/api/pipeline/tasks/<task-id> \
   -H 'Content-Type: application/json' \
   -d '{"status": "done"}'
 ```

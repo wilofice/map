@@ -37,17 +37,19 @@ Good titles:
 
 ## Server Connection
 
-| Service | Default URL | Notes |
-|---|---|---|
-| Backend API (HTTP) | `http://<server-ip>:3000` | Main API — use this for CLI and direct requests |
-| Backend API (HTTPS) | `https://<server-ip>:3443` | LAN access with self-signed cert |
-| Frontend (dev) | `https://<server-ip>:5173` | Vite dev server — proxies `/api` to port 3000 |
+| Deployment | Base URL |
+|---|---|
+| Local dev | `$BASE_URL` |
+| Railway (cloud) | `https://soothing-tenderness-production-60f6.up.railway.app` |
+| LAN (HTTPS) | `https://<server-ip>:3443` |
+
+Replace `$BASE_URL` in all examples below with the appropriate URL for your environment.
 
 The port can be overridden with the `PORT` environment variable. Default is **3000**.
 
 Health check:
 ```bash
-curl http://localhost:3000/api/db/projects
+curl $BASE_URL/api/db/projects
 ```
 
 ---
@@ -242,17 +244,17 @@ DELETE /api/pipeline/edges/:id
 
 ```bash
 # 1. Discover tasks
-curl http://localhost:3000/api/pipeline/tasks
+curl $BASE_URL/api/pipeline/tasks
 
 # 2. Load a task's graph
-curl http://localhost:3000/api/pipeline/tasks/<task-id>
+curl $BASE_URL/api/pipeline/tasks/<task-id>
 
 # 3. Start a node
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' -d '{"status":"in-progress"}'
 
 # 4. Finish it with notes
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{"status":"done","notes":"Output: ./build/out.mp4"}'
 ```
@@ -311,10 +313,10 @@ Output formats: `--format=json` for machine parsing, default is human-readable.
 
 ```bash
 # Get all projects
-curl http://localhost:3000/api/db/projects
+curl $BASE_URL/api/db/projects
 
 # Get project details + all nodes
-curl http://localhost:3000/api/db/projects/<id>
+curl $BASE_URL/api/db/projects/<id>
 
 # Or via CLI
 node mindmap-cli.js filter-tasks --priority=high --status=pending --format=json
@@ -323,7 +325,7 @@ node mindmap-cli.js filter-tasks --priority=high --status=pending --format=json
 ### 2. Start working on a task
 
 ```bash
-curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+curl -X PUT $BASE_URL/api/db/nodes/<id> \
   -H "Content-Type: application/json" \
   -d '{"status": "in-progress"}'
 ```
@@ -332,7 +334,7 @@ curl -X PUT http://localhost:3000/api/db/nodes/<id> \
 
 ```bash
 # The "content" field is the node's notes/comment field
-curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+curl -X PUT $BASE_URL/api/db/nodes/<id> \
   -H "Content-Type: application/json" \
   -d '{"content": "Completed database schema. Next: API endpoints."}'
 ```
@@ -340,7 +342,7 @@ curl -X PUT http://localhost:3000/api/db/nodes/<id> \
 ### 4. Mark complete
 
 ```bash
-curl -X PUT http://localhost:3000/api/db/nodes/<id> \
+curl -X PUT $BASE_URL/api/db/nodes/<id> \
   -H "Content-Type: application/json" \
   -d '{"status": "completed"}'
 ```
@@ -352,7 +354,7 @@ curl -X PUT http://localhost:3000/api/db/nodes/<id> \
 Use the JSON import endpoint. See `PROJECT_FILE_GUIDE_JSON.md` for the full format.
 
 ```bash
-curl -X POST http://localhost:3000/api/db/import-json \
+curl -X POST $BASE_URL/api/db/import-json \
   -H "Content-Type: application/json" \
   -d @./data/myproject.json
 ```

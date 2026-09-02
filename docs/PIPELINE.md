@@ -162,7 +162,11 @@ The theme is saved to `localStorage` and shared between the home page and the gr
 
 ## Using the REST API (for LLMs and automation)
 
-All pipeline data is accessible via a REST API on the same Express server. No authentication required (LAN-only). Base URL: `http://<server>:3000`.
+All pipeline data is accessible via a REST API on the same Express server. No authentication required.
+
+**`$BASE_URL`** — use the appropriate URL for your environment:
+- Local dev: `$BASE_URL`
+- Railway (cloud): `https://soothing-tenderness-production-60f6.up.railway.app`
 
 ### Collections
 
@@ -259,23 +263,23 @@ To update a pipeline task programmatically:
 
 ```bash
 # 1. Find the task
-curl http://localhost:3000/api/pipeline/tasks
+curl $BASE_URL/api/pipeline/tasks
 
 # 2. Get full task detail (nodes + edges)
-curl http://localhost:3000/api/pipeline/tasks/<task-id>
+curl $BASE_URL/api/pipeline/tasks/<task-id>
 
 # 3. Mark a node as in-progress
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{"status": "in-progress"}'
 
 # 4. Mark it done when finished
-curl -X PUT http://localhost:3000/api/pipeline/nodes/<node-id> \
+curl -X PUT $BASE_URL/api/pipeline/nodes/<node-id> \
   -H 'Content-Type: application/json' \
   -d '{"status": "done", "notes": "Completed. Output saved to ./raw/voiceover.wav"}'
 
 # 5. Create a new step if needed
-curl -X POST http://localhost:3000/api/pipeline/nodes \
+curl -X POST $BASE_URL/api/pipeline/nodes \
   -H 'Content-Type: application/json' \
   -d '{
     "task_id": "<task-id>",
