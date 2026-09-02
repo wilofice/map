@@ -1,0 +1,5 @@
+{
+  "watch": ["server.js", "backend", "mcp.mjs"],
+  "ignore": ["frontend", "data", "uploads", "node_modules", "*.db", "*.db-wal", "*.db-shm", ".tmp", "package-lock.json"],
+  "ext": "js,mjs,cjs,json"
+}
