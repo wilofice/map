@@ -84,7 +84,14 @@ const audioUpload = multer({
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use(express.static('.'));
+// Serve compiled frontend (built by `npm run build:ui` → frontend-dist/)
+const frontendDist = path.join(__dirname, 'frontend-dist');
+if (fsSync.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+} else {
+    // Dev fallback: serve project root (works with Vite proxy in local dev)
+    app.use(express.static('.'));
+}
 
 const parser = new xml2js.Parser({ 
     preserveChildrenOrder: true, 
@@ -3216,6 +3223,13 @@ app.post('/api/graph/projects/:id/positions', (req, res) => {
         res.status(500).json({ error: 'Failed to save positions' });
     }
 });
+
+// SPA fallback: for any non-API route, serve the frontend index.html
+if (fsSync.existsSync(frontendDist)) {
+    app.get('*', (_req, res) => {
+        res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+}
 
 // Async startup: pull from Turso first, then open the port.
 // This ensures Railway (and any cloud host) serves fresh data from the first request.
