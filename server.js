@@ -121,6 +121,24 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Manual Turso pull — called by local machine after MCP writes propagate to Turso.
+// Optionally protected by SYNC_SECRET env var.
+app.post('/api/turso/sync', async (req, res) => {
+    const secret = process.env.SYNC_SECRET;
+    if (secret && req.headers['x-sync-secret'] !== secret) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!tursoSync.ready) {
+        return res.status(503).json({ error: 'Turso not connected' });
+    }
+    try {
+        const count = await tursoSync.pullFromCloud();
+        res.json({ ok: true, rows: count, timestamp: new Date().toISOString() });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // List all XML and JSON files in the working root directory
 app.get('/api/files', async (req, res) => {
     try {

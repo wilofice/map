@@ -266,6 +266,20 @@ class TursoSync {
         } else if (action === 'delete-by-col') {
             await this._deleteByCol(table, spec.col, args[spec.idArg]);
         }
+
+        // Notify remote server to pull fresh data from Turso
+        this._notifyRemote();
+    }
+
+    _notifyRemote() {
+        const url = process.env.REMOTE_SYNC_URL;
+        const secret = process.env.SYNC_SECRET;
+        if (!url) return;
+        // Fire-and-forget — never blocks the write path
+        fetch(url, {
+            method: 'POST',
+            headers: { 'x-sync-secret': secret || '', 'Content-Type': 'application/json' },
+        }).catch(e => console.error('[turso] remote notify failed:', e.message));
     }
 
     /**
