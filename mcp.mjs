@@ -2,11 +2,22 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { createRequire } from "module";
+import { config } from "dotenv";
+
+config(); // load .env so TURSO_* vars are available
+
+const require = createRequire(import.meta.url);
 import DatabaseManager from "./backend/db-manager.js";
+const tursoSync = require("./backend/turso-sync.js");
 
 // ─── Database ─────────────────────────────────────────────────────────────────
-// The DB path is relative to the project root (where you run: node mcp.mjs)
-const db = new DatabaseManager('./mind_maps.db');
+const _rawDb = new DatabaseManager('./mind_maps.db');
+const db = tursoSync.wrapDb(_rawDb);
+
+// Init Turso in the background — MCP tools work immediately from local SQLite;
+// cloud sync activates once the async init resolves.
+tursoSync.init(_rawDb.db).catch(e => console.error('[mcp] turso init:', e.message));
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 const server = new McpServer({
