@@ -9,6 +9,9 @@
   "bin": {
     "mindmap": "./cli/mindmap-cli.js"
   },
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
