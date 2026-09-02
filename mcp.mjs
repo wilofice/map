@@ -3,9 +3,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { createRequire } from "module";
-import { config } from "dotenv";
+import { readFileSync } from "fs";
 
-config(); // load .env so TURSO_* vars are available
+// Load .env manually — dotenv v17 writes to stdout which corrupts MCP JSON-RPC
+try {
+  for (const line of readFileSync('.env', 'utf8').split('\n')) {
+    const m = line.match(/^\s*([^#=\s][^=]*?)\s*=\s*(.*?)\s*$/);
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+} catch (_) { /* no .env file — env vars already set externally */ }
 
 const require = createRequire(import.meta.url);
 import DatabaseManager from "./backend/db-manager.js";
