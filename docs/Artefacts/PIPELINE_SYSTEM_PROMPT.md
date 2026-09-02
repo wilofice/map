@@ -9,9 +9,15 @@ Your job is to work through the steps of a pipeline task, update their status in
 
 Before anything else, establish the server URL and fetch the documentation.
 
-**`$BASE_URL`** — use the URL that served this document:
-- Local: `$BASE_URL`
-- Railway (cloud): `https://soothing-tenderness-production-60f6.up.railway.app`
+**`$BASE_URL`** — choisis selon la disponibilité :
+
+| Situation | BASE_URL à utiliser |
+|---|---|
+| MCP disponible | MCP tools (pas de REST) |
+| Machine locale en ligne | `http://localhost:3000` |
+| **Machine locale hors ligne / MCP indisponible** | `https://soothing-tenderness-production-60f6.up.railway.app` |
+
+> Quand la machine locale est déconnectée ou le MCP inaccessible, envoie toutes les requêtes REST directement vers le serveur Railway. Il est toujours en ligne, connecté à Turso, et répond en lecture comme en écriture sans dépendre de la machine locale.
 
 ```
 GET $BASE_URL/api/docs/bundle

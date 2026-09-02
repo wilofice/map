@@ -49,7 +49,15 @@ Use the Mind Map when the user wants to:
 Use **MCP tools** (not REST) for all Mind Map writes when an MCP connection is available:
 `list_projects` → `get_project_context` → `create_node` / `bulk_create_nodes` / `update_node`
 
-Fall back to REST (`/api/db/*`) when no MCP connection is present.
+Fall back to **REST** (`/api/db/*`) when no MCP connection is present — target the Railway server directly:
+```
+$BASE_URL/api/db/projects
+$BASE_URL/api/db/nodes
+```
+
+> **Machine locale hors ligne / MCP indisponible** : si la machine locale est déconnectée ou le serveur MCP inaccessible, envoie toutes tes requêtes REST directement vers le serveur Railway :
+> `https://soothing-tenderness-production-60f6.up.railway.app`
+> Le serveur Railway est toujours disponible et sa base de données est synchronisée avec Turso.
 
 ### Structural rules
 
@@ -81,7 +89,11 @@ Use the Pipeline when the user wants to:
 Use **MCP tools** when an MCP connection is active (preferred):
 `list_pipeline_tasks` → `get_pipeline_task` → `update_pipeline_node` / `create_pipeline_node` / `create_pipeline_edge`
 
-Fall back to **REST** (`/api/pipeline/*`) when no MCP connection is present:
+Fall back to **REST** (`/api/pipeline/*`) when no MCP connection is present. Target Railway directly if the local machine is offline or MCP is unavailable:
+
+> **Machine locale hors ligne / MCP indisponible** : envoie toutes tes requêtes REST directement vers le serveur Railway :
+> `https://soothing-tenderness-production-60f6.up.railway.app`
+> Le serveur est toujours en ligne et synchronisé avec Turso — tu peux lire et écrire sans aucune dépendance à la machine locale.
 
 ```
 1. GET /api/pipeline/tasks                  → discover existing tasks

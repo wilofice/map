@@ -37,11 +37,14 @@ Good titles:
 
 ## Server Connection
 
-| Deployment | Base URL |
+| Situation | BASE_URL à utiliser |
 |---|---|
-| Local dev | `$BASE_URL` |
-| Railway (cloud) | `https://soothing-tenderness-production-60f6.up.railway.app` |
+| MCP disponible | MCP tools — pas de REST |
+| Machine locale en ligne | `http://localhost:3000` |
+| **Machine locale hors ligne / MCP indisponible** | `https://soothing-tenderness-production-60f6.up.railway.app` |
 | LAN (HTTPS) | `https://<server-ip>:3443` |
+
+> **Hors ligne ou MCP indisponible** : le serveur Railway est toujours accessible depuis n'importe où. Envoie tes requêtes REST directement à `https://soothing-tenderness-production-60f6.up.railway.app` — il lit et écrit dans Turso sans dépendre de la machine locale.
 
 Replace `$BASE_URL` in all examples below with the appropriate URL for your environment.
 
