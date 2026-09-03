@@ -62,6 +62,7 @@ export default function DiagramStudio() {
   const [renderError, setRenderError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   // Pan/zoom state
   const [zoom, setZoom] = useState(1);
@@ -318,6 +319,14 @@ export default function DiagramStudio() {
               <button onClick={exportPng} style={btnStyle(border, muted)} title="Exporter PNG">PNG</button>
               <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} style={btnStyle(border, muted)} title="Réinitialiser la vue">⊙</button>
               <div style={{ width: 1, height: 20, background: border }} />
+              <button
+                onClick={() => setShowEditor(v => !v)}
+                style={{ ...btnStyle(border, showEditor ? accent : muted), fontWeight: showEditor ? 600 : 400 }}
+                title={showEditor ? 'Masquer l\'éditeur de code' : 'Afficher l\'éditeur de code'}
+              >
+                {showEditor ? '‹ Code' : '› Code'}
+              </button>
+              <div style={{ width: 1, height: 20, background: border }} />
               <span style={{ fontSize: 11, color: muted }}>{Math.round(zoom * 100)}%</span>
             </>
           ) : (
@@ -328,8 +337,8 @@ export default function DiagramStudio() {
         {/* Split: editor + preview */}
         {selected ? (
           <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-            {/* Editor pane */}
-            <div style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${border}`, background: bgCard }}>
+            {/* Editor pane — hidden by default */}
+            <div style={{ width: showEditor ? 340 : 0, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: showEditor ? `1px solid ${border}` : 'none', background: bgCard, overflow: 'hidden', transition: 'width 0.2s ease' }}>
               <div style={{ padding: '6px 10px', borderBottom: `1px solid ${border}`, fontSize: 11, color: muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Code Mermaid
               </div>
