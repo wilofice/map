@@ -58,9 +58,9 @@ const WRITE_MAP = {
     createNode:                 { table: 'nodes',                 action: 'upsert-result' },
     updateNode:                 { table: 'nodes',                 action: 'upsert-result' },
     deleteNode:                 { table: 'nodes',                 action: 'delete', idArg: 0 },
-    reorderNodes:               { table: 'nodes',                 action: 'none' }, // bulk — handled separately
-    createNodesBulk:            { table: 'nodes',                 action: 'none' }, // bulk — handled separately
-    splitNode:                  { table: 'nodes',                 action: 'none' }, // complex — handled separately
+    reorderNodes:               { table: 'nodes',                 action: 'refetch-ids', argIdx: 0 },
+    createNodesBulk:            { table: 'nodes',                 action: 'upsert-input-array', argIdx: 0 },
+    splitNode:                  { table: 'nodes',                 action: 'upsert-split' },
     // Progress / activity
     addNodeProgress:            { table: 'node_progress',         action: 'upsert-result' },
     deleteNodeProgress:         { table: 'node_progress',         action: 'delete-by-col', col: 'node_id', idArg: 0 },
@@ -255,8 +255,23 @@ class TursoSync {
 
         if (action === 'upsert-result') {
             await this._upsertRow(table, result);
+        } else if (action === 'upsert-input-array') {
+            // args[argIdx] is the full input array (e.g. createNodesBulk nodes)
+            const rows = args[spec.argIdx] || [];
+            for (const row of rows) await this._upsertRow(table, row);
+        } else if (action === 'refetch-ids') {
+            // args[argIdx] is [{id, ...partial}] — refetch full rows from local SQLite
+            const ids = (args[spec.argIdx] || []).map(r => r.id).filter(Boolean);
+            const stmt = this.localDb.prepare(`SELECT * FROM ${table} WHERE id = ?`);
+            for (const id of ids) {
+                const row = stmt.get(id);
+                if (row) await this._upsertRow(table, row);
+            }
+        } else if (action === 'upsert-split') {
+            // splitNode returns { groupA, groupB } — two full node objects
+            if (result?.groupA) await this._upsertRow(table, result.groupA);
+            if (result?.groupB) await this._upsertRow(table, result.groupB);
         } else if (action === 'upsert-task') {
-            // getPipelineTask returns { ...task, nodes, edges } — only push the task row
             if (result) {
                 const { nodes: _n, edges: _e, ...taskRow } = result;
                 await this._upsertRow(table, taskRow);
