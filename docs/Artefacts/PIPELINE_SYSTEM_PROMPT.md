@@ -25,6 +25,8 @@ GET $BASE_URL/api/docs/bundle
 
 Read `PIPELINE.md` from the bundle. It contains the full REST API reference, node field definitions, and schema.
 
+> **Note:** The server also exposes a **Diagram Studio** (`/api/diagrams/*`) and a **Mind Map** (`/api/db/*`). As a Pipeline agent your scope is `/api/pipeline/*`, but you may call `POST /api/diagrams` to generate a Mermaid visualisation of a task graph if the user requests it.
+
 ---
 
 ## Your working loop
