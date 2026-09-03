@@ -25,54 +25,83 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
       selector: 'core',
       style: { 'active-bg-color': 'transparent', 'active-bg-opacity': 0 } as cytoscape.Css.Core,
     },
+
+    // ── Base node ────────────────────────────────────────────────────────────
     {
       selector: 'node',
       style: {
         'width':  labeled ? 210 : 52,
-        'height': labeled ? 84  : 52,
+        'height': labeled ? 80  : 52,
         'shape': 'roundrectangle',
-        'background-color': t.nodePendingBg,
-        'border-color': t.nodePendingBorder, 'border-width': 2,
+        // Gradient fill: top slightly lighter, bottom darker for depth
+        'background-gradient-direction': 'to-bottom',
+        'background-gradient-stop-colors': `${t.nodePendingBgTop} ${t.nodePendingBg}`,
+        'background-gradient-stop-positions': '0% 100%',
+        'border-color': t.nodePendingBorder,
+        'border-width': 1.5,
         'label': labeled ? 'data(label)' : '',
         'text-wrap': 'wrap',
-        'text-max-width': '180px',
+        'text-max-width': labeled ? '182px' : '0px',
         'text-valign': 'center',
         'text-halign': 'center',
         'color': t.nodePendingText,
-        'font-size': labeled ? '16px' : '0px',
+        'font-size': labeled ? '13px' : '0px',
+        'font-weight': 500,
         'font-family': 'ui-sans-serif, system-ui, sans-serif',
-        'transition-property': 'background-color, border-color, width, height',
+        'transition-property': 'background-color, border-color, border-width, shadow-blur',
         'transition-duration': '0.2s',
       },
     },
+
+    // ── Status: in-progress ──────────────────────────────────────────────────
     {
       selector: 'node[status = "in-progress"]',
       style: {
-        'background-color': t.nodeInProgressBg,
-        'border-color': t.nodeInProgressBorder, 'border-width': 2,
+        'background-gradient-stop-colors': `${t.nodeInProgressBgTop} ${t.nodeInProgressBg}`,
+        'border-color': t.nodeInProgressBorder,
+        'border-width': 2.5,
         'color': t.nodeInProgressText,
-        'shadow-blur': 20, 'shadow-color': t.nodeInProgressBorder,
-        'shadow-opacity': 0.55, 'shadow-offset-x': 0, 'shadow-offset-y': 0,
+        'shadow-blur': 32,
+        'shadow-color': t.nodeInProgressBorder,
+        'shadow-opacity': 0.65,
+        'shadow-offset-x': 0, 'shadow-offset-y': 0,
       },
     },
+
+    // ── Status: done ─────────────────────────────────────────────────────────
     {
       selector: 'node[status = "done"]',
       style: {
-        'background-color': t.nodeDoneBg,
-        'border-color': t.nodeDoneBorder, 'border-width': 2,
+        'background-gradient-stop-colors': `${t.nodeDoneBgTop} ${t.nodeDoneBg}`,
+        'border-color': t.nodeDoneBorder,
+        'border-width': 2,
         'color': t.nodeDoneText,
-        'shadow-blur': 20, 'shadow-color': t.nodeDoneBorder,
-        'shadow-opacity': 0.55, 'shadow-offset-x': 0, 'shadow-offset-y': 0,
+        'shadow-blur': 28,
+        'shadow-color': t.nodeDoneBorder,
+        'shadow-opacity': 0.50,
+        'shadow-offset-x': 0, 'shadow-offset-y': 0,
       },
     },
+
+    // ── Type accents (border hue shift, only when pending so status wins) ───
+    { selector: 'node[type = "decision"][status = "pending"]',  style: { 'border-color': '#f59e0b', 'border-width': 2 } },
+    { selector: 'node[type = "milestone"][status = "pending"]', style: { 'border-color': '#a78bfa', 'border-width': 2 } },
+    { selector: 'node[type = "review"][status = "pending"]',    style: { 'border-color': '#f472b6', 'border-width': 2 } },
+
+    // ── Selected ─────────────────────────────────────────────────────────────
     {
       selector: 'node:selected',
       style: {
-        'border-color': '#818cf8', 'border-width': 3,
-        'shadow-blur': 24, 'shadow-color': '#6366f1',
-        'shadow-opacity': 0.8, 'shadow-offset-x': 0, 'shadow-offset-y': 0,
+        'border-color': '#818cf8',
+        'border-width': 3,
+        'shadow-blur': 30,
+        'shadow-color': '#6366f1',
+        'shadow-opacity': 0.85,
+        'shadow-offset-x': 0, 'shadow-offset-y': 0,
       },
     },
+
+    // ── Edges ────────────────────────────────────────────────────────────────
     {
       selector: 'edge',
       style: {
@@ -81,8 +110,8 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
         'target-arrow-color': t.edgeColor,
         'target-arrow-shape': 'triangle',
         'curve-style': 'bezier',
-        'arrow-scale': 1.2,
-        'opacity': 0.85,
+        'arrow-scale': 1.3,
+        'opacity': 1,
       },
     },
     {
@@ -90,7 +119,7 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
       style: {
         'line-color': t.nodeDoneBorder,
         'target-arrow-color': t.nodeDoneBorder,
-        'opacity': 0.55,
+        'opacity': 0.45,
       },
     },
   ] as cytoscape.StylesheetStyle[];

@@ -14,12 +14,15 @@ export interface PipelineTheme {
   accentText: string;
   danger: string;
   // Cytoscape node colors
+  nodePendingBgTop: string;
   nodePendingBg: string;
   nodePendingBorder: string;
   nodePendingText: string;
+  nodeInProgressBgTop: string;
   nodeInProgressBg: string;
   nodeInProgressBorder: string;
   nodeInProgressText: string;
+  nodeDoneBgTop: string;
   nodeDoneBg: string;
   nodeDoneBorder: string;
   nodeDoneText: string;
@@ -43,13 +46,16 @@ export const darkTheme: PipelineTheme = {
   accent:       '#6366f1',
   accentText:   '#818cf8',
   danger:       '#ef4444',
-  nodePendingBg:     '#1e2b42',
-  nodePendingBorder: '#3a4f72',
-  nodePendingText:   '#94a3b8',
-  nodeInProgressBg:     '#152d58',
+  nodePendingBgTop:  '#253553',
+  nodePendingBg:     '#192840',
+  nodePendingBorder: '#4a6490',
+  nodePendingText:   '#a8bdd6',
+  nodeInProgressBgTop:  '#1a3d72',
+  nodeInProgressBg:     '#0f2855',
   nodeInProgressBorder: '#3b82f6',
   nodeInProgressText:   '#93c5fd',
-  nodeDoneBg:     '#0f3528',
+  nodeDoneBgTop:  '#14493a',
+  nodeDoneBg:     '#0b3328',
   nodeDoneBorder: '#10b981',
   nodeDoneText:   '#6ee7b7',
   edgeColor:  '#3a4f72',
@@ -72,12 +78,15 @@ export const lightTheme: PipelineTheme = {
   accent:       '#6366f1',
   accentText:   '#4f46e5',
   danger:       '#dc2626',
+  nodePendingBgTop:  '#ffffff',
   nodePendingBg:     '#eef2fb',
-  nodePendingBorder: '#b0bfe8',
-  nodePendingText:   '#475569',
+  nodePendingBorder: '#99aed8',
+  nodePendingText:   '#334155',
+  nodeInProgressBgTop:  '#dbeafe',
   nodeInProgressBg:     '#eff6ff',
   nodeInProgressBorder: '#3b82f6',
   nodeInProgressText:   '#1d4ed8',
+  nodeDoneBgTop:  '#dcfce7',
   nodeDoneBg:     '#f0fdf4',
   nodeDoneBorder: '#10b981',
   nodeDoneText:   '#065f46',
