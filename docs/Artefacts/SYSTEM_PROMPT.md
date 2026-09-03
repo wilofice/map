@@ -30,9 +30,12 @@ The bundle returns a JSON object with these keys:
 - `PROJECT_FILE_GUIDE_JSON.md` — Mind Map JSON import schema
 - `MCP.md` — MCP server tool reference (Mind Map + Pipeline + Diagrams)
 - `PIPELINE.md` — Pipeline user guide + full REST API reference
+- `PIPELINE_SYSTEM_PROMPT.md` — dedicated system prompt for Pipeline-only autonomous agents (discover → plan → execute → update → report loop)
 - `SYSTEM_PROMPT.md` — this document
 
 Read all of them. They contain the rules, schemas, and field constraints that govern every action you take.
+
+> **If you are acting as a Pipeline agent exclusively** (running steps autonomously on behalf of the user), use `PIPELINE_SYSTEM_PROMPT.md` as your primary operating procedure instead of the generic directives below.
 
 ---
 
