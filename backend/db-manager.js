@@ -200,6 +200,22 @@ class DatabaseManager {
             CREATE INDEX IF NOT EXISTS idx_pipeline_edges_target ON pipeline_edges(target_id);
         `);
 
+        // Diagrams (Mermaid Studio)
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS diagrams (
+                id TEXT PRIMARY KEY,
+                collection_id TEXT,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                type TEXT DEFAULT 'flowchart',
+                code TEXT NOT NULL DEFAULT '',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_diagrams_collection ON diagrams(collection_id);
+        `);
+
         // Graph view settings table
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS graph_settings (
@@ -1141,6 +1157,35 @@ class DatabaseManager {
     }
     deletePipelineEdge(id) {
         this.db.prepare(`DELETE FROM pipeline_edges WHERE id = ?`).run(id);
+    }
+
+    // ===== DIAGRAMS =====
+
+    getAllDiagrams(collectionId) {
+        const sql = collectionId
+            ? `SELECT id, collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE collection_id = ? ORDER BY updated_at DESC`
+            : `SELECT id, collection_id, title, description, type, created_at, updated_at FROM diagrams ORDER BY updated_at DESC`;
+        return collectionId ? this.db.prepare(sql).all(collectionId) : this.db.prepare(sql).all();
+    }
+    getDiagram(id) {
+        return this.db.prepare(`SELECT * FROM diagrams WHERE id = ?`).get(id) || null;
+    }
+    createDiagram(id, title, code, description, type, collectionId) {
+        this.db.prepare(`INSERT INTO diagrams (id, title, code, description, type, collection_id) VALUES (?, ?, ?, ?, ?, ?)`)
+            .run(id, title, code || '', description || '', type || 'flowchart', collectionId || null);
+        return this.getDiagram(id);
+    }
+    updateDiagram(id, patch) {
+        const allowed = ['title', 'description', 'code', 'type', 'collection_id'];
+        const fields = [], vals = [];
+        for (const k of allowed) if (patch[k] !== undefined) { fields.push(`${k} = ?`); vals.push(patch[k]); }
+        if (!fields.length) return this.getDiagram(id);
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        this.db.prepare(`UPDATE diagrams SET ${fields.join(', ')} WHERE id = ?`).run(...vals, id);
+        return this.getDiagram(id);
+    }
+    deleteDiagram(id) {
+        this.db.prepare(`DELETE FROM diagrams WHERE id = ?`).run(id);
     }
 
     // ===== GRAPH SETTINGS =====

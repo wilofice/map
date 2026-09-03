@@ -10,6 +10,7 @@ import CollectionsManager from './pages/CollectionsManager';
 import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
+import DiagramStudio from './diagrams/DiagramStudio';
 
 function CanvasView() {
   const {
@@ -175,6 +176,7 @@ function CanvasView() {
             >⚙</button>
             <GraphViewLink t={t} />
             <PipelineLink t={t} />
+            <DiagramsLink t={t} />
           </div>
         </header>
 
@@ -240,6 +242,20 @@ function PipelineLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function DiagramsLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/diagrams')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Studio de diagrammes Mermaid"
+    >
+      ⬡ Diagrammes
+    </button>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
 
@@ -255,6 +271,7 @@ export default function App() {
       <Route path="/collections" element={<CollectionsManager />} />
       <Route path="/pipeline" element={<PipelineHome />} />
       <Route path="/pipeline/:taskId" element={<PipelineGraph />} />
+      <Route path="/diagrams" element={<DiagramStudio />} />
     </Routes>
   );
 }

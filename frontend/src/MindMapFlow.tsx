@@ -15,13 +15,7 @@ import '@xyflow/react/dist/style.css';
 
 import MindMapNode from './nodes/MindMapNode';
 import { useMindMapStore } from './store/mindMapStore';
-import { themes, type BgVariant } from './theme/themes';
-
-const BG_VARIANT_MAP: Record<BgVariant, BackgroundVariant> = {
-  dots:  BackgroundVariant.Dots,
-  lines: BackgroundVariant.Lines,
-  cross: BackgroundVariant.Cross,
-};
+import { themes } from './theme/themes';
 
 const nodeTypes: NodeTypes = {
   mindMapNode: MindMapNode as unknown as NodeTypes['mindMapNode'],

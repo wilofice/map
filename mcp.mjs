@@ -440,6 +440,81 @@ server.tool(
   }
 );
 
+// ─── Diagrams ─────────────────────────────────────────────────────────────────
+
+server.tool(
+  "list_diagrams",
+  "List all Mermaid diagrams stored in the database (metadata only, no code).",
+  { collection_id: z.string().optional().describe("Filter by collection id") },
+  async ({ collection_id }) => {
+    try {
+      const diagrams = db.getAllDiagrams(collection_id || null);
+      if (!diagrams.length) return { content: [{ type: "text", text: "No diagrams found." }] };
+      const lines = diagrams.map(d => `• [${d.id}] ${d.title} (${d.type}) — updated ${d.updated_at}`);
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_diagram",
+  "Retrieve the full Mermaid source code and metadata for a diagram.",
+  { diagram_id: z.string() },
+  async ({ diagram_id }) => {
+    try {
+      const d = db.getDiagram(diagram_id);
+      if (!d) return { content: [{ type: "text", text: `Diagram '${diagram_id}' not found.` }], isError: true };
+      return { content: [{ type: "text", text: `# ${d.title}\nType: ${d.type}\nDescription: ${d.description}\n\n\`\`\`mermaid\n${d.code}\n\`\`\`` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "create_diagram",
+  "Create a new Mermaid diagram and persist it to the database.",
+  {
+    title: z.string().describe("Short human-readable title"),
+    code: z.string().describe("Full Mermaid source code"),
+    description: z.string().optional().default(""),
+    type: z.enum(["flowchart", "sequence", "stateDiagram", "classDiagram", "erDiagram", "gantt", "mindmap"]).optional().default("flowchart"),
+    collection_id: z.string().optional(),
+  },
+  async ({ title, code, description, type, collection_id }) => {
+    try {
+      const id = randomUUID();
+      const d = db.createDiagram(id, title, code, description, type, collection_id || null);
+      return { content: [{ type: "text", text: `Created diagram '${d.title}' with id ${d.id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "update_diagram",
+  "Update the Mermaid source code, title, or description of an existing diagram.",
+  {
+    diagram_id: z.string(),
+    code: z.string().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    type: z.enum(["flowchart", "sequence", "stateDiagram", "classDiagram", "erDiagram", "gantt", "mindmap"]).optional(),
+  },
+  async ({ diagram_id, ...patch }) => {
+    try {
+      const d = db.updateDiagram(diagram_id, patch);
+      if (!d) return { content: [{ type: "text", text: `Diagram '${diagram_id}' not found.` }], isError: true };
+      return { content: [{ type: "text", text: `Updated diagram '${d.title}'` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
 // ─── Run ──────────────────────────────────────────────────────────────────────
 async function main() {
   const transport = new StdioServerTransport();

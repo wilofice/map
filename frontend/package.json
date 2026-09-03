@@ -17,6 +17,7 @@
     "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-dagre": "^4.0.1",
     "framer-motion": "^12.40.0",
+    "mermaid": "^11.17.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.18.1",

@@ -3242,6 +3242,37 @@ app.post('/api/graph/projects/:id/positions', (req, res) => {
     }
 });
 
+// ===== DIAGRAMS API =====
+
+app.get('/api/diagrams', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllDiagrams(req.query.collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/diagrams/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const d = db.getDiagram(req.params.id);
+        if (!d) return res.status(404).json({ error: 'Diagram not found' });
+        res.json(d);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/diagrams', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { title, code, description, type, collection_id } = req.body;
+        if (!title) return res.status(400).json({ error: 'title required' });
+        res.status(201).json(db.createDiagram(uuidv4(), title, code, description, type, collection_id));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/diagrams/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.updateDiagram(req.params.id, req.body)); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/diagrams/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deleteDiagram(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // SPA fallback: for any non-API route, serve the frontend index.html
 if (fsSync.existsSync(frontendDist)) {
     app.get('*', (_req, res) => {
