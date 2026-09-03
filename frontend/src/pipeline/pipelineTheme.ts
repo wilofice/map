@@ -32,10 +32,7 @@ export interface PipelineTheme {
 
 export const darkTheme: PipelineTheme = {
   bgMain:       '#0f1724',
-  bgCanvas: [
-    'radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.08) 0%, transparent 60%)',
-    'radial-gradient(circle, rgba(148,163,184,0.10) 1px, transparent 1px)',
-  ].join(', '),
+  bgCanvas: 'radial-gradient(circle, rgba(148,163,184,0.18) 1.5px, transparent 1.5px)',
   bgSurface:    '#151f33',
   bgCard:       '#1e2d48',
   bgInput:      '#1e2d48',
@@ -64,10 +61,7 @@ export const darkTheme: PipelineTheme = {
 
 export const lightTheme: PipelineTheme = {
   bgMain:       '#eef2fb',
-  bgCanvas: [
-    'radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.06) 0%, transparent 60%)',
-    'radial-gradient(circle, rgba(99,102,241,0.18) 1px, transparent 1px)',
-  ].join(', '),
+  bgCanvas: 'radial-gradient(circle, rgba(99,102,241,0.28) 1.5px, transparent 1.5px)',
   bgSurface:    '#ffffff',
   bgCard:       '#f6f8ff',
   bgInput:      '#eef2fb',

@@ -122,9 +122,20 @@ export default function PipelineHome() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1100 }}>
+              {/* List header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 32px', gap: 12, padding: '0 14px 8px', fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <span />
+                <span>Nom</span>
+                <span>Progrès</span>
+                <span>Statut</span>
+                <span>Priorité</span>
+                <span>Collection</span>
+                <span>Nœuds</span>
+                <span />
+              </div>
               {filteredTasks.map(task => (
-                <TaskCard key={task.id} task={task} collections={collections} theme={t} onOpen={() => navigate(`/pipeline/${task.id}`)} onDelete={() => deleteTask(task.id)} />
+                <TaskRow key={task.id} task={task} collections={collections} theme={t} onOpen={() => navigate(`/pipeline/${task.id}`)} onDelete={() => deleteTask(task.id)} />
               ))}
             </div>
           )}
@@ -198,63 +209,98 @@ export default function PipelineHome() {
   );
 }
 
-function TaskCard({ task, collections, theme: t, onOpen, onDelete }: {
+function TaskRow({ task, collections, theme: t, onOpen, onDelete }: {
   task: PipelineTask;
   collections: import('./pipelineApi').PipelineCollection[];
   theme: PipelineTheme;
   onOpen: () => void;
   onDelete: () => void;
 }) {
-  const s = STATUS_CFG[task.status] ?? STATUS_CFG.pending;
+  const s    = STATUS_CFG[task.status] ?? STATUS_CFG.pending;
   const total = task.node_count ?? 0;
   const done  = task.done_count  ?? 0;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
   const coll  = collections.find(c => c.id === task.collection_id);
+  const typeColor = TYPE_COLOR[task.type] ?? t.accent;
 
   return (
     <div
-      style={{ background: t.bgCard, border: `1px solid ${t.border}`, borderRadius: 12, padding: 20, cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s', display: 'flex', flexDirection: 'column', gap: 12 }}
       onClick={onOpen}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = t.accent; (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 0 1px ${t.accent}, 0 4px 24px ${t.accent}18`; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = t.border; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = t.accent; el.style.background = `${t.accent}08`; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = t.border; el.style.background = t.bgCard; }}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 32px',
+        gap: 12,
+        alignItems: 'center',
+        padding: '11px 14px',
+        background: t.bgCard,
+        border: `1px solid ${t.border}`,
+        borderRadius: 10,
+        cursor: 'pointer',
+        transition: 'border-color 0.15s, background 0.15s',
+      }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <span style={{ fontSize: 20, color: TYPE_COLOR[task.type] ?? t.accent, lineHeight: 1.2, flexShrink: 0 }}>{TYPE_ICON[task.type] ?? '◈'}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, color: t.textPrimary, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</div>
-          {task.description && (
-            <div style={{ fontSize: 12, color: t.textMuted, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as React.CSSProperties['WebkitBoxOrient'], lineHeight: 1.5 }}>{task.description}</div>
-          )}
-        </div>
-        <button onClick={e => { e.stopPropagation(); if (confirm('Delete this task?')) onDelete(); }} style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }} title="Delete">×</button>
-      </div>
+      {/* Type icon */}
+      <span style={{ width: 32, height: 32, borderRadius: 8, background: `${typeColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, color: typeColor, flexShrink: 0 }}>
+        {TYPE_ICON[task.type] ?? '◈'}
+      </span>
 
-      {total > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: t.textMuted }}>
-            <span>{done} / {total} steps done</span>
-            <span style={{ color: pct === 100 ? '#10b981' : t.textSecondary, fontWeight: 600 }}>{pct}%</span>
-          </div>
-          <div style={{ height: 3, background: t.border, borderRadius: 99, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#10b981' : t.accent, borderRadius: 99, transition: 'width 0.4s' }} />
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, background: s.bg, color: s.color, padding: '2px 8px', borderRadius: 99, fontWeight: 500 }}>{s.label}</span>
-        <span style={{ fontSize: 11, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[task.priority] ?? '#f59e0b' }} />
-          {task.priority}
-        </span>
-        {coll && (
-          <span style={{ fontSize: 11, color: t.textMuted, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: coll.color }} />
-            {coll.name}
-          </span>
+      {/* Title — never truncated, wraps naturally */}
+      <div>
+        <div style={{ fontWeight: 600, fontSize: 14, color: t.textPrimary, lineHeight: 1.45 }}>{task.name}</div>
+        {task.description && (
+          <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' as React.CSSProperties['WebkitBoxOrient'] }}>{task.description}</div>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 11, color: t.textMuted }}>{total} node{total !== 1 ? 's' : ''}</span>
       </div>
+
+      {/* Progress */}
+      <div>
+        {total > 0 ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t.textMuted, marginBottom: 4 }}>
+              <span>{done}/{total}</span>
+              <span style={{ color: pct === 100 ? '#10b981' : t.textSecondary, fontWeight: 600 }}>{pct}%</span>
+            </div>
+            <div style={{ height: 3, background: t.border, borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#10b981' : t.accent, borderRadius: 99, transition: 'width 0.4s' }} />
+            </div>
+          </>
+        ) : (
+          <span style={{ fontSize: 11, color: t.textMuted }}>—</span>
+        )}
+      </div>
+
+      {/* Status */}
+      <span style={{ fontSize: 11, background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 99, fontWeight: 500, whiteSpace: 'nowrap', justifySelf: 'start' }}>
+        {s.label}
+      </span>
+
+      {/* Priority */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: t.textMuted }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: PRIORITY_DOT[task.priority] ?? '#f59e0b', flexShrink: 0 }} />
+        {task.priority}
+      </span>
+
+      {/* Collection */}
+      {coll ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: t.textMuted, overflow: 'hidden' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: coll.color, flexShrink: 0 }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{coll.name}</span>
+        </span>
+      ) : <span />}
+
+      {/* Node count */}
+      <span style={{ fontSize: 12, color: t.textMuted, textAlign: 'right' }}>
+        {total > 0 ? `${total} nœud${total !== 1 ? 's' : ''}` : '—'}
+      </span>
+
+      {/* Delete */}
+      <button
+        onClick={e => { e.stopPropagation(); if (confirm('Supprimer cette tâche ?')) onDelete(); }}
+        style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '4px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        title="Supprimer"
+      >×</button>
     </div>
   );
 }

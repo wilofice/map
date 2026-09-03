@@ -30,8 +30,8 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
     {
       selector: 'node',
       style: {
-        'width':  labeled ? 210 : 52,
-        'height': labeled ? 80  : 52,
+        'width':  labeled ? 210 : 48,
+        'height': labeled ? 80  : 48,
         'shape': 'roundrectangle',
         // Gradient fill: top slightly lighter, bottom darker for depth
         'background-gradient-direction': 'to-bottom',
@@ -39,13 +39,14 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
         'background-gradient-stop-positions': '0% 100%',
         'border-color': t.nodePendingBorder,
         'border-width': 1.5,
-        'label': labeled ? 'data(label)' : '',
-        'text-wrap': 'wrap',
-        'text-max-width': labeled ? '182px' : '0px',
-        'text-valign': 'center',
+        'label': 'data(label)',
+        'text-wrap': 'ellipsis',
+        'text-max-width': labeled ? '182px' : '70px',
+        'text-valign': labeled ? 'center' : 'bottom',
         'text-halign': 'center',
+        'text-margin-y': labeled ? 0 : 10,
         'color': t.nodePendingText,
-        'font-size': labeled ? '13px' : '0px',
+        'font-size': labeled ? '13px' : '10px',
         'font-weight': 500,
         'font-family': 'ui-sans-serif, system-ui, sans-serif',
         'transition-property': 'background-color, border-color, border-width, shadow-blur',
@@ -101,6 +102,19 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
       },
     },
 
+    // ── Blocking: pending node that other nodes depend on ────────────────────
+    {
+      selector: 'node[?blocking]',
+      style: {
+        'border-color': '#f97316',
+        'border-width': 3,
+        'shadow-blur': 22,
+        'shadow-color': '#f97316',
+        'shadow-opacity': 0.55,
+        'shadow-offset-x': 0, 'shadow-offset-y': 0,
+      },
+    },
+
     // ── Edges ────────────────────────────────────────────────────────────────
     {
       selector: 'edge',
@@ -131,9 +145,10 @@ export default function PipelineGraph() {
 
   const { currentTask, selectedNodeId, panelOpen, graphLoading, error, loadTask, createNode } = usePipelineStore();
 
-  const containerRef   = useRef<HTMLDivElement>(null);
-  const cyRef          = useRef<cytoscape.Core | null>(null);
-  const layoutApplied  = useRef(false);
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const cyRef           = useRef<cytoscape.Core | null>(null);
+  const layoutApplied   = useRef(false);
+  const pulseIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [addingNode,    setAddingNode]    = useState(false);
   const [newNodeTitle,  setNewNodeTitle]  = useState('');
@@ -248,6 +263,18 @@ export default function PipelineGraph() {
       });
     });
 
+    // Mark blocking nodes: pending nodes that block another pending/in-progress node
+    const nodeStatusMap = new Map(currentTask.nodes.map(n => [n.id, n.status]));
+    const blockingIds = new Set<string>();
+    currentTask.edges.forEach(e => {
+      const srcStatus = nodeStatusMap.get(e.source_id);
+      const tgtStatus = nodeStatusMap.get(e.target_id);
+      if (srcStatus === 'pending' && (tgtStatus === 'pending' || tgtStatus === 'in-progress')) {
+        blockingIds.add(e.source_id);
+      }
+    });
+    cy.nodes().forEach(n => { n.data('blocking', blockingIds.has(n.id()) ? true : false); });
+
     if (!layoutApplied.current && currentTask.nodes.length > 0) {
       const hasSaved = currentTask.nodes.some(n => n.position_x || n.position_y);
       if (!hasSaved) {
@@ -255,6 +282,30 @@ export default function PipelineGraph() {
       }
       layoutApplied.current = true;
     }
+  }, [currentTask]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Pulse animation for in-progress nodes ────────────────────────────────
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (pulseIntervalRef.current) { clearInterval(pulseIntervalRef.current); pulseIntervalRef.current = null; }
+    if (!cy) return;
+
+    let phase = false;
+    pulseIntervalRef.current = setInterval(() => {
+      const nodes = cyRef.current?.nodes('[status = "in-progress"]');
+      if (!nodes || nodes.length === 0) return;
+      phase = !phase;
+      nodes.animate({
+        style: {
+          'border-width': phase ? 3.5 : 1.5,
+          'shadow-opacity': phase ? 0.9 : 0.3,
+        } as cytoscape.Css.Node,
+        duration: 800,
+        easing: 'ease-in-out',
+      });
+    }, 800);
+
+    return () => { if (pulseIntervalRef.current) { clearInterval(pulseIntervalRef.current); pulseIntervalRef.current = null; } };
   }, [currentTask]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Highlight selected ───────────────────────────────────────────────────
@@ -289,10 +340,23 @@ export default function PipelineGraph() {
     setAddingNode(false);
   };
 
-  const selectedNode = currentTask?.nodes.find(n => n.id === selectedNodeId);
-  const doneCount    = currentTask?.nodes.filter(n => n.status === 'done').length ?? 0;
-  const totalCount   = currentTask?.nodes.length ?? 0;
-  const progress     = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+  const selectedNode    = currentTask?.nodes.find(n => n.id === selectedNodeId);
+  const doneCount       = currentTask?.nodes.filter(n => n.status === 'done').length ?? 0;
+  const totalCount      = currentTask?.nodes.length ?? 0;
+  const progress        = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+  const inProgressCount = currentTask?.nodes.filter(n => n.status === 'in-progress').length ?? 0;
+  const blockingCount   = (() => {
+    if (!currentTask) return 0;
+    const statusMap = new Map(currentTask.nodes.map(n => [n.id, n.status]));
+    const ids = new Set<string>();
+    currentTask.edges.forEach(e => {
+      if (statusMap.get(e.source_id) === 'pending' &&
+          (statusMap.get(e.target_id) === 'pending' || statusMap.get(e.target_id) === 'in-progress')) {
+        ids.add(e.source_id);
+      }
+    });
+    return ids.size;
+  })();
 
   // Derived styles
   const topbarBtn = (active = false): React.CSSProperties => ({
@@ -434,6 +498,31 @@ export default function PipelineGraph() {
               </>
             )}
           </div>
+
+          {/* Status counter chip */}
+          {(inProgressCount > 0 || blockingCount > 0) && (
+            <div style={{
+              position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)',
+              background: t.overlayBg, border: `1px solid ${t.border}`,
+              borderRadius: 24, padding: '6px 18px', display: 'flex', gap: 14, alignItems: 'center',
+              backdropFilter: 'blur(8px)', zIndex: 10, fontSize: 12, fontWeight: 600,
+              pointerEvents: 'none', whiteSpace: 'nowrap',
+            }}>
+              {inProgressCount > 0 && (
+                <span style={{ color: '#93c5fd', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', display: 'inline-block', boxShadow: '0 0 6px #3b82f680' }} />
+                  {inProgressCount} en cours
+                </span>
+              )}
+              {inProgressCount > 0 && blockingCount > 0 && <span style={{ color: t.textMuted }}>·</span>}
+              {blockingCount > 0 && (
+                <span style={{ color: '#fdba74', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block', boxShadow: '0 0 6px #f9731680' }} />
+                  {blockingCount} bloquant{blockingCount > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Selected node chip */}
           {panelOpen && selectedNode && (

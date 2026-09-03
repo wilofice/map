@@ -32,7 +32,7 @@ export interface AppTheme {
 export const themes: Record<ThemeKey, AppTheme> = {
   ibm: {
     canvas: '#111111',
-    bgDots: '#2d2d2d',
+    bgDots: '#3a3a3a',
     bgVariant: 'dots',
     shell: '#111111',
     surface: '#161616',
@@ -55,8 +55,8 @@ export const themes: Record<ThemeKey, AppTheme> = {
   },
   dusk: {
     canvas: '#1a1b27',
-    bgDots: '#252645',
-    bgVariant: 'lines',
+    bgDots: '#3a3c5c',
+    bgVariant: 'dots',
     shell: '#13142a',
     surface: '#1e2038',
     border: '#30325a',
@@ -78,8 +78,8 @@ export const themes: Record<ThemeKey, AppTheme> = {
   },
   light: {
     canvas: '#e5e5e5',
-    bgDots: '#000000',
-    bgVariant: 'lines',
+    bgDots: '#a0aaba',
+    bgVariant: 'dots',
     shell: '#f3f4f6',
     surface: '#ffffff',
     border: '#e5e7eb',
