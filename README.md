@@ -9,12 +9,13 @@ AI-driven interactive mind mapping and task pipeline application. Built on React
 
 ## What's in the app
 
-Two fully independent tools share one server:
+Three fully independent tools share one server:
 
 | Tool | Route | Description |
 |---|---|---|
 | **Mind Map** | `/` `/graph` `/collections` | Hierarchical node canvas powered by React Flow |
 | **Pipeline** | `/pipeline` `/pipeline/:taskId` | Task graph canvas powered by Cytoscape.js |
+| **Diagram Studio** | `/diagrams` | Mermaid diagram editor with live SVG preview, pan/zoom, export |
 
 ---
 
@@ -26,6 +27,7 @@ Two fully independent tools share one server:
 │  React 19 + TypeScript + Vite + Tailwind CSS v4      │
 │  Mind Map: React Flow + Zustand + Dagre              │
 │  Pipeline: Cytoscape.js + Zustand (isolated store)   │
+│  Diagrams: Mermaid.js (lazy chunks) + pan/zoom       │
 └───────────────────┬─────────────────────────────────┘
                     │  /api/*
 ┌───────────────────▼─────────────────────────────────┐
@@ -76,6 +78,9 @@ map/
     └── src/
         ├── App.tsx            # Root: routes for both tools + shared topbar links
         ├── main.tsx
+        │
+        ├── diagrams/
+        │   └── DiagramStudio.tsx    # /diagrams — sidebar + Mermaid editor + SVG preview
         │
         ├── pipeline/          # Pipeline — fully isolated (no shared state/styles)
         │   ├── pipelineApi.ts       # Typed API client for /api/pipeline/*
@@ -176,7 +181,7 @@ Connect Claude Desktop, Cursor, or any MCP-compatible client to manipulate mind 
 }
 ```
 
-Available tools: `list_projects`, `get_project_context`, `create_node`, `bulk_create_nodes`, `update_node`, `delete_node`, `search_nodes`, `add_progress_note`, `get_stats`.
+Available tools: `list_projects`, `get_project_context`, `create_node`, `bulk_create_nodes`, `update_node`, `delete_node`, `search_nodes`, `add_progress_note`, `get_stats`, `list_pipeline_tasks`, `get_pipeline_task`, `create_pipeline_task`, `create_pipeline_node`, `update_pipeline_node`, `delete_pipeline_node`, `create_pipeline_edge`, `delete_pipeline_edge`, `list_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`.
 
 See [docs/MCP.md](docs/MCP.md) for full setup.
 
@@ -219,6 +224,46 @@ See [docs/PIPELINE.md](docs/PIPELINE.md) for the full REST API reference, schema
 
 ---
 
+## Diagram Studio — Mermaid Editor
+
+Visualise any strategic or technical structure that doesn't fit a tree (Mind Map) or a production sequence (Pipeline): value chains, architecture diagrams, ER models, state machines, Gantt charts.
+
+Navigate to **`/diagrams`** (click "⬡ Diagrammes" in the top bar).
+
+### Features
+
+- **Sidebar** — list, search, create (by type), delete diagrams
+- **7 diagram types** with starter templates: Flowchart, Sequence, State, Class, ER, Gantt, Mindmap
+- **Live preview** — SVG re-rendered as you type (600 ms debounce)
+- **Pan / zoom** — mouse-wheel zoom + drag to pan on the canvas
+- **Auto-save** — silently saved to the database 1.5 s after each keystroke
+- **Toggle code editor** — hidden by default (button `› Code` in topbar); the diagram takes the full viewport
+- **Export** — SVG and 2× PNG export buttons
+- **Turso-synced** — stored as lightweight Mermaid text (~2–4 KB per diagram), replicated to the cloud on every write
+- **MCP-ready** — AI agents can create and update diagrams directly without touching the UI
+
+### Quick REST example
+
+```bash
+# List all diagrams (metadata, no code)
+curl $BASE_URL/api/diagrams
+
+# Get one diagram with its full Mermaid source
+curl $BASE_URL/api/diagrams/<id>
+
+# Create a diagram
+curl -X POST $BASE_URL/api/diagrams \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"My flow","type":"flowchart","code":"flowchart LR\n  A --> B"}'
+
+# Update code
+curl -X PUT $BASE_URL/api/diagrams/<id> \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"flowchart LR\n  A --> B --> C"}'
+```
+
+---
+
 ## AI Integration
 
 ### Context bundle
@@ -235,7 +280,8 @@ Returns: `AI-COPILOT-GUIDE.md`, `PROJECT_FILE_GUIDE_JSON.md`, `MCP.md`, `PIPELIN
 
 1. Fetch the bundle to load rules and schemas
 2. For **mind map**: use MCP tools (`get_project_context`, `create_node`, etc.)
-3. For **pipeline**: use REST API (`GET /api/pipeline/tasks/:id`, `PUT /api/pipeline/nodes/:id`)
+3. For **pipeline**: use MCP tools (`list_pipeline_tasks`, `update_pipeline_node`) or REST (`/api/pipeline/*`)
+4. For **diagrams**: use MCP tools (`create_diagram`, `update_diagram`) or REST (`/api/diagrams/*`)
 
 See [docs/Artefacts/AI-COPILOT-GUIDE.md](docs/Artefacts/AI-COPILOT-GUIDE.md) for the complete agent integration guide.
 
@@ -271,6 +317,16 @@ See [docs/Artefacts/AI-COPILOT-GUIDE.md](docs/Artefacts/AI-COPILOT-GUIDE.md) for
 | POST | `/api/pipeline/edges` | Create dependency edge |
 | DELETE | `/api/pipeline/edges/:id` | Delete edge |
 
+### Diagrams
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/diagrams` | List all diagrams (metadata, no code) — optional `?collection_id=` filter |
+| GET | `/api/diagrams/:id` | Get diagram with full Mermaid source |
+| POST | `/api/diagrams` | Create diagram (`title`, `code`, `type`, `description`, `collection_id`) |
+| PUT | `/api/diagrams/:id` | Update any field (`code`, `title`, `description`, `type`) |
+| DELETE | `/api/diagrams/:id` | Delete a diagram |
+
 ### Docs
 
 | Method | Endpoint | Description |
@@ -288,6 +344,8 @@ SQLite (`mind_maps.db`), managed by `backend/db-manager.js`. Migrations run auto
 **Mind Map tables:** `projects`, `nodes`, `node_audio_files`, `collections`, `app_state`
 
 **Pipeline tables:** `pipeline_collections`, `pipeline_tasks`, `pipeline_nodes`, `pipeline_edges`
+
+**Diagram tables:** `diagrams` — stores Mermaid source text (~2–4 KB per diagram)
 
 **Cloud sync (Turso):** every write is replicated to `libsql://map-*.turso.io` in the background via `backend/turso-sync.js`. On startup the server pulls the latest cloud state into local SQLite. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in `.env` to enable — without them the app runs in local-only mode unchanged. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 

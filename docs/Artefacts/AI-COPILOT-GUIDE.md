@@ -185,9 +185,61 @@ GET /api/docs/bundle
 
 ---
 
+## Diagrams REST API (Mermaid Studio)
+
+The Diagram Studio lives at `/diagrams`. Diagrams are stored as lightweight Mermaid text in the `diagrams` table (Turso-synced). Prefer **MCP tools** (`list_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`) when an MCP connection is active. Use REST when calling from scripts or without MCP.
+
+```bash
+# List all diagrams (id, title, type, updated_at — no code for performance)
+GET  /api/diagrams
+GET  /api/diagrams?collection_id=<id>   # filter by collection
+
+# Get one diagram with its full Mermaid source
+GET  /api/diagrams/:id
+
+# Create a new diagram
+POST /api/diagrams
+Body: {
+  "title": "Architecture micro-services",
+  "type": "flowchart",           # flowchart | sequence | stateDiagram | classDiagram | erDiagram | gantt | mindmap
+  "code": "flowchart LR\n  A --> B",
+  "description": "...",          # optional
+  "collection_id": "<id>"        # optional — links to an existing collection
+}
+
+# Update title, code, description or type
+PUT  /api/diagrams/:id
+Body: { "code": "flowchart LR\n  A --> B --> C", "title": "New title" }
+
+# Delete
+DELETE /api/diagrams/:id
+```
+
+### AI agent workflow for diagrams
+
+```bash
+# 1. Discover existing diagrams
+curl $BASE_URL/api/diagrams
+
+# 2. Read a specific diagram's source before editing
+curl $BASE_URL/api/diagrams/<id>
+
+# 3. Create a new diagram from scratch
+curl -X POST $BASE_URL/api/diagrams \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Chaîne de valeur","type":"flowchart","code":"flowchart TD\n  A --> B"}'
+
+# 4. Update its Mermaid source
+curl -X PUT $BASE_URL/api/diagrams/<id> \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"flowchart TD\n  A --> B --> C"}'
+```
+
+---
+
 ## Pipeline REST API (Task Dashboard)
 
-The Pipeline is a separate task management dashboard at `/pipeline`. It does **not** use MCP tools — use the REST API below directly.
+The Pipeline is a separate task management dashboard at `/pipeline`. MCP tools are available (`list_pipeline_tasks`, `update_pipeline_node`, etc.); REST is also available for scripts.
 
 ### Collections
 

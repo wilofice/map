@@ -129,6 +129,23 @@ Once connected, your AI has access to these native database actions.
 | `create_pipeline_edge` | Connect two nodes (source must finish before target) |
 | `delete_pipeline_edge` | Remove a dependency edge |
 
+### Diagram Studio tools
+
+Use these tools to create and manage Mermaid diagrams stored in the database. Each diagram is a lightweight text record (~2–4 KB) that the Diagram Studio renders as an interactive SVG.
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `list_diagrams` | `collection_id?` | List all diagrams (metadata, no code). Pass `collection_id` to filter. |
+| `get_diagram` | `diagram_id` | Retrieve the full Mermaid source and metadata for one diagram. |
+| `create_diagram` | `title`, `code`, `description?`, `type?`, `collection_id?` | Create and persist a new diagram. `type` is one of: `flowchart` \| `sequence` \| `stateDiagram` \| `classDiagram` \| `erDiagram` \| `gantt` \| `mindmap`. |
+| `update_diagram` | `diagram_id`, `code?`, `title?`, `description?`, `type?` | Update an existing diagram's source or metadata. |
+
+**Typical agent workflow for diagrams:**
+1. Call `list_diagrams` to discover existing diagrams and their IDs.
+2. Call `get_diagram(id)` to read the current Mermaid source before editing.
+3. Call `update_diagram(id, { code: "..." })` with the full updated source.
+4. Or call `create_diagram(...)` to add a new diagram from scratch.
+
 ---
 
 ## Node field reference
