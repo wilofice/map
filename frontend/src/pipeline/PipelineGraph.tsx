@@ -308,6 +308,28 @@ export default function PipelineGraph() {
     return () => { if (pulseIntervalRef.current) { clearInterval(pulseIntervalRef.current); pulseIntervalRef.current = null; } };
   }, [currentTask]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Arrow-key canvas navigation ──────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept when user is typing in an input / textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const cy = cyRef.current;
+      if (!cy) return;
+
+      const step = e.shiftKey ? 180 : 60;
+      switch (e.key) {
+        case 'ArrowLeft':  cy.panBy({ x:  step, y: 0     }); e.preventDefault(); break;
+        case 'ArrowRight': cy.panBy({ x: -step, y: 0     }); e.preventDefault(); break;
+        case 'ArrowUp':    cy.panBy({ x: 0,     y:  step }); e.preventDefault(); break;
+        case 'ArrowDown':  cy.panBy({ x: 0,     y: -step }); e.preventDefault(); break;
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Highlight selected ───────────────────────────────────────────────────
   useEffect(() => {
     const cy = cyRef.current;
