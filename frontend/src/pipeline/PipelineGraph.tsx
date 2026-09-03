@@ -22,6 +22,10 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
   const labeled = display === 'labeled';
   return [
     {
+      selector: 'core',
+      style: { 'active-bg-color': 'transparent', 'active-bg-opacity': 0 } as cytoscape.Css.Core,
+    },
+    {
       selector: 'node',
       style: {
         'width':  labeled ? 210 : 52,
@@ -133,7 +137,10 @@ export default function PipelineGraph() {
       wheelSensitivity: 0.3,
       minZoom: 0.15,
       maxZoom: 3,
+      styleEnabled: true,
     });
+    // Make all Cytoscape canvas layers transparent so our gradient shows through
+    container.querySelectorAll('canvas').forEach(c => { c.style.background = 'transparent'; });
     cyRef.current = cy;
 
     cy.on('tap', 'node', evt => {
@@ -351,7 +358,12 @@ export default function PipelineGraph() {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {/* Canvas */}
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          flex: 1, position: 'relative', overflow: 'hidden',
+          backgroundColor: t.bgMain,
+          backgroundImage: t.bgCanvas,
+          backgroundSize: 'auto, 28px 28px',
+        }}>
 
           {graphLoading && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, pointerEvents: 'none' }}>

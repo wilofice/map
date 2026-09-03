@@ -2,6 +2,7 @@ export type PipelineColorMode = 'dark' | 'light';
 
 export interface PipelineTheme {
   bgMain: string;
+  bgCanvas: string;        // canvas area background (gradient + pattern)
   bgSurface: string;
   bgCard: string;
   bgInput: string;
@@ -27,8 +28,12 @@ export interface PipelineTheme {
 }
 
 export const darkTheme: PipelineTheme = {
-  bgMain:       '#131e32',
-  bgSurface:    '#1a2540',
+  bgMain:       '#0f1724',
+  bgCanvas: [
+    'radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.08) 0%, transparent 60%)',
+    'radial-gradient(circle, rgba(148,163,184,0.10) 1px, transparent 1px)',
+  ].join(', '),
+  bgSurface:    '#151f33',
   bgCard:       '#1e2d48',
   bgInput:      '#1e2d48',
   border:       '#2c3d5c',
@@ -53,6 +58,10 @@ export const darkTheme: PipelineTheme = {
 
 export const lightTheme: PipelineTheme = {
   bgMain:       '#eef2fb',
+  bgCanvas: [
+    'radial-gradient(ellipse at 50% 20%, rgba(99,102,241,0.06) 0%, transparent 60%)',
+    'radial-gradient(circle, rgba(99,102,241,0.18) 1px, transparent 1px)',
+  ].join(', '),
   bgSurface:    '#ffffff',
   bgCard:       '#f6f8ff',
   bgInput:      '#eef2fb',
