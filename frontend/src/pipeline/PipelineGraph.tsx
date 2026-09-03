@@ -155,6 +155,7 @@ export default function PipelineGraph() {
   const [layoutName,    setLayoutName]    = useState<'dagre' | 'breadthfirst' | 'grid' | 'free'>('dagre');
   const [displayMode,   setDisplayMode]   = useState<DisplayMode>('labeled');
   const [colorMode,     setColorMode]     = useState<PipelineColorMode>(loadColorMode);
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
 
   const t = getTheme(colorMode);
 
@@ -204,6 +205,30 @@ export default function PipelineGraph() {
         position_y: Math.round(pos.y),
       });
     });
+
+    // Tooltip: show full label on hover
+    cy.on('mouseover', 'node', evt => {
+      const node = evt.target;
+      const rpos = node.renderedPosition();
+      const rect = container.getBoundingClientRect();
+      setTooltip({
+        x: rect.left + rpos.x,
+        y: rect.top  + rpos.y - node.renderedHeight() / 2 - 10,
+        label: node.data('label') as string,
+      });
+    });
+    cy.on('mousemove', 'node', evt => {
+      const node = evt.target;
+      const rpos = node.renderedPosition();
+      const rect = container.getBoundingClientRect();
+      setTooltip(prev => prev ? {
+        ...prev,
+        x: rect.left + rpos.x,
+        y: rect.top  + rpos.y - node.renderedHeight() / 2 - 10,
+      } : null);
+    });
+    cy.on('mouseout', 'node', () => setTooltip(null));
+    cy.on('tap grab', 'node', () => setTooltip(null));
 
     return () => { cy.destroy(); cyRef.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -550,6 +575,32 @@ export default function PipelineGraph() {
           {panelOpen && selectedNode && (
             <div style={{ position: 'absolute', top: 12, left: 12, background: t.overlayBg, border: `1px solid ${t.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, color: t.textMuted, backdropFilter: 'blur(8px)', pointerEvents: 'none' }}>
               ◈ <span style={{ color: t.textPrimary, fontWeight: 600 }}>{selectedNode.title}</span>
+            </div>
+          )}
+
+          {/* Node label tooltip */}
+          {tooltip && (
+            <div style={{
+              position: 'fixed',
+              left: tooltip.x,
+              top: tooltip.y,
+              transform: 'translate(-50%, -100%)',
+              background: t.overlayBg,
+              border: `1px solid ${t.border}`,
+              borderRadius: 8,
+              padding: '6px 12px',
+              fontSize: 13,
+              fontWeight: 600,
+              color: t.textPrimary,
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+              zIndex: 9999,
+              pointerEvents: 'none',
+              maxWidth: 320,
+              wordBreak: 'break-word',
+              lineHeight: 1.5,
+            }}>
+              {tooltip.label}
             </div>
           )}
         </div>
