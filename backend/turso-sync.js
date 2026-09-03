@@ -36,6 +36,7 @@ const SYNC_TABLES = [
     'pipeline_tasks',
     'pipeline_nodes',
     'pipeline_edges',
+    'diagram_collections',
     'diagrams',
 ];
 
@@ -90,6 +91,10 @@ const WRITE_MAP = {
     // Pipeline edges
     createPipelineEdge:         { table: 'pipeline_edges',        action: 'upsert-result' },
     deletePipelineEdge:         { table: 'pipeline_edges',        action: 'delete', idArg: 0 },
+    // Diagram collections
+    createDiagramCollection:    { table: 'diagram_collections',   action: 'upsert-result' },
+    updateDiagramCollection:    { table: 'diagram_collections',   action: 'upsert-result' },
+    deleteDiagramCollection:    { table: 'diagram_collections',   action: 'none' }, // unlinking handled locally
     // Diagrams
     createDiagram:              { table: 'diagrams',              action: 'upsert-result' },
     updateDiagram:              { table: 'diagrams',              action: 'upsert-result' },
@@ -150,7 +155,8 @@ class TursoSync {
             `CREATE TABLE IF NOT EXISTS pipeline_tasks (id TEXT PRIMARY KEY, collection_id TEXT, name TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'general', status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', due_date DATE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_nodes (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', status TEXT DEFAULT 'pending', type TEXT DEFAULT 'step', notes TEXT DEFAULT '', cli_command TEXT DEFAULT '', due_date DATE, position_x REAL DEFAULT 0, position_y REAL DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_edges (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, source_id TEXT NOT NULL, target_id TEXT NOT NULL, label TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS diagrams (id TEXT PRIMARY KEY, collection_id TEXT, title TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'flowchart', code TEXT NOT NULL DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS diagram_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS diagrams (id TEXT PRIMARY KEY, collection_id TEXT, diagram_collection_id TEXT, title TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'flowchart', code TEXT NOT NULL DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
         ];
         for (const sql of stmts) {
             await this.client.execute(sql);

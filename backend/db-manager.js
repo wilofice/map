@@ -216,6 +216,19 @@ class DatabaseManager {
             CREATE INDEX IF NOT EXISTS idx_diagrams_collection ON diagrams(collection_id);
         `);
 
+        // Diagram project collections (separate from Mind Map collections)
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS diagram_collections (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        // Add diagram_collection_id column to diagrams if it doesn't exist
+        try { this.db.exec(`ALTER TABLE diagrams ADD COLUMN diagram_collection_id TEXT REFERENCES diagram_collections(id) ON DELETE SET NULL`); } catch (_) {}
+        try { this.db.exec(`CREATE INDEX IF NOT EXISTS idx_diagrams_diagram_collection ON diagrams(diagram_collection_id)`); } catch (_) {}
+
         // Graph view settings table
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS graph_settings (
@@ -1159,26 +1172,53 @@ class DatabaseManager {
         this.db.prepare(`DELETE FROM pipeline_edges WHERE id = ?`).run(id);
     }
 
+    // ===== DIAGRAM COLLECTIONS =====
+
+    getAllDiagramCollections() {
+        return this.db.prepare(`
+            SELECT dc.*, COUNT(d.id) as diagram_count
+            FROM diagram_collections dc
+            LEFT JOIN diagrams d ON d.diagram_collection_id = dc.id
+            GROUP BY dc.id ORDER BY dc.created_at ASC
+        `).all();
+    }
+    createDiagramCollection(id, name) {
+        this.db.prepare(`INSERT INTO diagram_collections (id, name) VALUES (?, ?)`).run(id, name);
+        return this.db.prepare(`SELECT * FROM diagram_collections WHERE id = ?`).get(id);
+    }
+    updateDiagramCollection(id, name) {
+        this.db.prepare(`UPDATE diagram_collections SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(name, id);
+        return this.db.prepare(`SELECT * FROM diagram_collections WHERE id = ?`).get(id);
+    }
+    deleteDiagramCollection(id) {
+        // Unlink diagrams from this collection before deleting
+        this.db.prepare(`UPDATE diagrams SET diagram_collection_id = NULL WHERE diagram_collection_id = ?`).run(id);
+        this.db.prepare(`DELETE FROM diagram_collections WHERE id = ?`).run(id);
+    }
+
     // ===== DIAGRAMS =====
 
-    getAllDiagrams(collectionId) {
-        const sql = collectionId
-            ? `SELECT id, collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE collection_id = ? ORDER BY updated_at DESC`
-            : `SELECT id, collection_id, title, description, type, created_at, updated_at FROM diagrams ORDER BY updated_at DESC`;
-        return collectionId ? this.db.prepare(sql).all(collectionId) : this.db.prepare(sql).all();
+    getAllDiagrams(diagramCollectionId) {
+        if (diagramCollectionId === 'none') {
+            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id IS NULL ORDER BY updated_at DESC`).all();
+        }
+        if (diagramCollectionId) {
+            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id = ? ORDER BY updated_at DESC`).all(diagramCollectionId);
+        }
+        return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams ORDER BY updated_at DESC`).all();
     }
     getDiagram(id) {
         return this.db.prepare(`SELECT * FROM diagrams WHERE id = ?`).get(id) || null;
     }
-    createDiagram(id, title, code, description, type, collectionId) {
-        this.db.prepare(`INSERT INTO diagrams (id, title, code, description, type, collection_id) VALUES (?, ?, ?, ?, ?, ?)`)
-            .run(id, title, code || '', description || '', type || 'flowchart', collectionId || null);
+    createDiagram(id, title, code, description, type, diagramCollectionId) {
+        this.db.prepare(`INSERT INTO diagrams (id, title, code, description, type, diagram_collection_id) VALUES (?, ?, ?, ?, ?, ?)`)
+            .run(id, title, code || '', description || '', type || 'flowchart', diagramCollectionId || null);
         return this.getDiagram(id);
     }
     updateDiagram(id, patch) {
-        const allowed = ['title', 'description', 'code', 'type', 'collection_id'];
+        const allowed = ['title', 'description', 'code', 'type', 'diagram_collection_id'];
         const fields = [], vals = [];
-        for (const k of allowed) if (patch[k] !== undefined) { fields.push(`${k} = ?`); vals.push(patch[k]); }
+        for (const k of allowed) if (patch[k] !== undefined) { fields.push(`${k} = ?`); vals.push(patch[k] === '' ? null : patch[k]); }
         if (!fields.length) return this.getDiagram(id);
         fields.push('updated_at = CURRENT_TIMESTAMP');
         this.db.prepare(`UPDATE diagrams SET ${fields.join(', ')} WHERE id = ?`).run(...vals, id);

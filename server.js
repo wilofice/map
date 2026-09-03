@@ -3245,11 +3245,38 @@ app.post('/api/graph/projects/:id/positions', (req, res) => {
     }
 });
 
+// ===== DIAGRAM COLLECTIONS API =====
+
+app.get('/api/diagram-collections', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllDiagramCollections()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/diagram-collections', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ error: 'name required' });
+        res.status(201).json(db.createDiagramCollection(uuidv4(), name));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/diagram-collections/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ error: 'name required' });
+        res.json(db.updateDiagramCollection(req.params.id, name));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/diagram-collections/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deleteDiagramCollection(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== DIAGRAMS API =====
 
 app.get('/api/diagrams', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
-    try { res.json(db.getAllDiagrams(req.query.collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
+    try { res.json(db.getAllDiagrams(req.query.diagram_collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/diagrams/:id', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
@@ -3262,9 +3289,9 @@ app.get('/api/diagrams/:id', (req, res) => {
 app.post('/api/diagrams', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
     try {
-        const { title, code, description, type, collection_id } = req.body;
+        const { title, code, description, type, diagram_collection_id } = req.body;
         if (!title) return res.status(400).json({ error: 'title required' });
-        res.status(201).json(db.createDiagram(uuidv4(), title, code, description, type, collection_id));
+        res.status(201).json(db.createDiagram(uuidv4(), title, code, description, type, diagram_collection_id));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.put('/api/diagrams/:id', (req, res) => {
