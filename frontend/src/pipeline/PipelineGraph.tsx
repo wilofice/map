@@ -455,7 +455,7 @@ export default function PipelineGraph() {
           flex: 1, position: 'relative', overflow: 'hidden',
           backgroundColor: t.bgMain,
           backgroundImage: t.bgCanvas,
-          backgroundSize: 'auto, 28px 28px',
+          backgroundSize: '28px 28px',
         }}>
 
           {graphLoading && (
