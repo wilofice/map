@@ -2901,10 +2901,10 @@ async function getAllDocs() {
     return files;
 }
 
-// Cold-start entry point — returns SYSTEM_PROMPT.md as plain text.
-// Give an AI this single URL and it bootstraps itself: reads the prompt,
-// which instructs it to fetch /api/docs/bundle for the full reference.
-app.get('/api/docs/start', async (_req, res) => {
+// Agent bootstrap entry point — returns SYSTEM_PROMPT.md as plain text.
+// Give an AI agent this single URL: the URL name tells it what to do,
+// and the content tells it how to proceed (fetch /api/docs/bundle next).
+app.get('/api/agent/bootstrap', async (_req, res) => {
     try {
         const docMap = await getAllDocs();
         const filepath = docMap.get('SYSTEM_PROMPT.md');
@@ -2915,6 +2915,9 @@ app.get('/api/docs/start', async (_req, res) => {
         res.status(500).send(String(err));
     }
 });
+
+// Backward compatibility — redirect old /api/docs/start to the new route
+app.get('/api/docs/start', (_req, res) => res.redirect(301, '/api/agent/bootstrap'));
 
 app.get('/api/docs', async (_req, res) => {
     try {
