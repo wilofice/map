@@ -339,7 +339,26 @@ export default function DiagramStudio() {
     img.src = url;
   };
 
-  // Pan/zoom
+  // Keyboard pan
+  useEffect(() => {
+    const STEP = 40;
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const step = e.shiftKey ? STEP * 3 : STEP;
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); setPan(p => ({ ...p, x: p.x + step })); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); setPan(p => ({ ...p, x: p.x - step })); }
+      if (e.key === 'ArrowUp')    { e.preventDefault(); setPan(p => ({ ...p, y: p.y + step })); }
+      if (e.key === 'ArrowDown')  { e.preventDefault(); setPan(p => ({ ...p, y: p.y - step })); }
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); setZoom(z => Math.min(5, z * 1.12)); }
+      if (e.key === '-')          { e.preventDefault(); setZoom(z => Math.max(0.1, z * 0.89)); }
+      if (e.key === '0')          { e.preventDefault(); setZoom(1); setPan({ x: 0, y: 0 }); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Pan/zoom (mouse)
   const onWheel = (e: React.WheelEvent) => { e.preventDefault(); setZoom(z => Math.min(5, Math.max(0.1, z * (e.deltaY < 0 ? 1.12 : 0.89)))); };
   const onMouseDown = (e: React.MouseEvent) => { if (e.button !== 0) return; dragging.current = true; dragStart.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y }; };
   const onMouseMove = (e: React.MouseEvent) => { if (!dragging.current) return; setPan({ x: dragStart.current.px + e.clientX - dragStart.current.mx, y: dragStart.current.py + e.clientY - dragStart.current.my }); };
