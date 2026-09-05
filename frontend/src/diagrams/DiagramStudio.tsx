@@ -165,6 +165,7 @@ export default function DiagramStudio() {
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
   const [movingDiagramId, setMovingDiagramId] = useState<string | null>(null);
 
   // Pan/zoom
@@ -381,7 +382,7 @@ export default function DiagramStudio() {
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', background: t.shell, color: text, fontFamily: 'inherit' }}>
 
       {/* ── Sidebar ── */}
-      <aside style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${border}`, background: bg }}>
+      <aside style={{ width: showSidebar ? 260 : 0, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: showSidebar ? `1px solid ${border}` : 'none', background: bg, overflow: 'hidden', transition: 'width 0.2s ease' }}>
 
         {/* Collections section */}
         <div style={{ flexShrink: 0 }}>
@@ -506,6 +507,12 @@ export default function DiagramStudio() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Topbar */}
         <header style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 44, borderBottom: `1px solid ${border}`, background: bg, flexShrink: 0 }}>
+          <button
+            onClick={() => setShowSidebar(v => !v)}
+            style={{ ...btnStyle(border, showSidebar ? accent : muted), fontWeight: showSidebar ? 600 : 400, flexShrink: 0 }}
+            title={showSidebar ? 'Masquer le panneau' : 'Afficher le panneau'}
+          >{showSidebar ? '‹ Panneau' : '› Panneau'}</button>
+          <div style={{ width: 1, height: 20, background: border, flexShrink: 0 }} />
           {selected ? (
             <>
               <input
