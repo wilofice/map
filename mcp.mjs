@@ -16,6 +16,7 @@ try {
 const require = createRequire(import.meta.url);
 import DatabaseManager from "./backend/db-manager.js";
 const tursoSync = require("./backend/turso-sync.js");
+const navigatorManager = require("./backend/navigator-manager.js");
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 const _rawDb = new DatabaseManager('./mind_maps.db');
@@ -509,6 +510,109 @@ server.tool(
       const d = db.updateDiagram(diagram_id, patch);
       if (!d) return { content: [{ type: "text", text: `Diagram '${diagram_id}' not found.` }], isError: true };
       return { content: [{ type: "text", text: `Updated diagram '${d.title}'` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+// ─── Weekly Navigator ─────────────────────────────────────────────────────────
+
+server.tool(
+  "get_weekly_navigator",
+  "Get the Weekly Navigator report for the current week — Velocity, Alignment, Energy, and ETA for the Cours IA project. Returns all 4 instruments plus alerts.",
+  {},
+  async () => {
+    try {
+      const report = db.getCurrentWeeklyReport();
+      if (!report) {
+        return { content: [{ type: "text", text: "No report found for the current week. Use POST /api/weekly-reports/generate or the create_weekly_report tool to generate one." }] };
+      }
+      const raw = report.raw_json ? JSON.parse(report.raw_json) : {};
+      const alerts = (raw.alerts || []).map(a => `[${a.level.toUpperCase()}] ${a.message}`).join("\n");
+      const energyAvg = (report.energy_physical != null && report.energy_mental != null && report.energy_emotional != null)
+        ? ((report.energy_physical + report.energy_mental + report.energy_emotional) / 3).toFixed(1)
+        : "—";
+
+      const text = [
+        `## Weekly Navigator — Semaine ${report.week_number} / ${report.year}`,
+        `Generated: ${report.generated_at}`,
+        ``,
+        `### ⚡ Velocity`,
+        `• Nodes high-priority complétés: ${report.high_priority_nodes_done}`,
+        `• Tâches pipeline terminées: ${report.pipeline_tasks_done}`,
+        `• Vélocité moyenne (4 sem.): ${report.velocity_4w_avg ?? "—"}`,
+        ``,
+        `### 🧭 Alignment`,
+        `• Nodes high-priority bloqués: ${report.high_priority_nodes_blocked}`,
+        `• Sur le cap: ${report.is_on_track ? "✅ Oui" : "⚠️ Non"}`,
+        ``,
+        `### 🔋 Energy`,
+        `• Physique: ${report.energy_physical ?? "—"}/10`,
+        `• Mental: ${report.energy_mental ?? "—"}/10`,
+        `• Émotionnel: ${report.energy_emotional ?? "—"}/10`,
+        `• Moyenne: ${energyAvg}/10`,
+        report.energy_blocker ? `• Blocage: ${report.energy_blocker}` : "",
+        ``,
+        `### ⏱️ ETA`,
+        `• Section courante: ${report.eta_current_section_weeks != null ? `~${report.eta_current_section_weeks} semaines` : "—"}`,
+        `• Cours complet: ${report.eta_full_course_weeks != null ? `~${report.eta_full_course_weeks} semaines` : "—"}`,
+        `• Premiers revenus: ${report.eta_first_revenue_weeks != null ? `~${report.eta_first_revenue_weeks} semaines` : "—"}`,
+        ``,
+        `### 🚨 Alertes`,
+        alerts || "Aucune alerte.",
+      ].filter(l => l !== undefined).join("\n");
+
+      return { content: [{ type: "text", text }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "create_weekly_report",
+  "Submit energy scores for the current week and trigger a full recalculation of all 4 Navigator instruments (Velocity, Alignment, ETA are auto-computed from the database).",
+  {
+    energy_physical:   z.number().int().min(1).max(10).describe("Physical energy score 1–10"),
+    energy_mental:     z.number().int().min(1).max(10).describe("Mental energy score 1–10"),
+    energy_emotional:  z.number().int().min(1).max(10).describe("Emotional energy score 1–10"),
+    energy_blocker:    z.string().optional().describe("Main blocker or friction point this week (free text)"),
+  },
+  async ({ energy_physical, energy_mental, energy_emotional, energy_blocker }) => {
+    try {
+      const report = navigatorManager.generateReport(db, { energy_physical, energy_mental, energy_emotional, energy_blocker: energy_blocker || null });
+      const raw = report.raw_json ? JSON.parse(report.raw_json) : {};
+      const alerts = (raw.alerts || []).map(a => `[${a.level.toUpperCase()}] ${a.message}`).join("\n");
+      return { content: [{ type: "text", text: `✅ Rapport créé — Semaine ${report.week_number}/${report.year}\nÉnergie: ${energy_physical}/${energy_mental}/${energy_emotional}\nETA cours: ~${report.eta_full_course_weeks ?? "—"} semaines\n\n${alerts}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_navigator_history",
+  "Get the Weekly Navigator history for the last N weeks — weekly velocity, energy averages, and ETA trends.",
+  {
+    weeks: z.number().int().min(1).max(52).optional().default(8).describe("Number of past weeks to return (default 8, max 52)"),
+  },
+  async ({ weeks }) => {
+    try {
+      const stats = navigatorManager.getStats(db, weeks);
+      if (!stats.weeks.length) return { content: [{ type: "text", text: "Aucun historique disponible." }] };
+
+      const lines = [
+        `## Historique Navigator — ${weeks} dernières semaines`,
+        `Vélocité moyenne: ${stats.avg_velocity} nodes/sem | Énergie moyenne: ${stats.avg_energy ?? "—"}/10`,
+        ``,
+        `Sem | Année | Velocity | Énergie moy | ETA cours`,
+        `----+-------+----------+-------------+----------`,
+        ...stats.weeks.map(w =>
+          `S${String(w.week).padStart(2, "0")} | ${w.year}  | ${String(w.velocity).padStart(8)} | ${w.energy_avg != null ? `${w.energy_avg}/10`.padStart(11) : "          —"} | ${w.eta_course != null ? `~${w.eta_course} sem` : "—"}`
+        ),
+      ];
+      return { content: [{ type: "text", text: lines.join("\n") }] };
     } catch (e) {
       return { content: [{ type: "text", text: String(e) }], isError: true };
     }
