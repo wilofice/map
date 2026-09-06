@@ -5,6 +5,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
+const cron = require('node-cron');
+const navigator = require('./backend/navigator-manager');
 const xml2js = require('xml2js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
@@ -3303,6 +3305,51 @@ app.delete('/api/diagrams/:id', (req, res) => {
     try { db.deleteDiagram(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── Weekly Navigator ─────────────────────────────────────────────────────────
+
+app.get('/api/weekly-reports', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllWeeklyReports()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/weekly-reports/current', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const report = db.getCurrentWeeklyReport();
+        if (!report) return res.status(404).json({ error: 'No report for current week' });
+        const raw = report.raw_json ? JSON.parse(report.raw_json) : {};
+        res.json({ ...report, alerts: raw.alerts || [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/weekly-reports/stats', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const weeks = parseInt(req.query.weeks) || 8;
+        res.json(navigator.getStats(db, weeks));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/weekly-reports', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        // Accepts energy scores only; all other fields are auto-calculated.
+        const { energy_physical, energy_mental, energy_emotional, energy_blocker } = req.body;
+        const report = navigator.generateReport(db, { energy_physical, energy_mental, energy_emotional, energy_blocker });
+        const raw = report.raw_json ? JSON.parse(report.raw_json) : {};
+        res.json({ ...report, alerts: raw.alerts || [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/weekly-reports/generate', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const report = navigator.generateReport(db);
+        const raw = report.raw_json ? JSON.parse(report.raw_json) : {};
+        res.json({ ...report, alerts: raw.alerts || [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // SPA fallback: for any non-API route, serve the frontend index.html
 if (fsSync.existsSync(frontendDist)) {
     app.get('*', (_req, res) => {
@@ -3315,6 +3362,18 @@ if (fsSync.existsSync(frontendDist)) {
 async function startServer() {
     if (_rawDb) {
         await tursoSync.init(_rawDb.db);
+    }
+
+    // Weekly Navigator — auto-generate every Sunday at 20:00
+    if (db) {
+        cron.schedule('0 20 * * 0', () => {
+            try {
+                navigator.generateReport(db);
+                console.log('[navigator] Weekly report generated (cron)');
+            } catch (e) {
+                console.error('[navigator] Cron generation failed:', e.message);
+            }
+        }, { timezone: 'America/Toronto' });
     }
 
     const serverInstance = app.listen(PORT, HOST, () => {
