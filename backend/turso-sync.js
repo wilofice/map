@@ -38,6 +38,7 @@ const SYNC_TABLES = [
     'pipeline_edges',
     'diagram_collections',
     'diagrams',
+    'weekly_reports',
 ];
 
 // Maps each DatabaseManager write method to the Turso sync action it should trigger.
@@ -99,6 +100,8 @@ const WRITE_MAP = {
     createDiagram:              { table: 'diagrams',              action: 'upsert-result' },
     updateDiagram:              { table: 'diagrams',              action: 'upsert-result' },
     deleteDiagram:              { table: 'diagrams',              action: 'delete', idArg: 0 },
+    // Weekly Navigator
+    upsertWeeklyReport:         { table: 'weekly_reports',        action: 'upsert-result' },
 };
 
 class TursoSync {
@@ -157,6 +160,7 @@ class TursoSync {
             `CREATE TABLE IF NOT EXISTS pipeline_edges (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, source_id TEXT NOT NULL, target_id TEXT NOT NULL, label TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS diagram_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS diagrams (id TEXT PRIMARY KEY, collection_id TEXT, diagram_collection_id TEXT, title TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'flowchart', code TEXT NOT NULL DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS weekly_reports (id TEXT PRIMARY KEY, week_number INTEGER NOT NULL, year INTEGER NOT NULL, generated_at DATETIME DEFAULT CURRENT_TIMESTAMP, lessons_completed INTEGER DEFAULT 0, pipeline_tasks_done INTEGER DEFAULT 0, high_priority_nodes_done INTEGER DEFAULT 0, high_priority_nodes_blocked INTEGER DEFAULT 0, energy_physical INTEGER, energy_mental INTEGER, energy_emotional INTEGER, energy_blocker TEXT, eta_current_section_weeks REAL, eta_full_course_weeks REAL, eta_first_revenue_weeks REAL, velocity_4w_avg REAL, raw_json TEXT, UNIQUE(week_number, year))`,
         ];
         for (const sql of stmts) {
             await this.client.execute(sql);

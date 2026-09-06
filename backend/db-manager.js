@@ -229,6 +229,30 @@ class DatabaseManager {
         try { this.db.exec(`ALTER TABLE diagrams ADD COLUMN diagram_collection_id TEXT REFERENCES diagram_collections(id) ON DELETE SET NULL`); } catch (_) {}
         try { this.db.exec(`CREATE INDEX IF NOT EXISTS idx_diagrams_diagram_collection ON diagrams(diagram_collection_id)`); } catch (_) {}
 
+        // Weekly Navigator reports
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS weekly_reports (
+                id TEXT PRIMARY KEY,
+                week_number INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                lessons_completed INTEGER DEFAULT 0,
+                pipeline_tasks_done INTEGER DEFAULT 0,
+                high_priority_nodes_done INTEGER DEFAULT 0,
+                high_priority_nodes_blocked INTEGER DEFAULT 0,
+                energy_physical INTEGER,
+                energy_mental INTEGER,
+                energy_emotional INTEGER,
+                energy_blocker TEXT,
+                eta_current_section_weeks REAL,
+                eta_full_course_weeks REAL,
+                eta_first_revenue_weeks REAL,
+                velocity_4w_avg REAL,
+                raw_json TEXT,
+                UNIQUE(week_number, year)
+            );
+        `);
+
         // Graph view settings table
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS graph_settings (
@@ -1269,6 +1293,101 @@ class DatabaseManager {
                 VALUES (?, 'manual', ?, 1, 0, 0)
             `).run(projectId, posJson);
         }
+    }
+
+    // ─── Weekly Navigator ──────────────────────────────────────────────────────
+
+    getAllWeeklyReports() {
+        return this.db.prepare(`SELECT * FROM weekly_reports ORDER BY year DESC, week_number DESC`).all();
+    }
+
+    getCurrentWeeklyReport() {
+        const now = new Date();
+        const year = now.getFullYear();
+        // ISO week number
+        const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return this.db.prepare(`SELECT * FROM weekly_reports WHERE week_number = ? AND year = ?`).get(week, year) || null;
+    }
+
+    getWeeklyReportHistory(weeks = 8) {
+        return this.db.prepare(`SELECT * FROM weekly_reports ORDER BY year DESC, week_number DESC LIMIT ?`).all(weeks);
+    }
+
+    upsertWeeklyReport(data) {
+        const {
+            id, week_number, year,
+            lessons_completed = 0, pipeline_tasks_done = 0,
+            high_priority_nodes_done = 0, high_priority_nodes_blocked = 0,
+            energy_physical = null, energy_mental = null, energy_emotional = null, energy_blocker = null,
+            eta_current_section_weeks = null, eta_full_course_weeks = null, eta_first_revenue_weeks = null,
+            velocity_4w_avg = null, raw_json = null,
+        } = data;
+
+        this.db.prepare(`
+            INSERT INTO weekly_reports
+                (id, week_number, year, lessons_completed, pipeline_tasks_done,
+                 high_priority_nodes_done, high_priority_nodes_blocked,
+                 energy_physical, energy_mental, energy_emotional, energy_blocker,
+                 eta_current_section_weeks, eta_full_course_weeks, eta_first_revenue_weeks,
+                 velocity_4w_avg, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(week_number, year) DO UPDATE SET
+                lessons_completed          = excluded.lessons_completed,
+                pipeline_tasks_done        = excluded.pipeline_tasks_done,
+                high_priority_nodes_done   = excluded.high_priority_nodes_done,
+                high_priority_nodes_blocked= excluded.high_priority_nodes_blocked,
+                energy_physical            = COALESCE(excluded.energy_physical, weekly_reports.energy_physical),
+                energy_mental              = COALESCE(excluded.energy_mental, weekly_reports.energy_mental),
+                energy_emotional           = COALESCE(excluded.energy_emotional, weekly_reports.energy_emotional),
+                energy_blocker             = COALESCE(excluded.energy_blocker, weekly_reports.energy_blocker),
+                eta_current_section_weeks  = excluded.eta_current_section_weeks,
+                eta_full_course_weeks      = excluded.eta_full_course_weeks,
+                eta_first_revenue_weeks    = excluded.eta_first_revenue_weeks,
+                velocity_4w_avg            = excluded.velocity_4w_avg,
+                raw_json                   = excluded.raw_json,
+                generated_at               = CURRENT_TIMESTAMP
+        `).run(id, week_number, year, lessons_completed, pipeline_tasks_done,
+               high_priority_nodes_done, high_priority_nodes_blocked,
+               energy_physical, energy_mental, energy_emotional, energy_blocker,
+               eta_current_section_weeks, eta_full_course_weeks, eta_first_revenue_weeks,
+               velocity_4w_avg, raw_json);
+
+        return this.db.prepare(`SELECT * FROM weekly_reports WHERE week_number = ? AND year = ?`).get(week_number, year);
+    }
+
+    // Nodes completed this week (status = completed, updated_at in last 7 days)
+    getNodesCompletedThisWeek(projectId = null) {
+        const base = `SELECT * FROM nodes WHERE status = 'completed' AND updated_at >= datetime('now', '-7 days')`;
+        if (projectId) return this.db.prepare(`${base} AND project_id = ?`).all(projectId);
+        return this.db.prepare(base).all();
+    }
+
+    // High-priority nodes still pending/in-progress for a given project
+    getHighPriorityPendingNodes(projectId) {
+        return this.db.prepare(`
+            SELECT * FROM nodes
+            WHERE project_id = ? AND priority = 'high' AND status != 'completed'
+        `).all(projectId);
+    }
+
+    // High-priority nodes completed this week for a given project
+    getHighPriorityCompletedThisWeek(projectId) {
+        return this.db.prepare(`
+            SELECT * FROM nodes
+            WHERE project_id = ? AND priority = 'high' AND status = 'completed'
+              AND updated_at >= datetime('now', '-7 days')
+        `).all(projectId);
+    }
+
+    // Pipeline tasks marked done this week (across all tasks)
+    getPipelineNodesDoneThisWeek() {
+        return this.db.prepare(`
+            SELECT * FROM pipeline_nodes WHERE status = 'done'
+              AND updated_at >= datetime('now', '-7 days')
+        `).all();
     }
 }
 
