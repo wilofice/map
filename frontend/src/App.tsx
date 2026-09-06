@@ -11,6 +11,7 @@ import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
 import DiagramStudio from './diagrams/DiagramStudio';
+import WeeklyNavigator from './navigator/WeeklyNavigator';
 
 function CanvasView() {
   const {
@@ -177,6 +178,7 @@ function CanvasView() {
             <GraphViewLink t={t} />
             <PipelineLink t={t} />
             <DiagramsLink t={t} />
+            <NavigatorLink t={t} />
           </div>
         </header>
 
@@ -256,6 +258,20 @@ function DiagramsLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function NavigatorLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/navigator')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Weekly Navigator — tableau de bord de navigation de vie"
+    >
+      🗺️ Navigator
+    </button>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
 
@@ -272,6 +288,7 @@ export default function App() {
       <Route path="/pipeline" element={<PipelineHome />} />
       <Route path="/pipeline/:taskId" element={<PipelineGraph />} />
       <Route path="/diagrams" element={<DiagramStudio />} />
+      <Route path="/navigator" element={<WeeklyNavigator />} />
     </Routes>
   );
 }
