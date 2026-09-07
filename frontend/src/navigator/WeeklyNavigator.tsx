@@ -124,10 +124,7 @@ const ALERT_COLORS: Record<string, string> = {
 export default function WeeklyNavigator() {
   const { theme } = useMindMapStore();
   const t = themes[theme];
-  const isDark = theme !== 'light';
-
   const border = t.border;
-  const bg = t.surface;
   const bgCard = t.card;
   const text = t.textPrimary;
   const muted = t.textMuted;

@@ -30,20 +30,20 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
     {
       selector: 'node',
       style: {
-        'width':  labeled ? 210 : 44,
-        'height': labeled ? 72  : 44,
+        'width':  labeled ? 220 : 44,
+        'height': labeled ? 88  : 44,
         'shape': 'roundrectangle',
         'background-opacity': 0,
         'border-color': t.nodePendingBorder,
         'border-width': 2,
         'label': 'data(label)',
-        'text-wrap': 'ellipsis',
-        'text-max-width': labeled ? '182px' : '70px',
+        'text-wrap': labeled ? 'wrap' : 'ellipsis',
+        'text-max-width': labeled ? '190px' : '70px',
         'text-valign': labeled ? 'center' : 'bottom',
         'text-halign': 'center',
         'text-margin-y': labeled ? 0 : 10,
         'color': t.nodePendingText,
-        'font-size': labeled ? '13px' : '10px',
+        'font-size': labeled ? '12px' : '10px',
         'font-weight': 600,
         'font-family': 'ui-sans-serif, system-ui, sans-serif',
         // Tiny backdrop behind the label so it's readable over the dot grid
@@ -88,6 +88,16 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
     { selector: 'node[type = "decision"][status = "pending"]',  style: { 'border-color': '#f59e0b', 'border-width': 2 } },
     { selector: 'node[type = "milestone"][status = "pending"]', style: { 'border-color': '#a78bfa', 'border-width': 2 } },
     { selector: 'node[type = "review"][status = "pending"]',    style: { 'border-color': '#f472b6', 'border-width': 2 } },
+
+    // ── Milestone star: interior area is ~40 % of bounding box → upsize ──────
+    {
+      selector: 'node[type = "milestone"]',
+      style: {
+        'width':          labeled ? 300 : 54,
+        'height':         labeled ? 160 : 54,
+        'text-max-width': labeled ? '118px' : '70px',
+      },
+    },
 
     // ── Selected ─────────────────────────────────────────────────────────────
     {
