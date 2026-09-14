@@ -149,6 +149,32 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
   ] as cytoscape.StylesheetStyle[];
 }
 
+function applyImageStyle(node: cytoscape.NodeSingular, imageUrl: string | null | undefined, t: PipelineTheme) {
+  if (imageUrl) {
+    node.style({
+      'background-image': imageUrl,
+      'background-fit': 'cover',
+      'background-image-opacity': 0.88,
+      'background-opacity': 0,
+      'text-background-color': '#000000',
+      'text-background-opacity': 0.65,
+      'color': '#ffffff',
+      'width': Math.max(node.width(), 220),
+      'height': Math.max(node.height(), 100),
+    });
+  } else {
+    node.style({
+      'background-image': 'none',
+      'background-fit': 'none',
+      'background-image-opacity': 0,
+      'background-opacity': 0,
+      'text-background-color': t.bgMain,
+      'text-background-opacity': 0.82,
+      'color': t.nodePendingText,
+    });
+  }
+}
+
 export default function PipelineGraph() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
@@ -251,6 +277,7 @@ export default function PipelineGraph() {
     cy.nodes().forEach(n => {
       const type = n.data('type') as string || 'step';
       n.style('shape', (TYPE_SHAPE[type] || 'roundrectangle') as cytoscape.Css.NodeShape);
+      applyImageStyle(n, n.data('image_url') as string || null, t);
     });
   }, [t, displayMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -273,7 +300,7 @@ export default function PipelineGraph() {
         if (existing.length === 0) {
           cy.add({
             group: 'nodes',
-            data: { id: n.id, label: n.title || 'Untitled', status: n.status, type: n.type },
+            data: { id: n.id, label: n.title || 'Untitled', status: n.status, type: n.type, image_url: n.image_url || '' },
             style: { shape: shp },
             position: n.position_x || n.position_y
               ? { x: n.position_x, y: n.position_y }
@@ -283,8 +310,11 @@ export default function PipelineGraph() {
           existing.data('label', n.title || 'Untitled');
           existing.data('status', n.status);
           existing.data('type', n.type);
+          existing.data('image_url', n.image_url || '');
           if (displayMode !== 'dots') existing.style('shape', shp);
         }
+        // Apply image style immediately
+        applyImageStyle(cy.getElementById(n.id), n.image_url, t);
       });
 
       currentTask.edges.forEach(e => {

@@ -13,13 +13,15 @@ const NODE_TYPES = ['step', 'decision', 'milestone', 'review'] as const;
 const TYPE_ICON: Record<string, string> = { step: '→', decision: '◇', milestone: '★', review: '◎' };
 
 export default function NodePanel({ theme: t }: { theme: PipelineTheme }) {
-  const { currentTask, selectedNodeId, setPanelOpen, updateNode, deleteNode, createEdge } = usePipelineStore();
+  const { currentTask, selectedNodeId, setPanelOpen, updateNode, deleteNode, createEdge, uploadNodeImage, setNodeImageUrl, removeNodeImage } = usePipelineStore();
   const node = currentTask?.nodes.find(n => n.id === selectedNodeId);
 
   const [form, setForm] = useState<Partial<PipelineNode>>({});
   const [saving, setSaving] = useState(false);
   const [connectTarget, setConnectTarget] = useState('');
   const [showConnect, setShowConnect] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     if (node) setForm({
@@ -47,6 +49,24 @@ export default function NodePanel({ theme: t }: { theme: PipelineTheme }) {
     await createEdge(node.id, connectTarget);
     setConnectTarget('');
     setShowConnect(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploading(true);
+    await uploadNodeImage(node.id, file);
+    setImageUploading(false);
+    e.target.value = '';
+  };
+
+  const handleSetImageUrl = async () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    setImageUploading(true);
+    await setNodeImageUrl(node.id, url);
+    setImageUrlInput('');
+    setImageUploading(false);
   };
 
   const otherNodes    = currentTask.nodes.filter(n => n.id !== node.id);
@@ -139,6 +159,48 @@ export default function NodePanel({ theme: t }: { theme: PipelineTheme }) {
       {section(<>
         <Label>Due Date</Label>
         <input type="date" value={form.due_date ?? ''} onChange={e => { setForm(p => ({ ...p, due_date: e.target.value })); save({ due_date: e.target.value }); }} style={inputSt} />
+      </>)}
+
+      {/* Image de motivation */}
+      {section(<>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <Label>Image de motivation</Label>
+          {node.image_url && (
+            <button
+              onClick={() => removeNodeImage(node.id)}
+              style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 11, padding: '2px 6px' }}
+            >× Retirer</button>
+          )}
+        </div>
+
+        {node.image_url && (
+          <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden', height: 130, background: t.bgCard }}>
+            <img src={node.image_url} alt="motivation" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+        )}
+
+        <input
+          value={imageUrlInput}
+          onChange={e => setImageUrlInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSetImageUrl(); }}
+          placeholder="Coller une URL d'image…"
+          style={{ ...inputSt, marginBottom: 8 }}
+        />
+        {imageUrlInput.trim() && (
+          <button onClick={handleSetImageUrl} style={{ background: t.accent, border: 'none', color: '#fff', padding: '5px 12px', borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 600, marginBottom: 8 }}>
+            Appliquer l'URL
+          </button>
+        )}
+
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+          background: `${t.bgCard}`, border: `1px dashed ${t.border}`, borderRadius: 8,
+          padding: '7px 12px', fontSize: 12, color: t.textMuted,
+          opacity: imageUploading ? 0.6 : 1,
+        }}>
+          {imageUploading ? '⏳ Upload…' : '📎 Choisir un fichier'}
+          <input type="file" accept="image/*" hidden onChange={handleFileUpload} disabled={imageUploading} />
+        </label>
       </>)}
 
       {/* Connections */}

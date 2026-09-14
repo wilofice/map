@@ -200,6 +200,9 @@ class DatabaseManager {
             CREATE INDEX IF NOT EXISTS idx_pipeline_edges_target ON pipeline_edges(target_id);
         `);
 
+        // pipeline_nodes — image_url column (added post-initial migration)
+        try { this.db.exec(`ALTER TABLE pipeline_nodes ADD COLUMN image_url TEXT`); } catch {}
+
         // Diagrams (Mermaid Studio)
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS diagrams (

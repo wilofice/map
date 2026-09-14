@@ -29,6 +29,9 @@ interface PipelineState {
   createNode: (title: string, posX?: number, posY?: number) => Promise<PipelineNode | null>;
   updateNode: (id: string, patch: Partial<PipelineNode>) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
+  uploadNodeImage: (id: string, file: File) => Promise<void>;
+  setNodeImageUrl: (id: string, url: string) => Promise<void>;
+  removeNodeImage: (id: string) => Promise<void>;
   createEdge: (sourceId: string, targetId: string) => Promise<void>;
   deleteEdge: (id: string) => Promise<void>;
 
@@ -158,6 +161,27 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
           panelOpen: s.selectedNodeId === id ? false : s.panelOpen,
         };
       });
+    } catch (e) { set({ error: String(e) }); }
+  },
+
+  async uploadNodeImage(id, file) {
+    try {
+      const updated = await pipelineApi.uploadNodeImage(id, file);
+      set(s => s.currentTask ? { currentTask: { ...s.currentTask, nodes: s.currentTask.nodes.map(n => n.id === id ? { ...n, ...updated } : n) } } : {});
+    } catch (e) { set({ error: String(e) }); }
+  },
+
+  async setNodeImageUrl(id, url) {
+    try {
+      const updated = await pipelineApi.setNodeImageUrl(id, url);
+      set(s => s.currentTask ? { currentTask: { ...s.currentTask, nodes: s.currentTask.nodes.map(n => n.id === id ? { ...n, ...updated } : n) } } : {});
+    } catch (e) { set({ error: String(e) }); }
+  },
+
+  async removeNodeImage(id) {
+    try {
+      const updated = await pipelineApi.removeNodeImage(id);
+      set(s => s.currentTask ? { currentTask: { ...s.currentTask, nodes: s.currentTask.nodes.map(n => n.id === id ? { ...n, ...updated } : n) } } : {});
     } catch (e) { set({ error: String(e) }); }
   },
 

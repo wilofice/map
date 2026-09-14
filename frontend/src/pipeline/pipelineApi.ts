@@ -5,6 +5,12 @@ async function req<T>(path: string, opts?: RequestInit): Promise<T> {
   return (txt ? JSON.parse(txt) : undefined) as T;
 }
 
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const res = await fetch(path, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error(`${path} → ${res.status}: ${await res.text()}`);
+  return res.json() as Promise<T>;
+}
+
 export interface PipelineCollection {
   id: string;
   name: string;
@@ -37,6 +43,7 @@ export interface PipelineNode {
   notes: string;
   cli_command: string;
   due_date: string | null;
+  image_url: string | null;
   position_x: number;
   position_y: number;
   sort_order: number;
@@ -82,6 +89,14 @@ export const pipelineApi = {
   updateNode: (id: string, patch: Partial<PipelineNode>) =>
     req<PipelineNode>(`/api/pipeline/nodes/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   deleteNode: (id: string) => req<void>(`/api/pipeline/nodes/${id}`, { method: 'DELETE' }),
+  uploadNodeImage: (id: string, file: File) => {
+    const fd = new FormData(); fd.append('image', file);
+    return upload<PipelineNode>(`/api/pipeline/nodes/${id}/image`, fd);
+  },
+  setNodeImageUrl: (id: string, image_url: string) =>
+    req<PipelineNode>(`/api/pipeline/nodes/${id}/image`, { method: 'PUT', body: JSON.stringify({ image_url }) }),
+  removeNodeImage: (id: string) =>
+    req<PipelineNode>(`/api/pipeline/nodes/${id}/image`, { method: 'DELETE' }),
 
   // Edges
   createEdge: (data: { task_id: string; source_id: string; target_id: string; label?: string }) =>

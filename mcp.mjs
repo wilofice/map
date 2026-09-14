@@ -381,6 +381,7 @@ server.tool(
     type: z.enum(["step", "decision", "milestone", "review"]).optional(),
     cli_command: z.string().optional(),
     due_date: z.string().optional().describe("ISO date YYYY-MM-DD"),
+    image_url: z.string().nullable().optional().describe("URL of a motivation image to display on this node (or null to remove)"),
   },
   async ({ node_id, ...patch }) => {
     try {

@@ -83,6 +83,18 @@ const audioUpload = multer({
     fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('audio/') || file.mimetype === 'video/webm')
 });
 
+// Node image upload setup
+const nodeImagesDir = path.join(__dirname, 'uploads', 'node-images');
+fs.mkdir(nodeImagesDir, { recursive: true }).catch(() => {});
+const nodeImageUpload = multer({
+    storage: multer.diskStorage({
+        destination: (_, __, cb) => cb(null, nodeImagesDir),
+        filename:    (_, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_, file, cb) => cb(null, file.mimetype.startsWith('image/'))
+});
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -3192,6 +3204,35 @@ app.put('/api/pipeline/nodes/:id', (req, res) => {
 app.delete('/api/pipeline/nodes/:id', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
     try { db.deletePipelineNode(req.params.id); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Node image — upload file
+app.post('/api/pipeline/nodes/:id/image', nodeImageUpload.single('image'), (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No image file received' });
+        const url = `/uploads/node-images/${req.file.filename}`;
+        const node = db.updatePipelineNode(req.params.id, { image_url: url });
+        res.json(node);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Node image — set URL or remove (body: { image_url } or DELETE)
+app.put('/api/pipeline/nodes/:id/image', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { image_url } = req.body;
+        const node = db.updatePipelineNode(req.params.id, { image_url: image_url || null });
+        res.json(node);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/pipeline/nodes/:id/image', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const node = db.updatePipelineNode(req.params.id, { image_url: null });
+        res.json(node);
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/pipeline/edges', (req, res) => {
