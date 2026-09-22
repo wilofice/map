@@ -64,8 +64,9 @@ All endpoints are at `http://<server>:3000`. No authentication required (LAN-onl
 ### Projects
 
 ```bash
-# List all projects (with node counts and progress)
+# List all projects (with node counts and progress) — archived excluded by default
 GET /api/db/projects
+GET /api/db/projects?archived=1      # list archived projects only
 
 # Get one project with all its nodes (flat array)
 GET /api/db/projects/:id
@@ -78,7 +79,11 @@ Body: { "name": "My Project", "description": "...", "collection_id": "default-co
 PUT /api/db/projects/:id
 Body: { "name": "...", "description": "...", "layout_dir": "LR|RL|TB", "display_mode": "comfortable|compact" }
 
-# Delete a project and all its nodes
+# Archive / unarchive a project (stays in the database)
+PATCH /api/db/projects/:id/archive
+Body: { "archived": true }    # true = archive, false = restore
+
+# Delete a project and all its nodes (permanent)
 DELETE /api/db/projects/:id
 
 # Import a project from a JSON file (nested node tree)
@@ -190,9 +195,10 @@ GET /api/docs/bundle
 The Diagram Studio lives at `/diagrams`. Diagrams are stored as lightweight Mermaid text in the `diagrams` table (Turso-synced). Prefer **MCP tools** (`list_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`) when an MCP connection is active. Use REST when calling from scripts or without MCP.
 
 ```bash
-# List all diagrams (id, title, type, updated_at — no code for performance)
+# List all diagrams (id, title, type, updated_at — no code for performance) — archived excluded by default
 GET  /api/diagrams
-GET  /api/diagrams?collection_id=<id>   # filter by collection
+GET  /api/diagrams?diagram_collection_id=<id>   # filter by collection
+GET  /api/diagrams?archived=1                   # list archived diagrams only
 
 # Get one diagram with its full Mermaid source
 GET  /api/diagrams/:id
@@ -204,14 +210,18 @@ Body: {
   "type": "flowchart",           # flowchart | sequence | stateDiagram | classDiagram | erDiagram | gantt | mindmap
   "code": "flowchart LR\n  A --> B",
   "description": "...",          # optional
-  "collection_id": "<id>"        # optional — links to an existing collection
+  "diagram_collection_id": "<id>"  # optional — links to an existing diagram collection
 }
 
 # Update title, code, description or type
 PUT  /api/diagrams/:id
 Body: { "code": "flowchart LR\n  A --> B --> C", "title": "New title" }
 
-# Delete
+# Archive / unarchive a diagram (stays in the database)
+PATCH /api/diagrams/:id/archive
+Body: { "archived": true }    # true = archive, false = restore
+
+# Delete (permanent)
 DELETE /api/diagrams/:id
 ```
 
@@ -253,8 +263,9 @@ DELETE /api/pipeline/collections/:id
 ### Tasks
 
 ```bash
-GET  /api/pipeline/tasks                    # list all tasks
+GET  /api/pipeline/tasks                    # list all tasks (archived excluded by default)
 GET  /api/pipeline/tasks?collection_id=<id> # filter by collection
+GET  /api/pipeline/tasks?archived=1         # list archived tasks only
 GET  /api/pipeline/tasks/:id                # get task with nodes + edges
 POST /api/pipeline/tasks  {
   "name": "Build LLM video",
@@ -264,6 +275,11 @@ POST /api/pipeline/tasks  {
   "collection_id": "<id>" # optional
 }
 PUT  /api/pipeline/tasks/:id   { "status": "done" }
+
+# Archive / unarchive a task (stays in the database)
+PATCH /api/pipeline/tasks/:id/archive
+Body: { "archived": true }    # true = archive, false = restore
+
 DELETE /api/pipeline/tasks/:id
 ```
 

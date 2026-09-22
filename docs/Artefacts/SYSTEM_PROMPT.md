@@ -56,7 +56,9 @@ Use **MCP tools** (not REST) for all Mind Map writes when an MCP connection is a
 
 Fall back to **REST** (`/api/db/*`) when no MCP connection is present — target the Railway server directly:
 ```
-$BASE_URL/api/db/projects
+GET  $BASE_URL/api/db/projects              → active projects (archived excluded)
+GET  $BASE_URL/api/db/projects?archived=1   → archived projects
+PATCH $BASE_URL/api/db/projects/:id/archive → { "archived": true|false }
 $BASE_URL/api/db/nodes
 ```
 
@@ -101,11 +103,13 @@ Fall back to **REST** (`/api/pipeline/*`) when no MCP connection is present. Tar
 > Le serveur est toujours en ligne et synchronisé avec Turso — tu peux lire et écrire sans aucune dépendance à la machine locale.
 
 ```
-1. GET /api/pipeline/tasks                  → discover existing tasks
-2. GET /api/pipeline/tasks/:id              → load nodes + edges for a task
-3. PUT /api/pipeline/nodes/:id              → update status / notes as you work
-4. POST /api/pipeline/nodes                 → add a step if needed
-5. POST /api/pipeline/edges                 → connect steps with dependencies
+1. GET  /api/pipeline/tasks                      → discover existing tasks (archived excluded)
+2. GET  /api/pipeline/tasks?archived=1           → list archived tasks
+3. GET  /api/pipeline/tasks/:id                  → load nodes + edges for a task
+4. PUT  /api/pipeline/nodes/:id                  → update status / notes as you work
+5. POST /api/pipeline/nodes                      → add a step if needed
+6. POST /api/pipeline/edges                      → connect steps with dependencies
+7. PATCH /api/pipeline/tasks/:id/archive         → archive { "archived": true } or restore { "archived": false }
 ```
 
 ### Node rules
@@ -150,10 +154,12 @@ Use **MCP tools** when an MCP connection is active (preferred):
 Fall back to **REST** (`/api/diagrams/*`) when no MCP connection is present:
 
 ```
-1. GET  /api/diagrams              → discover existing diagrams
-2. GET  /api/diagrams/:id          → read a diagram's full Mermaid source
-3. POST /api/diagrams              → create a new diagram
-4. PUT  /api/diagrams/:id          → update code, title, or description
+1. GET   /api/diagrams                → discover existing diagrams (archived excluded)
+2. GET   /api/diagrams?archived=1     → list archived diagrams
+3. GET   /api/diagrams/:id            → read a diagram's full Mermaid source
+4. POST  /api/diagrams                → create a new diagram
+5. PUT   /api/diagrams/:id            → update code, title, or description
+6. PATCH /api/diagrams/:id/archive    → { "archived": true|false }
 ```
 
 Target the Railway server directly when the local machine is offline:
@@ -239,6 +245,8 @@ After reading or submitting Navigator data, summarise the key metric in one sent
 | "Organise my research notes hierarchically" | Mind Map |
 | "Model this process with decision branches" | Pipeline |
 | "Attach a motivation image to a goal node" | Pipeline (`image_url` field) |
+| "Archive an old project / pipeline / diagram" | Mind Map / Pipeline / Diagram Studio (`PATCH /:id/archive`) |
+| "Restore an archived item" | Mind Map / Pipeline / Diagram Studio (`PATCH /:id/archive` + `{ "archived": false }`) |
 | "Draw a value chain from my daily actions to my revenue streams" | Diagram Studio |
 | "Model the data flow between my microservices" | Diagram Studio |
 | "Create an ER diagram for my database" | Diagram Studio |
