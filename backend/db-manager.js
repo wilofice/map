@@ -203,6 +203,11 @@ class DatabaseManager {
         // pipeline_nodes — image_url column (added post-initial migration)
         try { this.db.exec(`ALTER TABLE pipeline_nodes ADD COLUMN image_url TEXT`); } catch {}
 
+        // Archiving support
+        addCol("ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0");
+        addCol("ALTER TABLE pipeline_tasks ADD COLUMN archived INTEGER DEFAULT 0");
+        addCol("ALTER TABLE diagrams ADD COLUMN archived INTEGER DEFAULT 0");
+
         // Diagrams (Mermaid Studio)
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS diagrams (
@@ -323,6 +328,19 @@ class DatabaseManager {
                 FROM projects p
                 LEFT JOIN nodes n ON p.id = n.project_id
                 LEFT JOIN collections c ON p.collection_id = c.id
+                WHERE COALESCE(p.archived, 0) = 0
+                GROUP BY p.id, p.name, p.description, p.file_path, p.collection_id, p.created_at, p.updated_at, p.last_opened, c.name
+                ORDER BY p.last_opened DESC
+            `),
+            getAllProjectsArchived: this.db.prepare(`
+                SELECT p.*,
+                       COUNT(n.id) as node_count,
+                       SUM(CASE WHEN n.status = 'completed' THEN 1 ELSE 0 END) as completed_count,
+                       c.name as collection_name
+                FROM projects p
+                LEFT JOIN nodes n ON p.id = n.project_id
+                LEFT JOIN collections c ON p.collection_id = c.id
+                WHERE COALESCE(p.archived, 0) = 1
                 GROUP BY p.id, p.name, p.description, p.file_path, p.collection_id, p.created_at, p.updated_at, p.last_opened, c.name
                 ORDER BY p.last_opened DESC
             `),
@@ -549,13 +567,18 @@ class DatabaseManager {
         }
     }
 
-    getAllProjects() {
+    getAllProjects(archived = false) {
         try {
-            return this.stmts.getAllProjects.all();
+            return archived ? this.stmts.getAllProjectsArchived.all() : this.stmts.getAllProjects.all();
         } catch (error) {
             console.error('Error getting all projects:', error);
             throw error;
         }
+    }
+
+    archiveProject(id, archived) {
+        this.db.prepare(`UPDATE projects SET archived = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(archived ? 1 : 0, id);
+        return this.stmts.getProject.get(id);
     }
 
     updateProjectLastOpened(id) {
@@ -1140,11 +1163,17 @@ class DatabaseManager {
 
     // ===== PIPELINE TASKS =====
 
-    getAllPipelineTasks(collectionId) {
+    getAllPipelineTasks(collectionId, archived = false) {
+        const archivedVal = archived ? 1 : 0;
         const rows = collectionId
-            ? this.db.prepare(`SELECT * FROM pipeline_tasks WHERE collection_id = ? ORDER BY created_at DESC`).all(collectionId)
-            : this.db.prepare(`SELECT * FROM pipeline_tasks ORDER BY created_at DESC`).all();
+            ? this.db.prepare(`SELECT * FROM pipeline_tasks WHERE collection_id = ? AND COALESCE(archived, 0) = ? ORDER BY created_at DESC`).all(collectionId, archivedVal)
+            : this.db.prepare(`SELECT * FROM pipeline_tasks WHERE COALESCE(archived, 0) = ? ORDER BY created_at DESC`).all(archivedVal);
         return rows.map(t => ({ ...t, node_count: this.db.prepare(`SELECT COUNT(*) as c FROM pipeline_nodes WHERE task_id = ?`).get(t.id).c, done_count: this.db.prepare(`SELECT COUNT(*) as c FROM pipeline_nodes WHERE task_id = ? AND status = 'done'`).get(t.id).c }));
+    }
+
+    archivePipelineTask(id, archived) {
+        this.db.prepare(`UPDATE pipeline_tasks SET archived = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(archived ? 1 : 0, id);
+        return this.db.prepare(`SELECT * FROM pipeline_tasks WHERE id = ?`).get(id);
     }
     getPipelineTask(id) {
         const task = this.db.prepare(`SELECT * FROM pipeline_tasks WHERE id = ?`).get(id);
@@ -1225,14 +1254,20 @@ class DatabaseManager {
 
     // ===== DIAGRAMS =====
 
-    getAllDiagrams(diagramCollectionId) {
+    getAllDiagrams(diagramCollectionId, archived = false) {
+        const archivedVal = archived ? 1 : 0;
         if (diagramCollectionId === 'none') {
-            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id IS NULL ORDER BY updated_at DESC`).all();
+            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id IS NULL AND COALESCE(archived, 0) = ? ORDER BY updated_at DESC`).all(archivedVal);
         }
         if (diagramCollectionId) {
-            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id = ? ORDER BY updated_at DESC`).all(diagramCollectionId);
+            return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE diagram_collection_id = ? AND COALESCE(archived, 0) = ? ORDER BY updated_at DESC`).all(diagramCollectionId, archivedVal);
         }
-        return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams ORDER BY updated_at DESC`).all();
+        return this.db.prepare(`SELECT id, diagram_collection_id, title, description, type, created_at, updated_at FROM diagrams WHERE COALESCE(archived, 0) = ? ORDER BY updated_at DESC`).all(archivedVal);
+    }
+
+    archiveDiagram(id, archived) {
+        this.db.prepare(`UPDATE diagrams SET archived = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(archived ? 1 : 0, id);
+        return this.getDiagram(id);
     }
     getDiagram(id) {
         return this.db.prepare(`SELECT * FROM diagrams WHERE id = ?`).get(id) || null;

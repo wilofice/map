@@ -74,14 +74,21 @@ export const pipelineApi = {
     req<void>(`/api/pipeline/collections/${id}`, { method: 'DELETE' }),
 
   // Tasks
-  getTasks: (collectionId?: string) =>
-    req<PipelineTask[]>(`/api/pipeline/tasks${collectionId ? `?collection_id=${collectionId}` : ''}`),
+  getTasks: (collectionId?: string, archived = false) => {
+    const params = new URLSearchParams();
+    if (collectionId) params.set('collection_id', collectionId);
+    if (archived) params.set('archived', '1');
+    const qs = params.toString();
+    return req<PipelineTask[]>(`/api/pipeline/tasks${qs ? `?${qs}` : ''}`);
+  },
   getTask: (id: string) => req<PipelineTaskDetail>(`/api/pipeline/tasks/${id}`),
   createTask: (data: Partial<PipelineTask>) =>
     req<PipelineTaskDetail>('/api/pipeline/tasks', { method: 'POST', body: JSON.stringify(data) }),
   updateTask: (id: string, patch: Partial<PipelineTask>) =>
     req<PipelineTaskDetail>(`/api/pipeline/tasks/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   deleteTask: (id: string) => req<void>(`/api/pipeline/tasks/${id}`, { method: 'DELETE' }),
+  archiveTask: (id: string, archived: boolean) =>
+    req<PipelineTask>(`/api/pipeline/tasks/${id}/archive`, { method: 'PATCH', body: JSON.stringify({ archived }) }),
 
   // Nodes
   createNode: (data: { task_id: string; title: string; description?: string; type?: string; sort_order?: number; position_x?: number; position_y?: number }) =>

@@ -16,8 +16,15 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  getProjects(): Promise<Project[]> {
-    return request('/api/db/projects');
+  getProjects(archived = false): Promise<Project[]> {
+    return request(`/api/db/projects${archived ? '?archived=1' : ''}`);
+  },
+
+  archiveProject(id: string, archived: boolean): Promise<Project> {
+    return request(`/api/db/projects/${id}/archive`, {
+      method: 'PATCH',
+      body: JSON.stringify({ archived }),
+    });
   },
 
   getCollections(): Promise<Collection[]> {

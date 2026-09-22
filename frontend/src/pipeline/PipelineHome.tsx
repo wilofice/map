@@ -16,18 +16,19 @@ const PRIORITY_DOT: Record<string, string> = { low: '#10b981', medium: '#f59e0b'
 
 export default function PipelineHome() {
   const navigate = useNavigate();
-  const { collections, tasks, loading, selectedCollectionId, setSelectedCollectionId, loadTasks, createTask, deleteTask, createCollection } = usePipelineStore();
+  const { collections, tasks, loading, selectedCollectionId, setSelectedCollectionId, loadTasks, createTask, deleteTask, archiveTask, createCollection } = usePipelineStore();
 
   const [colorMode, setColorMode] = useState<PipelineColorMode>(loadColorMode);
   const t = getTheme(colorMode);
   const toggleColorMode = () => { const next: PipelineColorMode = colorMode === 'dark' ? 'light' : 'dark'; setColorMode(next); saveColorMode(next); };
 
+  const [showArchived, setShowArchived] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
   const [showNewColl, setShowNewColl] = useState(false);
   const [newTaskForm, setNewTaskForm] = useState({ name: '', description: '', type: 'general', priority: 'medium', collection_id: '' });
   const [newCollForm, setNewCollForm] = useState({ name: '', color: '#6366f1' });
 
-  useEffect(() => { loadTasks(selectedCollectionId ?? undefined); }, [selectedCollectionId, loadTasks]);
+  useEffect(() => { loadTasks(selectedCollectionId ?? undefined, showArchived); }, [selectedCollectionId, showArchived, loadTasks]);
 
   const filteredTasks = selectedCollectionId
     ? tasks.filter(t => t.collection_id === selectedCollectionId)
@@ -58,6 +59,13 @@ export default function PipelineHome() {
           <span style={{ fontWeight: 700, fontSize: 16, color: t.textPrimary, letterSpacing: '-0.02em' }}>Pipeline</span>
         </div>
         <div style={{ flex: 1 }} />
+        <button
+          onClick={() => setShowArchived(v => !v)}
+          style={{ background: showArchived ? `${t.accent}20` : 'transparent', border: `1px solid ${showArchived ? t.accent : t.border}`, color: showArchived ? t.accentText : t.textMuted, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: showArchived ? 600 : 400 }}
+          title="Voir les archives"
+        >
+          {showArchived ? '📂 Archives' : '🗄 Archives'}
+        </button>
         <button onClick={toggleColorMode} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 15 }} title="Toggle light/dark">
           {colorMode === 'dark' ? '☀' : '☽'}
         </button>
@@ -116,15 +124,22 @@ export default function PipelineHome() {
           ) : filteredTasks.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 12 }}>
               <span style={{ fontSize: 48, opacity: 0.12, color: t.textSecondary }}>⬡</span>
-              <p style={{ color: t.textMuted, fontSize: 14 }}>No tasks yet. Create your first task to get started.</p>
-              <button onClick={() => setShowNewTask(true)} style={{ background: t.accent, border: 'none', color: '#fff', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                + New Task
-              </button>
+              <p style={{ color: t.textMuted, fontSize: 14 }}>{showArchived ? 'Aucune tâche archivée.' : 'No tasks yet. Create your first task to get started.'}</p>
+              {!showArchived && (
+                <button onClick={() => setShowNewTask(true)} style={{ background: t.accent, border: 'none', color: '#fff', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  + New Task
+                </button>
+              )}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 1100 }}>
+              {showArchived && (
+                <div style={{ padding: '4px 14px 12px', fontSize: 12, color: t.textMuted }}>
+                  {filteredTasks.length} tâche{filteredTasks.length !== 1 ? 's' : ''} archivée{filteredTasks.length !== 1 ? 's' : ''}
+                </div>
+              )}
               {/* List header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 32px', gap: 12, padding: '0 14px 8px', fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 64px', gap: 12, padding: '0 14px 8px', fontSize: 11, fontWeight: 600, color: t.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 <span />
                 <span>Nom</span>
                 <span>Progrès</span>
@@ -135,7 +150,16 @@ export default function PipelineHome() {
                 <span />
               </div>
               {filteredTasks.map(task => (
-                <TaskRow key={task.id} task={task} collections={collections} theme={t} onOpen={() => navigate(`/pipeline/${task.id}`)} onDelete={() => deleteTask(task.id)} />
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  collections={collections}
+                  theme={t}
+                  archived={showArchived}
+                  onOpen={() => !showArchived && navigate(`/pipeline/${task.id}`)}
+                  onDelete={() => deleteTask(task.id)}
+                  onArchive={() => archiveTask(task.id, !showArchived)}
+                />
               ))}
             </div>
           )}
@@ -209,12 +233,14 @@ export default function PipelineHome() {
   );
 }
 
-function TaskRow({ task, collections, theme: t, onOpen, onDelete }: {
+function TaskRow({ task, collections, theme: t, archived, onOpen, onDelete, onArchive }: {
   task: PipelineTask;
   collections: import('./pipelineApi').PipelineCollection[];
   theme: PipelineTheme;
+  archived: boolean;
   onOpen: () => void;
   onDelete: () => void;
+  onArchive: () => void;
 }) {
   const s    = STATUS_CFG[task.status] ?? STATUS_CFG.pending;
   const total = task.node_count ?? 0;
@@ -230,7 +256,7 @@ function TaskRow({ task, collections, theme: t, onOpen, onDelete }: {
       onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = t.border; el.style.background = t.bgCard; }}
       style={{
         display: 'grid',
-        gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 32px',
+        gridTemplateColumns: '36px 1fr 90px 100px 90px 1fr 70px 64px',
         gap: 12,
         alignItems: 'center',
         padding: '11px 14px',
@@ -295,12 +321,21 @@ function TaskRow({ task, collections, theme: t, onOpen, onDelete }: {
         {total > 0 ? `${total} nœud${total !== 1 ? 's' : ''}` : '—'}
       </span>
 
-      {/* Delete */}
-      <button
-        onClick={e => { e.stopPropagation(); if (confirm('Supprimer cette tâche ?')) onDelete(); }}
-        style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '4px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        title="Supprimer"
-      >×</button>
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <button
+          onClick={e => { e.stopPropagation(); onArchive(); }}
+          style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '4px', borderRadius: 6 }}
+          title={archived ? 'Désarchiver' : 'Archiver'}
+        >{archived ? '↩' : '🗄'}</button>
+        {!archived && (
+          <button
+            onClick={e => { e.stopPropagation(); if (confirm('Supprimer cette tâche ?')) onDelete(); }}
+            style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '4px', borderRadius: 6 }}
+            title="Supprimer"
+          >×</button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1582,14 +1582,23 @@ app.get('/api/db/projects', (req, res) => {
     if (!db) {
         return res.status(503).json({ error: 'Database not available' });
     }
-    
+
     try {
-        const projects = db.getAllProjects();
+        const archived = req.query.archived === '1' || req.query.archived === 'true';
+        const projects = db.getAllProjects(archived);
         res.json(projects);
     } catch (error) {
         console.error('Error getting projects:', error);
         res.status(500).json({ error: 'Failed to get projects' });
     }
+});
+
+app.patch('/api/db/projects/:id/archive', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { archived } = req.body;
+        res.json(db.archiveProject(req.params.id, archived !== false));
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Search projects
@@ -3162,7 +3171,18 @@ app.delete('/api/pipeline/collections/:id', (req, res) => {
 
 app.get('/api/pipeline/tasks', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
-    try { res.json(db.getAllPipelineTasks(req.query.collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
+    try {
+        const archived = req.query.archived === '1' || req.query.archived === 'true';
+        res.json(db.getAllPipelineTasks(req.query.collection_id || null, archived));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/pipeline/tasks/:id/archive', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { archived } = req.body;
+        res.json(db.archivePipelineTask(req.params.id, archived !== false));
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.post('/api/pipeline/tasks', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
@@ -3319,7 +3339,18 @@ app.delete('/api/diagram-collections/:id', (req, res) => {
 
 app.get('/api/diagrams', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
-    try { res.json(db.getAllDiagrams(req.query.diagram_collection_id || null)); } catch (e) { res.status(500).json({ error: e.message }); }
+    try {
+        const archived = req.query.archived === '1' || req.query.archived === 'true';
+        res.json(db.getAllDiagrams(req.query.diagram_collection_id || null, archived));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.patch('/api/diagrams/:id/archive', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const { archived } = req.body;
+        res.json(db.archiveDiagram(req.params.id, archived !== false));
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/diagrams/:id', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });

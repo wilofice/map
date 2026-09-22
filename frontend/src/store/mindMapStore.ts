@@ -39,7 +39,7 @@ interface MindMapState {
   updateCollection: (id: string, patch: Partial<Collection>) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
 
-  loadProjects: () => Promise<void>;
+  loadProjects: (archived?: boolean) => Promise<void>;
   clearPendingFitView: () => void;
   loadProject: (id: string) => Promise<void>;
   toggleExpand: (id: string) => void;
@@ -50,6 +50,7 @@ interface MindMapState {
   deleteNode: (id: string) => Promise<void>;
   updateNodeField: (id: string, patch: Partial<MindMapNodeData>) => Promise<void>;
   deleteProjects: (ids: string[]) => Promise<void>;
+  archiveProjects: (ids: string[], archived: boolean) => Promise<void>;
   moveToCollection: (projectIds: string[], collectionId: string) => Promise<void>;
   bulkAddChildren: (parentId: string, suggestions: AiSuggestion[]) => Promise<void>;
   moveNodeUp: (id: string) => Promise<void>;
@@ -185,9 +186,9 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     }
   },
 
-  async loadProjects() {
+  async loadProjects(archived = false) {
     try {
-      const projects = await api.getProjects();
+      const projects = await api.getProjects(archived);
       set({ projects });
     } catch (e) {
       set({ error: String(e) });
@@ -435,6 +436,15 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         projects: remaining,
         ...(wasCurrent ? { currentProject: null, rawNodes: [], rfNodes: [], rfEdges: [], selectedNodeId: null } : {}),
       });
+    } catch (e) {
+      set({ error: String(e) });
+    }
+  },
+
+  async archiveProjects(ids, archived) {
+    try {
+      await Promise.all(ids.map((id) => api.archiveProject(id, archived)));
+      set(s => ({ projects: s.projects.filter(p => !ids.includes(p.id)) }));
     } catch (e) {
       set({ error: String(e) });
     }

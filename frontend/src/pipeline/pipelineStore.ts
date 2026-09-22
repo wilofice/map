@@ -19,10 +19,11 @@ interface PipelineState {
   deleteCollection: (id: string) => Promise<void>;
 
   // Tasks
-  loadTasks: (collectionId?: string) => Promise<void>;
+  loadTasks: (collectionId?: string, archived?: boolean) => Promise<void>;
   createTask: (data: Partial<PipelineTask>) => Promise<PipelineTaskDetail>;
   updateTask: (id: string, patch: Partial<PipelineTask>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  archiveTask: (id: string, archived: boolean) => Promise<void>;
 
   // Graph
   loadTask: (id: string) => Promise<void>;
@@ -73,11 +74,11 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     } catch (e) { set({ error: String(e) }); }
   },
 
-  async loadTasks(collectionId) {
+  async loadTasks(collectionId, archived = false) {
     set({ loading: true, error: null });
     try {
       const [tasks, collections] = await Promise.all([
-        pipelineApi.getTasks(collectionId),
+        pipelineApi.getTasks(collectionId, archived),
         pipelineApi.getCollections(),
       ]);
       set({ tasks, collections, loading: false });
@@ -103,6 +104,13 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   async deleteTask(id) {
     try {
       await pipelineApi.deleteTask(id);
+      set(s => ({ tasks: s.tasks.filter(t => t.id !== id) }));
+    } catch (e) { set({ error: String(e) }); }
+  },
+
+  async archiveTask(id, archived) {
+    try {
+      await pipelineApi.archiveTask(id, archived);
       set(s => ({ tasks: s.tasks.filter(t => t.id !== id) }));
     } catch (e) { set({ error: String(e) }); }
   },

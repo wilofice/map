@@ -167,6 +167,7 @@ export default function DiagramStudio() {
   const [showEditor, setShowEditor] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
   const [movingDiagramId, setMovingDiagramId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Pan/zoom
   const [zoom, setZoom] = useState(1);
@@ -189,18 +190,19 @@ export default function DiagramStudio() {
 
   // Load diagrams (filtered by selected collection)
   const loadDiagrams = useCallback(async () => {
-    let url = API;
+    const params = new URLSearchParams();
     if (selectedCollectionId !== 'all') {
-      url += selectedCollectionId === null
-        ? '?diagram_collection_id=none'
-        : `?diagram_collection_id=${selectedCollectionId}`;
+      if (selectedCollectionId === null) params.set('diagram_collection_id', 'none');
+      else params.set('diagram_collection_id', selectedCollectionId);
     }
-    const res = await fetch(url);
+    if (showArchived) params.set('archived', '1');
+    const qs = params.toString();
+    const res = await fetch(`${API}${qs ? `?${qs}` : ''}`);
     if (res.ok) setDiagrams(await res.json());
-  }, [selectedCollectionId]);
+  }, [selectedCollectionId, showArchived]);
 
   useEffect(() => { loadCollections(); }, [loadCollections]);
-  useEffect(() => { loadDiagrams(); }, [loadDiagrams]);
+  useEffect(() => { loadDiagrams(); }, [loadDiagrams, showArchived]);
 
   // Render SVG
   const renderSvg = useCallback(async (src: string) => {
@@ -277,6 +279,16 @@ export default function DiagramStudio() {
     await fetch(`${API}/${id}`, { method: 'DELETE' });
     if (selected?.id === id) { setSelected(null); setCode(''); setTitle(''); }
     await loadCollections();
+    setDiagrams(prev => prev.filter(d => d.id !== id));
+  };
+
+  const archiveDiagram = async (id: string, archived: boolean) => {
+    await fetch(`${API}/${id}/archive`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archived }),
+    });
+    if (selected?.id === id && archived) { setSelected(null); setCode(''); setTitle(''); }
     setDiagrams(prev => prev.filter(d => d.id !== id));
   };
 
@@ -429,9 +441,16 @@ export default function DiagramStudio() {
             <div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: muted, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedColName}</span>
               <button
-                onClick={() => createNew('flowchart')}
-                style={{ fontSize: 11, padding: '3px 8px', background: accent, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}
-              >+ Nouveau</button>
+                onClick={() => setShowArchived(v => !v)}
+                style={{ fontSize: 10, padding: '2px 5px', background: showArchived ? accent : 'transparent', color: showArchived ? '#fff' : muted, border: `1px solid ${showArchived ? accent : border}`, borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}
+                title="Voir les archives"
+              >🗄</button>
+              {!showArchived && (
+                <button
+                  onClick={() => createNew('flowchart')}
+                  style={{ fontSize: 11, padding: '3px 8px', background: accent, color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600, flexShrink: 0 }}
+                >+ Nouveau</button>
+              )}
             </div>
             <input
               placeholder="Rechercher…"
@@ -480,10 +499,17 @@ export default function DiagramStudio() {
                 </div>
 
                 <button
-                  onClick={e => { e.stopPropagation(); deleteDiagram(d.id); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: muted, fontSize: 14, padding: '1px 3px', flexShrink: 0, lineHeight: 1 }}
-                  title="Supprimer"
-                >×</button>
+                  onClick={e => { e.stopPropagation(); archiveDiagram(d.id, !showArchived); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: muted, fontSize: 12, padding: '1px 3px', flexShrink: 0, lineHeight: 1 }}
+                  title={showArchived ? 'Désarchiver' : 'Archiver'}
+                >{showArchived ? '↩' : '🗄'}</button>
+                {!showArchived && (
+                  <button
+                    onClick={e => { e.stopPropagation(); deleteDiagram(d.id); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: muted, fontSize: 14, padding: '1px 3px', flexShrink: 0, lineHeight: 1 }}
+                    title="Supprimer"
+                  >×</button>
+                )}
               </div>
             ))}
           </div>

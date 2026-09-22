@@ -21,6 +21,7 @@ export default function CollectionsManager() {
     updateCollection,
     deleteCollection,
     deleteProjects,
+    archiveProjects,
     moveToCollection,
     loadProject,
   } = useMindMapStore();
@@ -40,11 +41,12 @@ export default function CollectionsManager() {
 
   // Projects selection
   const [selectedProjects, setSelectedProjects] = useState<Set<string>>(new Set());
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     loadCollections();
-    loadProjects();
-  }, [loadCollections, loadProjects]);
+    loadProjects(showArchived);
+  }, [loadCollections, loadProjects, showArchived]);
 
   // Derived data
   const groups = useMemo(() => {
@@ -145,6 +147,17 @@ export default function CollectionsManager() {
             ←
           </button>
           <h1 className="font-semibold text-lg" style={{ color: t.textHeading }}>Collections</h1>
+          <button
+            onClick={() => setShowArchived(v => !v)}
+            className="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors"
+            style={{
+              background: showArchived ? 'rgba(69,137,255,0.1)' : 'transparent',
+              borderColor: showArchived ? '#4589ff' : t.border,
+              color: showArchived ? '#4589ff' : t.textMuted,
+            }}
+          >
+            {showArchived ? '📂 Archives' : '🗄 Archives'}
+          </button>
         </div>
         <div className="relative w-64">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 opacity-50" style={{ color: t.textMuted }}>🔍</span>
@@ -363,12 +376,22 @@ export default function CollectionsManager() {
                             </select>
 
                             <button
-                              onClick={() => deleteProjects([p.id])}
-                              className="opacity-0 group-hover:opacity-100 hover:text-[#fa4d56] transition-opacity p-1"
-                              title="Delete project"
+                              onClick={() => archiveProjects([p.id], !showArchived)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                              title={showArchived ? 'Désarchiver' : 'Archiver'}
+                              style={{ color: t.textMuted }}
                             >
-                              🗑
+                              {showArchived ? '↩' : '🗄'}
                             </button>
+                            {!showArchived && (
+                              <button
+                                onClick={() => deleteProjects([p.id])}
+                                className="opacity-0 group-hover:opacity-100 hover:text-[#fa4d56] transition-opacity p-1"
+                                title="Delete project"
+                              >
+                                🗑
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -392,11 +415,23 @@ export default function CollectionsManager() {
                       Cancel
                     </button>
                     <button
-                      onClick={handleBulkDelete}
-                      className="px-4 py-1.5 rounded-md bg-[#da1e28] text-white hover:bg-[#b81922] transition-colors"
+                      onClick={async () => {
+                        await archiveProjects(Array.from(selectedProjects), !showArchived);
+                        setSelectedProjects(new Set());
+                      }}
+                      className="px-4 py-1.5 rounded-md border transition-colors"
+                      style={{ borderColor: t.border, color: t.textMuted }}
                     >
-                      Delete Selected
+                      {showArchived ? '↩ Désarchiver' : '🗄 Archiver'}
                     </button>
+                    {!showArchived && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="px-4 py-1.5 rounded-md bg-[#da1e28] text-white hover:bg-[#b81922] transition-colors"
+                      >
+                        Delete Selected
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
