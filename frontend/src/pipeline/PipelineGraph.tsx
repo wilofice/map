@@ -15,7 +15,7 @@ if (!dagreRegistered) {
 export type DisplayMode = 'labeled' | 'dots';
 
 const TYPE_SHAPE: Record<string, string> = {
-  step: 'roundrectangle', decision: 'diamond', milestone: 'star', review: 'hexagon',
+  step: 'roundrectangle', decision: 'diamond', milestone: 'roundrectangle', review: 'hexagon',
 };
 
 function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
@@ -89,13 +89,14 @@ function buildCyStyle(t: PipelineTheme, display: DisplayMode) {
     { selector: 'node[type = "milestone"][status = "pending"]', style: { 'border-color': '#a78bfa', 'border-width': 2 } },
     { selector: 'node[type = "review"][status = "pending"]',    style: { 'border-color': '#f472b6', 'border-width': 2 } },
 
-    // ── Milestone star: interior area is ~40 % of bounding box → upsize ──────
+    // ── Milestone: same rectangle but with a faint violet fill + bolder border
     {
       selector: 'node[type = "milestone"]',
       style: {
-        'width':          labeled ? 300 : 54,
-        'height':         labeled ? 160 : 54,
-        'text-max-width': labeled ? '118px' : '70px',
+        'background-opacity':  0.08,
+        'background-color':    '#a78bfa',
+        'border-width':        2.5,
+        'text-max-width':      labeled ? '190px' : '70px',
       },
     },
 
