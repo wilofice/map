@@ -1,8 +1,11 @@
 import type { Collection, MindMapNodeData, NodeAudioFile, Project, ProjectWithNodes } from '../types/NodeTypes';
+import { getStoredToken } from '../store/authStore';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getStoredToken();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...options?.headers },
     ...options,
   });
   if (!res.ok) {

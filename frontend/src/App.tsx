@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useMindMapStore } from './store/mindMapStore';
+import { useAuthStore } from './store/authStore';
 import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
 import SettingsPanel from './components/SettingsPanel';
 import CollectionsSidebar from './components/CollectionsSidebar';
+import PrivateRoute from './components/PrivateRoute';
 import CollectionsManager from './pages/CollectionsManager';
+import LoginPage from './pages/LoginPage';
 import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
@@ -179,6 +182,7 @@ function CanvasView() {
             <PipelineLink t={t} />
             <DiagramsLink t={t} />
             <NavigatorLink t={t} />
+            <UserMenu t={t} />
           </div>
         </header>
 
@@ -272,23 +276,95 @@ function NavigatorLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
+
+  if (!user) return null;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        className="toolbar-btn"
+        style={{
+          color: t.textUI,
+          borderLeft: `1px solid ${t.border}`,
+          paddingLeft: 10,
+          marginLeft: 4,
+        }}
+        onClick={() => setOpen(o => !o)}
+        title={`Connecté : ${user.display_name}`}
+      >
+        👤 {user.display_name}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: 6,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
+          borderRadius: 8,
+          minWidth: 180,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          zIndex: 200,
+        }}>
+          <div style={{ padding: '10px 14px', borderBottom: `1px solid ${t.border}` }}>
+            <div style={{ fontSize: 13, color: t.textHeading, fontWeight: 600 }}>{user.display_name}</div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>@{user.username} · {user.role}</div>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              padding: '10px 14px',
+              background: 'transparent',
+              border: 'none',
+              color: '#fa4d56',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Se déconnecter
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
+  const restoreSession = useAuthStore(s => s.restoreSession);
 
   useEffect(() => {
-    // Ensure we load projects at least once on startup
+    restoreSession();
+  }, [restoreSession]);
+
+  useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
   return (
     <Routes>
-      <Route path="/" element={<CanvasView />} />
-      <Route path="/graph" element={<GraphView />} />
-      <Route path="/collections" element={<CollectionsManager />} />
-      <Route path="/pipeline" element={<PipelineHome />} />
-      <Route path="/pipeline/:taskId" element={<PipelineGraph />} />
-      <Route path="/diagrams" element={<DiagramStudio />} />
-      <Route path="/navigator" element={<WeeklyNavigator />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<PrivateRoute><CanvasView /></PrivateRoute>} />
+      <Route path="/graph" element={<PrivateRoute><GraphView /></PrivateRoute>} />
+      <Route path="/collections" element={<PrivateRoute><CollectionsManager /></PrivateRoute>} />
+      <Route path="/pipeline" element={<PrivateRoute><PipelineHome /></PrivateRoute>} />
+      <Route path="/pipeline/:taskId" element={<PrivateRoute><PipelineGraph /></PrivateRoute>} />
+      <Route path="/diagrams" element={<PrivateRoute><DiagramStudio /></PrivateRoute>} />
+      <Route path="/navigator" element={<PrivateRoute><WeeklyNavigator /></PrivateRoute>} />
     </Routes>
   );
 }
