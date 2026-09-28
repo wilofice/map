@@ -18,6 +18,9 @@ const { PureJSONHandler } = require('./backend/pure-json-models');
 // SQLite Database Integration
 const DatabaseManager = require('./backend/db-manager');
 const tursoSync = require('./backend/turso-sync');
+const AuthManager = require('./backend/auth-manager');
+const { requireAuth, requireAdmin } = require('./backend/auth-middleware');
+const createAuthRoutes = require('./backend/auth-routes');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -25,10 +28,13 @@ const fileModTimes = new Map();
 // Initialize database
 let db = null;
 let _rawDb = null;
+let auth = null;
 try {
     _rawDb = new DatabaseManager();
     // Wrap with Turso sync proxy (no-op if TURSO_DATABASE_URL is not set)
     db = tursoSync.wrapDb(_rawDb);
+    // Auth manager operates on the raw SQLite instance (no Turso proxy needed for users)
+    auth = new AuthManager(_rawDb.db);
     console.log('✅ Database connected and ready');
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
@@ -98,6 +104,38 @@ const nodeImageUpload = multer({
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Global API auth guard — protects all /api/* routes except the public allowlist
+const PUBLIC_API_PATHS = [
+    '/api/health',
+    '/api/auth/login',
+    '/api/turso/sync',
+    '/api/agent/bootstrap',
+    '/api/docs/start',
+    '/api/system-prompt',
+];
+app.use('/api', (req, res, next) => {
+    const fullPath = '/api' + req.path;
+    // Allow public paths and all /api/docs/* reads (AI agents bootstrap)
+    if (
+        PUBLIC_API_PATHS.includes(fullPath) ||
+        fullPath.startsWith('/api/docs/')
+    ) return next();
+
+    // Skip if auth not yet initialized
+    if (!auth) return next();
+
+    const header = req.headers['authorization'];
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+        req.user = auth.verifyToken(header.slice(7));
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+});
 // Serve compiled frontend (built by `npm run build:ui` → frontend-dist/)
 const frontendDist = path.join(__dirname, 'frontend-dist');
 if (fsSync.existsSync(frontendDist)) {
@@ -134,6 +172,13 @@ app.get('/api/health', (req, res) => {
         workingDirectory: workingRootDir
     });
 });
+
+// Auth + Admin routes
+if (auth) {
+    const authRouter = createAuthRoutes(auth);
+    app.use('/api/auth', authRouter);
+    app.use('/api', authRouter); // mounts /api/admin/users etc.
+}
 
 // Manual Turso pull — called by local machine after MCP writes propagate to Turso.
 // Optionally protected by SYNC_SECRET env var.
