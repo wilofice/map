@@ -2512,6 +2512,20 @@ app.get('/api/db/stats', (req, res) => {
     }
 });
 
+// Home dashboard summary — projects + pipelines + diagrams recent items + counts
+app.get('/api/home/summary', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const projects  = db.getAllProjects(false).slice(0, 12);
+        const tasks     = db.getAllPipelineTasks(null, false).slice(0, 12);
+        const diagrams  = db.getAllDiagrams(null, false).slice(0, 12);
+        const stats     = db.getStats();
+        res.json({ projects, tasks, diagrams, stats });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Create database backup
 app.post('/api/db/backup', (req, res) => {
     if (!db) {

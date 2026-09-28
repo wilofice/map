@@ -13,7 +13,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await login(username, password);
-      navigate('/', { replace: true });
+      navigate('/home', { replace: true });
     } catch {
       // error already set in store
     }

@@ -10,6 +10,7 @@ import CollectionsSidebar from './components/CollectionsSidebar';
 import PrivateRoute from './components/PrivateRoute';
 import CollectionsManager from './pages/CollectionsManager';
 import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
 import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
@@ -178,6 +179,7 @@ function CanvasView() {
               style={{ color: settingsPanelOpen ? t.bgAccent : t.textUI }}
               title="Settings"
             >⚙</button>
+            <HomeLink t={t} />
             <GraphViewLink t={t} />
             <PipelineLink t={t} />
             <DiagramsLink t={t} />
@@ -217,6 +219,20 @@ function CanvasView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function HomeLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/home')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Dashboard d'accueil"
+    >
+      ⌂ Home
+    </button>
   );
 }
 
@@ -358,6 +374,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
       <Route path="/" element={<PrivateRoute><CanvasView /></PrivateRoute>} />
       <Route path="/graph" element={<PrivateRoute><GraphView /></PrivateRoute>} />
       <Route path="/collections" element={<PrivateRoute><CollectionsManager /></PrivateRoute>} />
