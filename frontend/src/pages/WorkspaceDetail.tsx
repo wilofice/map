@@ -183,7 +183,7 @@ export default function WorkspaceDetail() {
           onAdd={() => openAttachPicker('diagram_collection')}
           onDetach={id => detach('diagram_collection', id)}
           onOpenDiagram={() => navigate('/diagrams')}
-          border={border} card={card} text={text} muted={muted} accent={accent}
+          border={border} text={text} muted={muted} accent={accent}
           style={sectionStyle} titleStyle={sectionTitle}
         />
 
@@ -246,7 +246,7 @@ function DiagramsSection({ diagramCollections, diagrams, onAdd, onDetach, onOpen
   onAdd: () => void;
   onDetach: (id: string) => void;
   onOpenDiagram: () => void;
-  border: string; card?: string; text: string; muted: string; accent: string;
+  border: string; text: string; muted: string; accent: string;
   style: React.CSSProperties; titleStyle: React.CSSProperties;
 }) {
   return (
