@@ -169,6 +169,8 @@ app.get('/api/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         database: db ? 'connected' : 'disconnected',
+        auth: auth ? 'enabled' : 'disabled',
+        build: 'multi-user-v1',
         workingDirectory: workingRootDir
     });
 });
