@@ -40,6 +40,10 @@ const SYNC_TABLES = [
     'diagram_collections',
     'diagrams',
     'weekly_reports',
+    'workspaces',
+    'workspace_projects',
+    'workspace_diagram_collections',
+    'workspace_pipeline_collections',
 ];
 
 // Maps each DatabaseManager write method to the Turso sync action it should trigger.

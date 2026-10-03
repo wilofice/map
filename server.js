@@ -2534,6 +2534,63 @@ app.get('/api/home/summary', (req, res) => {
     }
 });
 
+// ── Workspace API ────────────────────────────────────────────────────────────
+
+app.get('/api/workspaces', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllWorkspaces()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/workspaces', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { name, description, color, icon } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+    try { res.status(201).json(db.createWorkspace(name.trim(), description, color, icon)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const w = db.getWorkspace(req.params.id);
+        if (!w) return res.status(404).json({ error: 'Not found' });
+        res.json(w);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const w = db.updateWorkspace(req.params.id, req.body);
+        if (!w) return res.status(404).json({ error: 'Not found' });
+        res.json(w);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deleteWorkspace(req.params.id); res.status(204).end(); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Attach / detach items from a workspace
+// type: project | diagram_collection | pipeline_collection
+app.post('/api/workspaces/:id/attach', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { type, itemId } = req.body;
+    if (!type || !itemId) return res.status(400).json({ error: 'type and itemId required' });
+    try { res.json(db.attachToWorkspace(req.params.id, type, itemId)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/workspaces/:id/detach', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { type, itemId } = req.body;
+    if (!type || !itemId) return res.status(400).json({ error: 'type and itemId required' });
+    try { res.json(db.detachFromWorkspace(req.params.id, type, itemId)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Create database backup
 app.post('/api/db/backup', (req, res) => {
     if (!db) {

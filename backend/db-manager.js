@@ -275,6 +275,50 @@ class DatabaseManager {
             );
             CREATE INDEX IF NOT EXISTS idx_graph_settings_project ON graph_settings(project_id);
         `);
+
+        // Workspaces — unified containers linking projects, diagram collections, pipeline collections
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS workspaces (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                color TEXT DEFAULT '#6366f1',
+                icon TEXT DEFAULT '🗂',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS workspace_projects (
+                workspace_id TEXT NOT NULL,
+                project_id TEXT NOT NULL,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (workspace_id, project_id),
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS workspace_diagram_collections (
+                workspace_id TEXT NOT NULL,
+                diagram_collection_id TEXT NOT NULL,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (workspace_id, diagram_collection_id),
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (diagram_collection_id) REFERENCES diagram_collections(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS workspace_pipeline_collections (
+                workspace_id TEXT NOT NULL,
+                pipeline_collection_id TEXT NOT NULL,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (workspace_id, pipeline_collection_id),
+                FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+                FOREIGN KEY (pipeline_collection_id) REFERENCES pipeline_collections(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wp_workspace ON workspace_projects(workspace_id);
+            CREATE INDEX IF NOT EXISTS idx_wdc_workspace ON workspace_diagram_collections(workspace_id);
+            CREATE INDEX IF NOT EXISTS idx_wpc_workspace ON workspace_pipeline_collections(workspace_id);
+        `);
     }
 
     prepareStatements() {
@@ -1426,6 +1470,98 @@ class DatabaseManager {
             SELECT * FROM pipeline_nodes WHERE status = 'done'
               AND updated_at >= datetime('now', '-7 days')
         `).all();
+    }
+
+    // ── Workspace CRUD ──────────────────────────────────────────────────────
+
+    getAllWorkspaces() {
+        const { v4: uuidv4 } = require('uuid');
+        void uuidv4; // ensure require cached
+        const rows = this.db.prepare(`SELECT * FROM workspaces ORDER BY updated_at DESC`).all();
+        return rows.map(w => ({ ...w, ...this._workspaceCounts(w.id) }));
+    }
+
+    getWorkspace(id) {
+        const w = this.db.prepare(`SELECT * FROM workspaces WHERE id = ?`).get(id);
+        if (!w) return null;
+        const projects = this.db.prepare(`
+            SELECT p.* FROM projects p
+            JOIN workspace_projects wp ON wp.project_id = p.id
+            WHERE wp.workspace_id = ?
+            ORDER BY p.updated_at DESC
+        `).all(id);
+        const diagramCollections = this.db.prepare(`
+            SELECT dc.* FROM diagram_collections dc
+            JOIN workspace_diagram_collections wdc ON wdc.diagram_collection_id = dc.id
+            WHERE wdc.workspace_id = ?
+            ORDER BY dc.updated_at DESC
+        `).all(id);
+        const pipelineCollections = this.db.prepare(`
+            SELECT pc.* FROM pipeline_collections pc
+            JOIN workspace_pipeline_collections wpc ON wpc.pipeline_collection_id = pc.id
+            WHERE wpc.workspace_id = ?
+            ORDER BY pc.updated_at DESC
+        `).all(id);
+        return { ...w, projects, diagramCollections, pipelineCollections };
+    }
+
+    createWorkspace(name, description = '', color = '#6366f1', icon = '🗂') {
+        const { v4: uuidv4 } = require('uuid');
+        const id = uuidv4();
+        this.db.prepare(`
+            INSERT INTO workspaces (id, name, description, color, icon)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(id, name, description, color, icon);
+        return this.getWorkspace(id);
+    }
+
+    updateWorkspace(id, { name, description, color, icon } = {}) {
+        const fields = [];
+        const vals = [];
+        if (name !== undefined)        { fields.push('name = ?');        vals.push(name); }
+        if (description !== undefined) { fields.push('description = ?'); vals.push(description); }
+        if (color !== undefined)       { fields.push('color = ?');       vals.push(color); }
+        if (icon !== undefined)        { fields.push('icon = ?');        vals.push(icon); }
+        if (!fields.length) return this.getWorkspace(id);
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+        vals.push(id);
+        this.db.prepare(`UPDATE workspaces SET ${fields.join(', ')} WHERE id = ?`).run(...vals);
+        return this.getWorkspace(id);
+    }
+
+    deleteWorkspace(id) {
+        return this.db.prepare(`DELETE FROM workspaces WHERE id = ?`).run(id);
+    }
+
+    attachToWorkspace(workspaceId, type, itemId) {
+        if (type === 'project') {
+            this.db.prepare(`INSERT OR IGNORE INTO workspace_projects (workspace_id, project_id) VALUES (?, ?)`).run(workspaceId, itemId);
+        } else if (type === 'diagram_collection') {
+            this.db.prepare(`INSERT OR IGNORE INTO workspace_diagram_collections (workspace_id, diagram_collection_id) VALUES (?, ?)`).run(workspaceId, itemId);
+        } else if (type === 'pipeline_collection') {
+            this.db.prepare(`INSERT OR IGNORE INTO workspace_pipeline_collections (workspace_id, pipeline_collection_id) VALUES (?, ?)`).run(workspaceId, itemId);
+        }
+        this.db.prepare(`UPDATE workspaces SET updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(workspaceId);
+        return this.getWorkspace(workspaceId);
+    }
+
+    detachFromWorkspace(workspaceId, type, itemId) {
+        if (type === 'project') {
+            this.db.prepare(`DELETE FROM workspace_projects WHERE workspace_id = ? AND project_id = ?`).run(workspaceId, itemId);
+        } else if (type === 'diagram_collection') {
+            this.db.prepare(`DELETE FROM workspace_diagram_collections WHERE workspace_id = ? AND diagram_collection_id = ?`).run(workspaceId, itemId);
+        } else if (type === 'pipeline_collection') {
+            this.db.prepare(`DELETE FROM workspace_pipeline_collections WHERE workspace_id = ? AND pipeline_collection_id = ?`).run(workspaceId, itemId);
+        }
+        return this.getWorkspace(workspaceId);
+    }
+
+    _workspaceCounts(id) {
+        return {
+            project_count:            this.db.prepare(`SELECT COUNT(*) as c FROM workspace_projects WHERE workspace_id = ?`).get(id).c,
+            diagram_collection_count: this.db.prepare(`SELECT COUNT(*) as c FROM workspace_diagram_collections WHERE workspace_id = ?`).get(id).c,
+            pipeline_collection_count:this.db.prepare(`SELECT COUNT(*) as c FROM workspace_pipeline_collections WHERE workspace_id = ?`).get(id).c,
+        };
     }
 }
 

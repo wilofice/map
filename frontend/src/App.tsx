@@ -11,6 +11,8 @@ import PrivateRoute from './components/PrivateRoute';
 import CollectionsManager from './pages/CollectionsManager';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import WorkspacesPage from './pages/WorkspacesPage';
+import WorkspaceDetail from './pages/WorkspaceDetail';
 import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
@@ -184,6 +186,7 @@ function CanvasView() {
             <PipelineLink t={t} />
             <DiagramsLink t={t} />
             <NavigatorLink t={t} />
+            <WorkspacesLink t={t} />
             <UserMenu t={t} />
           </div>
         </header>
@@ -292,6 +295,20 @@ function NavigatorLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function WorkspacesLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/workspaces')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Workspaces — conteneurs unifiés"
+    >
+      🗂 Workspaces
+    </button>
+  );
+}
+
 function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -382,6 +399,8 @@ export default function App() {
       <Route path="/pipeline/:taskId" element={<PrivateRoute><PipelineGraph /></PrivateRoute>} />
       <Route path="/diagrams" element={<PrivateRoute><DiagramStudio /></PrivateRoute>} />
       <Route path="/navigator" element={<PrivateRoute><WeeklyNavigator /></PrivateRoute>} />
+      <Route path="/workspaces" element={<PrivateRoute><WorkspacesPage /></PrivateRoute>} />
+      <Route path="/workspaces/:id" element={<PrivateRoute><WorkspaceDetail /></PrivateRoute>} />
     </Routes>
   );
 }
