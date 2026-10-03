@@ -158,7 +158,7 @@ class TursoSync {
         // libSQL is SQLite-compatible so the same DDL works.
         const stmts = [
             `CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, color TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, file_path TEXT, collection_id TEXT, layout_dir TEXT DEFAULT 'LR', display_mode TEXT DEFAULT 'comfortable', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_opened DATETIME)`,
+            `CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, file_path TEXT, collection_id TEXT, layout_dir TEXT DEFAULT 'LR', display_mode TEXT DEFAULT 'comfortable', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_opened DATETIME, archived INTEGER DEFAULT 0)`,
             `CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, parent_id TEXT, title TEXT NOT NULL, content TEXT, status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', start_date DATE, end_date DATE, days_spent INTEGER DEFAULT 0, code_language TEXT, code_content TEXT, task_prompt TEXT, cli_command TEXT, sort_order INTEGER DEFAULT 0, depth_level INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS node_progress (id TEXT PRIMARY KEY, node_id TEXT NOT NULL, message TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, agent_type TEXT DEFAULT 'ai')`,
@@ -166,7 +166,7 @@ class TursoSync {
             `CREATE TABLE IF NOT EXISTS node_audio_files (id TEXT PRIMARY KEY, node_id TEXT, project_id TEXT, original_filename TEXT, stored_filename TEXT, file_path TEXT, file_size INTEGER, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS graph_settings (project_id TEXT PRIMARY KEY, layout_name TEXT NOT NULL DEFAULT 'dagre', positions TEXT NOT NULL DEFAULT '{}', zoom REAL NOT NULL DEFAULT 1, pan_x REAL NOT NULL DEFAULT 0, pan_y REAL NOT NULL DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT DEFAULT '', color TEXT DEFAULT '#6366f1', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS pipeline_tasks (id TEXT PRIMARY KEY, collection_id TEXT, name TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'general', status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', due_date DATE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS pipeline_tasks (id TEXT PRIMARY KEY, collection_id TEXT, name TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'general', status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', due_date DATE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, archived INTEGER DEFAULT 0)`,
             `CREATE TABLE IF NOT EXISTS pipeline_nodes (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', status TEXT DEFAULT 'pending', type TEXT DEFAULT 'step', notes TEXT DEFAULT '', cli_command TEXT DEFAULT '', due_date DATE, position_x REAL DEFAULT 0, position_y REAL DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_edges (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, source_id TEXT NOT NULL, target_id TEXT NOT NULL, label TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS diagram_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
@@ -180,6 +180,11 @@ class TursoSync {
         for (const sql of stmts) {
             await this.client.execute(sql);
         }
+
+        // Migrations: add missing archived columns if they don't exist in Turso
+        try { await this.client.execute('ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
+        try { await this.client.execute('ALTER TABLE pipeline_tasks ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
+        try { await this.client.execute('ALTER TABLE diagrams ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
     }
 
     /**
