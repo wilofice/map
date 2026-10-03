@@ -24,6 +24,7 @@ const { createClient } = require('@libsql/client');
 
 // All tables that should be synced, in dependency order (parents before children).
 const SYNC_TABLES = [
+    'users',
     'collections',
     'projects',
     'nodes',
@@ -312,6 +313,12 @@ class TursoSync {
             headers: { 'x-sync-secret': secret || '', 'Content-Type': 'application/json' },
         }).catch(e => console.error('[turso] remote notify failed:', e.message));
     }
+
+    /** Push a user row to Turso (called by AuthManager after writes). */
+    pushUser(user) { this._upsertRow('users', user); }
+
+    /** Remove a user from Turso by id (called by AuthManager after delete). */
+    removeUser(id) { this._deleteRow('users', id); }
 
     /**
      * Wraps a DatabaseManager instance with a Proxy that:

@@ -7,8 +7,9 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const SALT_ROUNDS = 12;
 
 class AuthManager {
-    constructor(db) {
+    constructor(db, tursoSync = null) {
         this.db = db;
+        this.turso = tursoSync;
         this._ensureTable();
         this._prepareStatements();
     }
@@ -54,7 +55,10 @@ class AuthManager {
         const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
         const id = uuidv4();
         this.stmts.insert.run(id, username, passwordHash, displayName || username, role);
-        return this.stmts.findById.get(id);
+        const user = this.stmts.findById.get(id);
+        // Push full row (with hash) to Turso so it survives restarts
+        if (this.turso) this.turso.pushUser({ id, username, password_hash: passwordHash, display_name: displayName || username, role });
+        return user;
     }
 
     async login(username, password) {
@@ -91,12 +95,20 @@ class AuthManager {
     }
 
     deleteUser(id) {
-        return this.stmts.deleteUser.run(id);
+        const result = this.stmts.deleteUser.run(id);
+        if (this.turso) this.turso.removeUser(id);
+        return result;
     }
 
     updateUser(id, { displayName, role } = {}) {
         this.stmts.updateUser.run(displayName || null, role || null, id);
-        return this.stmts.findById.get(id);
+        const user = this.stmts.findById.get(id);
+        if (this.turso && user) {
+            // Need the full row (with hash) for the upsert — fetch it
+            const full = this.stmts.findByUsername.get(user.username);
+            if (full) this.turso.pushUser(full);
+        }
+        return user;
     }
 
     userCount() {

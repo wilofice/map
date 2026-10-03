@@ -33,8 +33,7 @@ try {
     _rawDb = new DatabaseManager();
     // Wrap with Turso sync proxy (no-op if TURSO_DATABASE_URL is not set)
     db = tursoSync.wrapDb(_rawDb);
-    // Auth manager operates on the raw SQLite instance (no Turso proxy needed for users)
-    auth = new AuthManager(_rawDb.db);
+    auth = new AuthManager(_rawDb.db, tursoSync);
     console.log('✅ Database connected and ready');
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
