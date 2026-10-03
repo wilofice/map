@@ -1,6 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { themes } from '../theme/themes';
+import { getStoredToken } from '../store/authStore';
+
+function ah(): Record<string, string> {
+  const t = getStoredToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
 
 const API = '/api/weekly-reports';
 
@@ -141,8 +147,8 @@ export default function WeeklyNavigator() {
     setLoading(true);
     try {
       const [rRes, sRes] = await Promise.all([
-        fetch(`${API}/current`),
-        fetch(`${API}/stats?weeks=8`),
+        fetch(`${API}/current`, { headers: ah() }),
+        fetch(`${API}/stats?weeks=8`, { headers: ah() }),
       ]);
       if (rRes.ok) setReport(await rRes.json());
       if (sRes.ok) { const s = await sRes.json(); setHistory(s.weeks || []); }
@@ -153,17 +159,17 @@ export default function WeeklyNavigator() {
 
   const generate = async () => {
     setGenerating(true);
-    const res = await fetch(`${API}/generate`, { method: 'POST' });
+    const res = await fetch(`${API}/generate`, { method: 'POST', headers: ah() });
     if (res.ok) { setReport(await res.json()); setFeedback('Rapport généré ✓'); setTimeout(() => setFeedback(null), 3000); }
     setGenerating(false);
-    const sRes = await fetch(`${API}/stats?weeks=8`);
+    const sRes = await fetch(`${API}/stats?weeks=8`, { headers: ah() });
     if (sRes.ok) { const s = await sRes.json(); setHistory(s.weeks || []); }
   };
 
   const submitEnergy = async (scores: { energy_physical: number; energy_mental: number; energy_emotional: number; energy_blocker: string }) => {
     const res = await fetch(API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ah() },
       body: JSON.stringify(scores),
     });
     if (res.ok) {

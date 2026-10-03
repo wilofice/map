@@ -20,9 +20,20 @@ interface AuthState {
 const TOKEN_KEY = 'mm_auth_token';
 const USER_KEY  = 'mm_auth_user';
 
+function readStoredAuth() {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const raw   = localStorage.getItem(USER_KEY);
+    if (token && raw) return { token, user: JSON.parse(raw) as AuthUser };
+  } catch { /* ignore */ }
+  return { token: null, user: null };
+}
+
+const _stored = readStoredAuth();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  user: null,
+  token: _stored.token,
+  user: _stored.user,
   loading: false,
   error: null,
 

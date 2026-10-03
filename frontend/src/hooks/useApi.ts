@@ -98,7 +98,12 @@ export const api = {
   async uploadNodeAudio(nodeId: string, file: File): Promise<NodeAudioFile> {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`/api/db/nodes/${nodeId}/audio`, { method: 'POST', body: form });
+    const token = getStoredToken();
+    const res = await fetch(`/api/db/nodes/${nodeId}/audio`, {
+      method: 'POST',
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Upload failed: ${text}`);
