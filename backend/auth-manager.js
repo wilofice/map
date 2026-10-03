@@ -61,6 +61,17 @@ class AuthManager {
         return user;
     }
 
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = this.stmts.findById.get(userId);
+        if (!user) throw new Error('User not found');
+        const full = this.stmts.findByUsername.get(user.username);
+        const valid = await bcrypt.compare(currentPassword, full.password_hash);
+        if (!valid) throw new Error('Current password is incorrect');
+        const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        this.db.prepare(`UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(newHash, userId);
+        if (this.turso) this.turso.pushUser({ ...full, password_hash: newHash });
+    }
+
     async login(username, password) {
         const user = this.stmts.findByUsername.get(username);
         if (!user) throw new Error('Invalid credentials');

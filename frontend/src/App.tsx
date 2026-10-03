@@ -309,10 +309,72 @@ function WorkspacesLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function ChangePasswordModal({ t, onClose }: { t: import('./theme/themes').AppTheme; onClose: () => void }) {
+  const token = useAuthStore(s => s.token);
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (form.next !== form.confirm) { setError('Les nouveaux mots de passe ne correspondent pas'); return; }
+    if (form.next.length < 6) { setError('Minimum 6 caractères'); return; }
+    setSaving(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: form.current, newPassword: form.next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+    } finally { setSaving(false); }
+  }
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '8px 12px', borderRadius: 7,
+    border: `1px solid ${t.border}`, background: t.shell, color: t.textPrimary,
+    fontSize: 14, marginBottom: 12, boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
+      onClick={onClose}>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+        onClick={e => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Changer le mot de passe</h3>
+        {success ? (
+          <p style={{ color: '#34d399', fontWeight: 600, textAlign: 'center', margin: '20px 0' }}>✓ Mot de passe mis à jour</p>
+        ) : (
+          <form onSubmit={submit}>
+            <label style={{ fontSize: 12, color: t.textMuted }}>Mot de passe actuel</label>
+            <input type="password" style={inp} value={form.current} onChange={e => setForm(f => ({ ...f, current: e.target.value }))} required />
+            <label style={{ fontSize: 12, color: t.textMuted }}>Nouveau mot de passe</label>
+            <input type="password" style={inp} value={form.next} onChange={e => setForm(f => ({ ...f, next: e.target.value }))} required />
+            <label style={{ fontSize: 12, color: t.textMuted }}>Confirmer</label>
+            <input type="password" style={{ ...inp, marginBottom: 16 }} value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} required />
+            {error && <p style={{ color: '#f87171', fontSize: 12, marginBottom: 12 }}>{error}</p>}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={{ padding: '7px 14px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: 7, color: t.textPrimary, cursor: 'pointer', fontSize: 13 }}>Annuler</button>
+              <button type="submit" disabled={saving} style={{ padding: '7px 14px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: saving ? 'wait' : 'pointer' }}>{saving ? '…' : 'Sauvegarder'}</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
   function handleLogout() {
     logout();
@@ -355,6 +417,12 @@ function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
             <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>@{user.username} · {user.role}</div>
           </div>
           <button
+            onClick={() => { setOpen(false); setShowPwd(true); }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'transparent', border: 'none', color: t.textPrimary, fontSize: 13, cursor: 'pointer' }}
+          >
+            🔑 Changer le mot de passe
+          </button>
+          <button
             onClick={handleLogout}
             style={{
               display: 'block',
@@ -372,6 +440,8 @@ function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
           </button>
         </div>
       )}
+
+      {showPwd && <ChangePasswordModal t={t} onClose={() => setShowPwd(false)} />}
     </div>
   );
 }

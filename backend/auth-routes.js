@@ -25,6 +25,23 @@ module.exports = function createAuthRoutes(auth) {
         res.json(user);
     });
 
+    // POST /api/auth/change-password
+    router.post('/change-password', requireAuth, async (req, res) => {
+        const { currentPassword, newPassword } = req.body || {};
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'currentPassword and newPassword required' });
+        }
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'New password must be at least 6 characters' });
+        }
+        try {
+            await auth.changePassword(req.user.sub, currentPassword, newPassword);
+            res.json({ ok: true });
+        } catch (err) {
+            res.status(400).json({ error: err.message });
+        }
+    });
+
     // ── Admin routes ──────────────────────────────────────────────────────────
 
     // GET /api/admin/users
