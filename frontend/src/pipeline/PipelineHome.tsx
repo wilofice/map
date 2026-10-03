@@ -70,7 +70,7 @@ export default function PipelineHome() {
           {colorMode === 'dark' ? '☀' : '☽'}
         </button>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/canvas')}
           style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}
         >
           ← Mind Map

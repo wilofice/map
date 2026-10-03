@@ -97,7 +97,7 @@ export default function HomePage() {
 
   function openProject(id: string) {
     loadProject(id);
-    navigate('/');
+    navigate('/canvas');
   }
 
   const s = {
@@ -215,7 +215,7 @@ export default function HomePage() {
           🧠 <span>Mind Map Studio</span>
         </div>
         <nav style={s.navLinks}>
-          <button style={s.navBtn} onClick={() => navigate('/')}>Cartes</button>
+          <button style={s.navBtn} onClick={() => navigate('/canvas')}>Cartes</button>
           <button style={s.navBtn} onClick={() => navigate('/pipeline')}>Pipeline</button>
           <button style={s.navBtn} onClick={() => navigate('/diagrams')}>Diagrammes</button>
           <button style={s.navBtn} onClick={() => navigate('/navigator')}>Navigator</button>
@@ -264,7 +264,7 @@ export default function HomePage() {
         <div style={s.section}>
           <div style={s.sectionHeader}>
             <span style={s.sectionTitle}>Cartes mentales récentes</span>
-            <button style={s.seeAll} onClick={() => navigate('/')}>Voir tout →</button>
+            <button style={s.seeAll} onClick={() => navigate('/canvas')}>Voir tout →</button>
           </div>
           <div style={s.grid}>
             {summary?.projects.map(p => (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useMindMapStore } from './store/mindMapStore';
 import { useAuthStore } from './store/authStore';
 import { themes } from './theme/themes';
@@ -462,7 +462,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
-      <Route path="/" element={<PrivateRoute><CanvasView /></PrivateRoute>} />
+      <Route path="/canvas" element={<PrivateRoute><CanvasView /></PrivateRoute>} />
+      <Route path="/" element={<Navigate to="/workspaces" replace />} />
       <Route path="/graph" element={<PrivateRoute><GraphView /></PrivateRoute>} />
       <Route path="/collections" element={<PrivateRoute><CollectionsManager /></PrivateRoute>} />
       <Route path="/pipeline" element={<PrivateRoute><PipelineHome /></PrivateRoute>} />

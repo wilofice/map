@@ -7,6 +7,7 @@ import { useMindMapStore } from '../store/mindMapStore';
 
 interface Project { id: string; name: string; description: string; updated_at: string; }
 interface DiagramCollection { id: string; name: string; updated_at: string; }
+interface Diagram { id: string; title: string; type: string; diagram_collection_id: string; }
 interface PipelineCollection { id: string; name: string; description: string; color: string; updated_at: string; }
 
 interface Workspace {
@@ -17,6 +18,7 @@ interface Workspace {
   icon: string;
   projects: Project[];
   diagramCollections: DiagramCollection[];
+  diagrams: Diagram[];
   pipelineCollections: PipelineCollection[];
 }
 
@@ -168,22 +170,20 @@ export default function WorkspaceDetail() {
           items={ws.projects}
           onAdd={() => openAttachPicker('project')}
           onDetach={id => detach('project', id)}
-          onOpen={id => { loadProject(id); navigate('/'); }}
+          onOpen={id => { loadProject(id); navigate('/canvas'); }}
           border={border} card={card} text={text} muted={muted} accent={accent}
           emptyMsg="Aucune carte liée"
           style={sectionStyle} titleStyle={sectionTitle}
         />
 
         {/* Section: Diagrammes */}
-        <Section
-          title="Diagrammes"
-          emoji="📐"
-          items={ws.diagramCollections}
+        <DiagramsSection
+          diagramCollections={ws.diagramCollections}
+          diagrams={ws.diagrams}
           onAdd={() => openAttachPicker('diagram_collection')}
           onDetach={id => detach('diagram_collection', id)}
-          onOpen={() => navigate('/diagrams')}
+          onOpenDiagram={() => navigate('/diagrams')}
           border={border} card={card} text={text} muted={muted} accent={accent}
-          emptyMsg="Aucune collection de diagrammes liée"
           style={sectionStyle} titleStyle={sectionTitle}
         />
 
@@ -229,6 +229,69 @@ export default function WorkspaceDetail() {
             <button onClick={() => setAttachType(null)} style={{ marginTop: 14, padding: '7px 0', background: 'transparent', border: `1px solid ${border}`, borderRadius: 7, color: muted, cursor: 'pointer', fontSize: 13 }}>Fermer</button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── DiagramsSection component ────────────────────────────────────────────────
+
+const DIAGRAM_TYPE_ICON: Record<string, string> = {
+  sequence: '↔', flowchart: '⬡', classDiagram: '⬜', gantt: '📅', pie: '🥧', default: '📐',
+};
+
+function DiagramsSection({ diagramCollections, diagrams, onAdd, onDetach, onOpenDiagram, border, card, text, muted, accent, style, titleStyle }: {
+  diagramCollections: DiagramCollection[];
+  diagrams: Diagram[];
+  onAdd: () => void;
+  onDetach: (id: string) => void;
+  onOpenDiagram: () => void;
+  border: string; card?: string; text: string; muted: string; accent: string;
+  style: React.CSSProperties; titleStyle: React.CSSProperties;
+}) {
+  return (
+    <div style={style}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span style={titleStyle}>📐 Diagrammes</span>
+        <button onClick={onAdd}
+          style={{ fontSize: 12, padding: '4px 10px', background: accent + '22', color: accent, border: `1px solid ${accent}44`, borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
+          + Attacher
+        </button>
+      </div>
+      {diagramCollections.length === 0 ? (
+        <p style={{ fontSize: 13, color: muted, margin: 0 }}>Aucune collection de diagrammes liée</p>
+      ) : (
+        diagramCollections.map(coll => {
+          const collDiagrams = diagrams.filter(d => d.diagram_collection_id === coll.id);
+          return (
+            <div key={coll.id} style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{coll.name}</span>
+                <button onClick={() => onDetach(coll.id)}
+                  style={{ background: 'none', border: 'none', color: muted, cursor: 'pointer', fontSize: 14, opacity: 0.5, lineHeight: 1, padding: '1px 5px' }}
+                  title="Détacher">×</button>
+              </div>
+              {collDiagrams.length === 0 ? (
+                <p style={{ fontSize: 12, color: muted, margin: '0 0 4px 12px' }}>Aucun diagramme dans cette collection</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 12 }}>
+                  {collDiagrams.map(d => (
+                    <div key={d.id} onClick={onOpenDiagram}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px',
+                        border: `1px solid ${border}`, borderRadius: 8, cursor: 'pointer' }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = accent)}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = border)}
+                    >
+                      <span style={{ fontSize: 14 }}>{DIAGRAM_TYPE_ICON[d.type] ?? DIAGRAM_TYPE_ICON.default}</span>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: text }}>{d.title}</span>
+                      <span style={{ fontSize: 11, color: muted, background: accent + '18', padding: '2px 7px', borderRadius: 99 }}>{d.type}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })
       )}
     </div>
   );

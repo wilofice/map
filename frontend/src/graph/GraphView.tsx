@@ -176,7 +176,7 @@ function GraphSidebar({
 
       <div className="p-3 border-t shrink-0 flex flex-col gap-2" style={{ borderColor: t.border }}>
         <button
-          onClick={() => { navigate('/'); onClose(); }}
+          onClick={() => { navigate('/canvas'); onClose(); }}
           className="w-full py-1.5 rounded text-xs font-medium transition-colors hover:bg-[rgba(128,128,128,0.1)]"
           style={{ color: t.textSecondary }}
         >

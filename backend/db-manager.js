@@ -1502,7 +1502,13 @@ class DatabaseManager {
             WHERE wpc.workspace_id = ?
             ORDER BY pc.updated_at DESC
         `).all(id);
-        return { ...w, projects, diagramCollections, pipelineCollections };
+        const diagrams = this.db.prepare(`
+            SELECT d.* FROM diagrams d
+            JOIN workspace_diagram_collections wdc ON wdc.diagram_collection_id = d.diagram_collection_id
+            WHERE wdc.workspace_id = ?
+            ORDER BY d.created_at DESC
+        `).all(id);
+        return { ...w, projects, diagramCollections, diagrams, pipelineCollections };
     }
 
     createWorkspace(name, description = '', color = '#6366f1', icon = '🗂') {
