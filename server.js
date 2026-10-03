@@ -2517,10 +2517,17 @@ app.get('/api/db/stats', (req, res) => {
 app.get('/api/home/summary', (req, res) => {
     if (!db) return res.status(503).json({ error: 'Database not available' });
     try {
-        const projects  = db.getAllProjects(false).slice(0, 12);
-        const tasks     = db.getAllPipelineTasks(null, false).slice(0, 12);
-        const diagrams  = db.getAllDiagrams(null, false).slice(0, 12);
-        const stats     = db.getStats();
+        const projects = db.getAllProjects(false).slice(0, 12);
+        const tasks    = db.getAllPipelineTasks(null, false).slice(0, 12);
+        const diagrams = db.getAllDiagrams(null, false).slice(0, 12);
+        const rawDb    = _rawDb.db;
+        const stats = {
+            projects:        rawDb.prepare('SELECT COUNT(*) as c FROM projects WHERE archived = 0').get().c,
+            nodes:           rawDb.prepare('SELECT COUNT(*) as c FROM nodes').get().c,
+            completed_nodes: rawDb.prepare("SELECT COUNT(*) as c FROM nodes WHERE status = 'completed'").get().c,
+            pipeline_tasks:  rawDb.prepare('SELECT COUNT(*) as c FROM pipeline_tasks WHERE archived = 0').get().c,
+            diagrams:        rawDb.prepare('SELECT COUNT(*) as c FROM diagrams WHERE archived = 0').get().c,
+        };
         res.json({ projects, tasks, diagrams, stats });
     } catch (e) {
         res.status(500).json({ error: e.message });
