@@ -203,10 +203,9 @@ class DatabaseManager {
         // pipeline_nodes — image_url column (added post-initial migration)
         try { this.db.exec(`ALTER TABLE pipeline_nodes ADD COLUMN image_url TEXT`); } catch {}
 
-        // Archiving support
+        // Archiving support (projects + pipeline_tasks — diagrams table created below)
         addCol("ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0");
         addCol("ALTER TABLE pipeline_tasks ADD COLUMN archived INTEGER DEFAULT 0");
-        addCol("ALTER TABLE diagrams ADD COLUMN archived INTEGER DEFAULT 0");
 
         // Diagrams (Mermaid Studio)
         this.db.exec(`
@@ -223,6 +222,8 @@ class DatabaseManager {
             );
             CREATE INDEX IF NOT EXISTS idx_diagrams_collection ON diagrams(collection_id);
         `);
+        // archived must come AFTER CREATE TABLE (was silently failing before on fresh DBs)
+        addCol("ALTER TABLE diagrams ADD COLUMN archived INTEGER DEFAULT 0");
 
         // Diagram project collections (separate from Mind Map collections)
         this.db.exec(`

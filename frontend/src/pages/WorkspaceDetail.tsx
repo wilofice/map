@@ -323,13 +323,14 @@ function Section({ title, emoji, items, onAdd, onDetach, onOpen, border, text, m
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map(item => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+            <div key={item.id} onClick={() => onOpen(item.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
               border: `1px solid ${border}`, borderRadius: 8, cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = accent)}
               onMouseLeave={e => (e.currentTarget.style.borderColor = border)}
             >
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: text }} onClick={() => onOpen(item.id)}>{item.name}</span>
-              <button onClick={() => onDetach(item.id)}
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: text }}>{item.name}</span>
+              <button onClick={e => { e.stopPropagation(); onDetach(item.id); }}
                 style={{ background: 'none', border: 'none', color: muted, cursor: 'pointer', fontSize: 16, opacity: 0.5, lineHeight: 1, padding: '1px 5px' }}
                 title="Détacher">×</button>
             </div>
