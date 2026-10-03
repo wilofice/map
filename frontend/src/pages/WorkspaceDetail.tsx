@@ -240,7 +240,7 @@ const DIAGRAM_TYPE_ICON: Record<string, string> = {
   sequence: '↔', flowchart: '⬡', classDiagram: '⬜', gantt: '📅', pie: '🥧', default: '📐',
 };
 
-function DiagramsSection({ diagramCollections, diagrams, onAdd, onDetach, onOpenDiagram, border, card, text, muted, accent, style, titleStyle }: {
+function DiagramsSection({ diagramCollections, diagrams, onAdd, onDetach, onOpenDiagram, border, text, muted, accent, style, titleStyle }: {
   diagramCollections: DiagramCollection[];
   diagrams: Diagram[];
   onAdd: () => void;
