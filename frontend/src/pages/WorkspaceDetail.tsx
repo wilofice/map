@@ -43,9 +43,10 @@ export default function WorkspaceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
-  const themeName = (user as any)?.theme ?? 'dark';
-  const t = themes[themeName as keyof typeof themes] ?? themes.dark;
+  const themeName = (user as any)?.theme ?? 'ibm';
+  const t = themes[themeName as keyof typeof themes] ?? themes.ibm;
 
+  const isDark = themeName !== 'light';
   const loadProject = useMindMapStore(s => s.loadProject);
 
   const [ws, setWs] = useState<Workspace | null>(null);
@@ -245,7 +246,6 @@ function Section({ title, emoji, items, onAdd, onDetach, onOpen, border, text, m
   emptyMsg: string;
   style: React.CSSProperties; titleStyle: React.CSSProperties;
 }) {
-  const isDark = accent !== '#000';
   return (
     <div style={style}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

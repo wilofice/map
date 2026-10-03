@@ -39,8 +39,8 @@ const ICONS  = ['🗂','🏗','🚀','💡','🔬','🎯','⚙️','🌐','📦'
 
 export default function WorkspacesPage() {
   const user = useAuthStore(s => s.user);
-  const themeName = (user as any)?.theme ?? 'dark';
-  const t = themes[themeName as keyof typeof themes] ?? themes.dark;
+  const themeName = (user as any)?.theme ?? 'ibm';
+  const t = themes[themeName as keyof typeof themes] ?? themes.ibm;
   const isDark = themeName === 'dark';
   const navigate = useNavigate();
 
