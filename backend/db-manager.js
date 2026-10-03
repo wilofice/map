@@ -527,7 +527,7 @@ class DatabaseManager {
     createCollection(id, name, description = '') {
         try {
             this.stmts.insertCollection.run(id, name, description);
-            return { id, name, description };
+            return this.getCollection(id);
         } catch (error) {
             console.error('Error creating collection:', error);
             throw error;
@@ -596,7 +596,7 @@ class DatabaseManager {
     createProject(id, name, description = '', filePath = '', collectionId = null) {
         try {
             this.stmts.insertProject.run(id, name, description, filePath, collectionId);
-            return { id, name, description, filePath, collection_id: collectionId };
+            return this.getProject(id);
         } catch (error) {
             console.error('Error creating project:', error);
             throw error;
