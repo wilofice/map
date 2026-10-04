@@ -129,6 +129,22 @@ Once connected, your AI has access to these native database actions.
 | `create_pipeline_edge` | Connect two nodes (source must finish before target) |
 | `delete_pipeline_edge` | Remove a dependency edge |
 
+### Workspace tools
+
+Workspaces are named containers that group mind maps, diagram collections, and pipeline collections.
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `list_workspaces` | — | List all workspaces with item counts — **call first** |
+| `get_workspace` | `workspace_id` | Full workspace: attached projects, diagrams, pipeline collections |
+| `create_workspace` | `name`, `description?`, `color?`, `icon?` | Create a new workspace |
+| `update_workspace` | `workspace_id`, `name?`, `description?`, `color?`, `icon?` | Update metadata |
+| `delete_workspace` | `workspace_id` | Delete the container (attached items are kept) |
+| `attach_to_workspace` | `workspace_id`, `type`, `item_id` | Link a project / diagram_collection / pipeline_collection |
+| `detach_from_workspace` | `workspace_id`, `type`, `item_id` | Unlink an item without deleting it |
+
+**`type` values:** `project` · `diagram_collection` · `pipeline_collection`
+
 ### Diagram Studio tools
 
 Use these tools to create and manage Mermaid diagrams stored in the database. Each diagram is a lightweight text record (~2–4 KB) that the Diagram Studio renders as an interactive SVG.
