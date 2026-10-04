@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import mermaid from 'mermaid';
 import { useMindMapStore } from '../store/mindMapStore';
 import { themes } from '../theme/themes';
@@ -157,6 +158,7 @@ function MoveDropdown({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function DiagramStudio() {
+  const navigate = useNavigate();
   const { theme } = useMindMapStore();
   const t = themes[theme];
   const isDark = theme !== 'light';
@@ -401,6 +403,18 @@ export default function DiagramStudio() {
 
       {/* ── Sidebar ── */}
       <aside style={{ width: showSidebar ? 260 : 0, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: showSidebar ? `1px solid ${border}` : 'none', background: bg, overflow: 'hidden', transition: 'width 0.2s ease' }}>
+
+        {/* Navigation */}
+        <div style={{ display: 'flex', gap: 4, padding: '8px 10px', borderBottom: `1px solid ${border}`, flexShrink: 0 }}>
+          <button onClick={() => navigate('/workspaces')}
+            style={{ flex: 1, fontSize: 11, padding: '4px 0', background: 'transparent', border: `1px solid ${border}`, borderRadius: 5, color: muted, cursor: 'pointer', fontWeight: 500 }}>
+            ← Workspaces
+          </button>
+          <button onClick={() => navigate('/home')}
+            style={{ fontSize: 11, padding: '4px 8px', background: 'transparent', border: `1px solid ${border}`, borderRadius: 5, color: muted, cursor: 'pointer' }}>
+            🏠
+          </button>
+        </div>
 
         {/* Collections section */}
         <div style={{ flexShrink: 0 }}>
