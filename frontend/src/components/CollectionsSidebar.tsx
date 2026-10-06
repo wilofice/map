@@ -77,7 +77,7 @@ export default function CollectionsSidebar({
   const handleSelectProject = (id: string) => {
     loadProject(id);
     onClose();
-    navigate('/');
+    navigate('/canvas');
   };
 
   return (

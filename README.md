@@ -1,21 +1,23 @@
-# Modular Mind Map
+# Modular Mind Map — Colabo
 
-AI-driven interactive mind mapping and task pipeline application. Built on React Flow + Cytoscape.js with a persistent SQLite backend, Turso cloud sync, and MCP server integration.
+AI-driven collaborative mind mapping, pipeline, and diagram platform. Multi-user, JWT-authenticated, deployed on Railway with Turso cloud sync and MCP server integration.
 
-**Live (cloud):** [https://soothing-tenderness-production-60f6.up.railway.app](https://soothing-tenderness-production-60f6.up.railway.app)  
+**Live (colabo):** [https://colabo-production.up.railway.app](https://colabo-production.up.railway.app)  
 *See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Railway + Turso setup. See [docs/CHANGELOG.md](docs/CHANGELOG.md) for updates.*
 
 ---
 
 ## What's in the app
 
-Three fully independent tools share one server:
+Four tools, one server, JWT authentication required:
 
 | Tool | Route | Description |
 |---|---|---|
-| **Mind Map** | `/` `/graph` `/collections` | Hierarchical node canvas powered by React Flow |
+| **Workspaces** | `/workspaces` `/workspaces/:id` | Named containers grouping maps, diagrams, and pipelines — default landing page |
+| **Mind Map** | `/canvas` `/collections` | Hierarchical node canvas powered by React Flow |
 | **Pipeline** | `/pipeline` `/pipeline/:taskId` | Task graph canvas powered by Cytoscape.js |
 | **Diagram Studio** | `/diagrams` | Mermaid diagram editor with live SVG preview, pan/zoom, export |
+| **Home** | `/home` | Dashboard: stats, recent activity |
 
 ---
 
@@ -25,13 +27,15 @@ Three fully independent tools share one server:
 ┌─────────────────────────────────────────────────────┐
 │                    Browser                           │
 │  React 19 + TypeScript + Vite + Tailwind CSS v4      │
+│  Workspaces: custom React + REST                     │
 │  Mind Map: React Flow + Zustand + Dagre              │
 │  Pipeline: Cytoscape.js + Zustand (isolated store)   │
 │  Diagrams: Mermaid.js (lazy chunks) + pan/zoom       │
 └───────────────────┬─────────────────────────────────┘
-                    │  /api/*
+                    │  /api/*  (JWT required)
 ┌───────────────────▼─────────────────────────────────┐
-│         Express.js API  (port 3000 / Railway)        │
+│         Express.js API  (port 3333 local / Railway)  │
+│         JWT auth  (/api/auth/login, /api/auth/me)    │
 │         Node.js + better-sqlite3 (local SQLite)      │
 │         mind_maps.db — all reads/writes              │
 │         MCP Server: mcp.mjs (stdio JSON-RPC)         │
@@ -42,6 +46,8 @@ Three fully independent tools share one server:
 │                    └─────────────────────────┘       │
 └─────────────────────────────────────────────────────┘
 ```
+
+**Auth:** Every API call requires a `Bearer <JWT>` token obtained from `/api/auth/login`. The frontend stores the token in localStorage. Users are seeded via `scripts/create-user.js` or the admin endpoint.
 
 **Data flow:** All reads/writes go through local SQLite (fast, works offline). Every write is asynchronously replicated to Turso in the background. On server startup, the latest cloud state is pulled into local SQLite — so any Railway restart or new clone is immediately up to date.
 
@@ -122,10 +128,13 @@ npm install          # installs root + frontend (npm workspaces)
 ### Run (development)
 
 ```bash
-npm run dev:all
+PORT=3333 npm run dev:server   # backend on :3333
+npm run dev:ui                  # Vite frontend on :5173 (proxies /api/* → :3333)
 ```
 
-Opens at [http://localhost:5173](http://localhost:5173). Vite proxies `/api/*` to port 3000.
+The colabo instance uses **port 3333** to avoid conflicting with the private instance on 3000.
+
+Default credentials (development): `COLABO_USER` / `COLABO_PASS` — set in `.env`.
 
 ### Production build (local)
 
@@ -181,7 +190,7 @@ Connect Claude Desktop, Cursor, or any MCP-compatible client to manipulate mind 
 }
 ```
 
-Available tools: `list_projects`, `get_project_context`, `create_node`, `bulk_create_nodes`, `update_node`, `delete_node`, `search_nodes`, `add_progress_note`, `get_stats`, `list_pipeline_tasks`, `get_pipeline_task`, `create_pipeline_task`, `create_pipeline_node`, `update_pipeline_node`, `delete_pipeline_node`, `create_pipeline_edge`, `delete_pipeline_edge`, `list_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`.
+Available tools: `list_projects`, `get_project_context`, `create_node`, `bulk_create_nodes`, `update_node`, `delete_node`, `search_nodes`, `add_progress_note`, `get_stats`, `list_pipeline_tasks`, `get_pipeline_task`, `create_pipeline_task`, `create_pipeline_node`, `update_pipeline_node`, `delete_pipeline_node`, `create_pipeline_edge`, `delete_pipeline_edge`, `list_diagrams`, `get_diagram`, `create_diagram`, `update_diagram`, `list_workspaces`, `get_workspace`, `create_workspace`, `update_workspace`, `delete_workspace`, `attach_to_workspace`, `detach_from_workspace`.
 
 See [docs/MCP.md](docs/MCP.md) for full setup.
 
@@ -289,6 +298,26 @@ See [docs/Artefacts/AI-COPILOT-GUIDE.md](docs/Artefacts/AI-COPILOT-GUIDE.md) for
 
 ## API Reference
 
+### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login → returns `{ token, user }` |
+| GET | `/api/auth/me` | Current user (requires Bearer token) |
+| PUT | `/api/auth/change-password` | Change password |
+
+### Workspaces
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workspaces` | List all workspaces with item counts |
+| POST | `/api/workspaces` | Create workspace (`name`, `description`, `color`, `icon`) |
+| GET | `/api/workspaces/:id` | Get workspace with all attached items |
+| PUT | `/api/workspaces/:id` | Update workspace metadata |
+| DELETE | `/api/workspaces/:id` | Delete workspace |
+| POST | `/api/workspaces/:id/attach` | Attach item (`type`, `itemId`) |
+| POST | `/api/workspaces/:id/detach` | Detach item (`type`, `itemId`) |
+
 ### Mind Map
 
 | Method | Endpoint | Description |
@@ -341,13 +370,19 @@ See [docs/Artefacts/AI-COPILOT-GUIDE.md](docs/Artefacts/AI-COPILOT-GUIDE.md) for
 
 SQLite (`mind_maps.db`), managed by `backend/db-manager.js`. Migrations run automatically on every server start (idempotent).
 
+**Auth tables:** `users` (id, username, password_hash, role, theme, created_at)
+
 **Mind Map tables:** `projects`, `nodes`, `node_audio_files`, `collections`, `app_state`
 
 **Pipeline tables:** `pipeline_collections`, `pipeline_tasks`, `pipeline_nodes`, `pipeline_edges`
 
-**Diagram tables:** `diagrams` — stores Mermaid source text (~2–4 KB per diagram)
+**Diagram tables:** `diagram_collections`, `diagrams` (Mermaid source, ~2–4 KB each)
 
-**Cloud sync (Turso):** every write is replicated to `libsql://map-*.turso.io` in the background via `backend/turso-sync.js`. On startup the server pulls the latest cloud state into local SQLite. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in `.env` to enable — without them the app runs in local-only mode unchanged. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+**Workspace tables:** `workspaces`, `workspace_projects`, `workspace_diagram_collections`, `workspace_pipeline_collections`
+
+**Navigator tables:** `weekly_reports`
+
+**Cloud sync (Turso):** every write is replicated to `libsql://map-*.turso.io` in the background via `backend/turso-sync.js`. On startup the server pulls the latest cloud state into local SQLite. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in `.env` to enable. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 

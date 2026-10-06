@@ -139,7 +139,7 @@ export default function CollectionsManager() {
       <header className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ background: t.surface, borderColor: t.border }}>
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/canvas')}
             className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-[rgba(128,128,128,0.1)] transition-colors"
             style={{ color: t.textMuted }}
             title="Back to Canvas"
@@ -348,7 +348,7 @@ export default function CollectionsManager() {
                           
                           <div className="flex-1 min-w-0 cursor-pointer" onClick={() => {
                             loadProject(p.id);
-                            navigate('/');
+                            navigate('/canvas');
                           }}>
                             <div className="font-medium truncate" style={{ color: t.textHeading }}>{p.name}</div>
                             {searchQuery && (

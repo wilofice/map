@@ -1,8 +1,11 @@
 import type { Collection, MindMapNodeData, NodeAudioFile, Project, ProjectWithNodes } from '../types/NodeTypes';
+import { getStoredToken } from '../store/authStore';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getStoredToken();
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...options?.headers },
     ...options,
   });
   if (!res.ok) {
@@ -95,7 +98,12 @@ export const api = {
   async uploadNodeAudio(nodeId: string, file: File): Promise<NodeAudioFile> {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`/api/db/nodes/${nodeId}/audio`, { method: 'POST', body: form });
+    const token = getStoredToken();
+    const res = await fetch(`/api/db/nodes/${nodeId}/audio`, {
+      method: 'POST',
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Upload failed: ${text}`);

@@ -1,12 +1,19 @@
+import { getStoredToken } from '../store/authStore';
+
+function authHeader(): Record<string, string> {
+  const t = getStoredToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 async function req<T>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...opts?.headers }, ...opts });
+  const res = await fetch(path, { headers: { 'Content-Type': 'application/json', ...authHeader(), ...opts?.headers }, ...opts });
   if (!res.ok) throw new Error(`${path} → ${res.status}: ${await res.text()}`);
   const txt = await res.text();
   return (txt ? JSON.parse(txt) : undefined) as T;
 }
 
 async function upload<T>(path: string, formData: FormData): Promise<T> {
-  const res = await fetch(path, { method: 'POST', body: formData });
+  const res = await fetch(path, { method: 'POST', headers: authHeader(), body: formData });
   if (!res.ok) throw new Error(`${path} → ${res.status}: ${await res.text()}`);
   return res.json() as Promise<T>;
 }

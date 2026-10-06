@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import mermaid from 'mermaid';
 import { useMindMapStore } from '../store/mindMapStore';
 import { themes } from '../theme/themes';
+import { getStoredToken } from '../store/authStore';
+
+function ah(): Record<string, string> {
+  const t = getStoredToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
 
 const API = '/api/diagrams';
 const COL_API = '/api/diagram-collections';
@@ -151,6 +158,7 @@ function MoveDropdown({
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function DiagramStudio() {
+  const navigate = useNavigate();
   const { theme } = useMindMapStore();
   const t = themes[theme];
   const isDark = theme !== 'light';
@@ -184,7 +192,7 @@ export default function DiagramStudio() {
 
   // Load collections
   const loadCollections = useCallback(async () => {
-    const res = await fetch(COL_API);
+    const res = await fetch(COL_API, { headers: ah() });
     if (res.ok) setCollections(await res.json());
   }, []);
 
@@ -197,7 +205,7 @@ export default function DiagramStudio() {
     }
     if (showArchived) params.set('archived', '1');
     const qs = params.toString();
-    const res = await fetch(`${API}${qs ? `?${qs}` : ''}`);
+    const res = await fetch(`${API}${qs ? `?${qs}` : ''}`, { headers: ah() });
     if (res.ok) setDiagrams(await res.json());
   }, [selectedCollectionId, showArchived]);
 
@@ -242,7 +250,7 @@ export default function DiagramStudio() {
       setSaving(true);
       await fetch(`${API}/${selected.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...ah() },
         body: JSON.stringify({ code, title }),
       });
       setSaving(false);
@@ -253,7 +261,7 @@ export default function DiagramStudio() {
   }, [code, title]);
 
   const openDiagram = async (id: string) => {
-    const res = await fetch(`${API}/${id}`);
+    const res = await fetch(`${API}/${id}`, { headers: ah() });
     if (!res.ok) return;
     const d: Diagram = await res.json();
     setSelected(d); setCode(d.code); setTitle(d.title);
@@ -264,7 +272,7 @@ export default function DiagramStudio() {
     const colId = selectedCollectionId === 'all' ? null : selectedCollectionId;
     const res = await fetch(API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ah() },
       body: JSON.stringify({ title: 'Nouveau diagramme', code: STARTER[type], type, diagram_collection_id: colId }),
     });
     if (!res.ok) return;
@@ -276,7 +284,7 @@ export default function DiagramStudio() {
 
   const deleteDiagram = async (id: string) => {
     if (!confirm('Supprimer ce diagramme ?')) return;
-    await fetch(`${API}/${id}`, { method: 'DELETE' });
+    await fetch(`${API}/${id}`, { method: 'DELETE', headers: ah() });
     if (selected?.id === id) { setSelected(null); setCode(''); setTitle(''); }
     await loadCollections();
     setDiagrams(prev => prev.filter(d => d.id !== id));
@@ -285,7 +293,7 @@ export default function DiagramStudio() {
   const archiveDiagram = async (id: string, archived: boolean) => {
     await fetch(`${API}/${id}/archive`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ah() },
       body: JSON.stringify({ archived }),
     });
     if (selected?.id === id && archived) { setSelected(null); setCode(''); setTitle(''); }
@@ -295,7 +303,7 @@ export default function DiagramStudio() {
   const moveDiagram = async (diagramId: string, targetCollectionId: string | null) => {
     await fetch(`${API}/${diagramId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ah() },
       body: JSON.stringify({ diagram_collection_id: targetCollectionId ?? '' }),
     });
     await loadCollections();
@@ -307,7 +315,7 @@ export default function DiagramStudio() {
   const createCollection = async () => {
     const name = prompt('Nom du projet :');
     if (!name?.trim()) return;
-    const res = await fetch(COL_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }) });
+    const res = await fetch(COL_API, { method: 'POST', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ name: name.trim() }) });
     if (!res.ok) return;
     const col: DiagramCollection = await res.json();
     await loadCollections();
@@ -315,14 +323,14 @@ export default function DiagramStudio() {
   };
 
   const renameCollection = async (id: string, name: string) => {
-    await fetch(`${COL_API}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    await fetch(`${COL_API}/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...ah() }, body: JSON.stringify({ name }) });
     setCollections(prev => prev.map(c => c.id === id ? { ...c, name } : c));
   };
 
   const deleteCollection = async (id: string) => {
     const col = collections.find(c => c.id === id);
     if (!confirm(`Supprimer le projet "${col?.name}" ?\nLes diagrammes seront conservés sans projet.`)) return;
-    await fetch(`${COL_API}/${id}`, { method: 'DELETE' });
+    await fetch(`${COL_API}/${id}`, { method: 'DELETE', headers: ah() });
     if (selectedCollectionId === id) setSelectedCollectionId('all');
     await loadCollections();
     await loadDiagrams();
@@ -395,6 +403,18 @@ export default function DiagramStudio() {
 
       {/* ── Sidebar ── */}
       <aside style={{ width: showSidebar ? 260 : 0, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: showSidebar ? `1px solid ${border}` : 'none', background: bg, overflow: 'hidden', transition: 'width 0.2s ease' }}>
+
+        {/* Navigation */}
+        <div style={{ display: 'flex', gap: 4, padding: '8px 10px', borderBottom: `1px solid ${border}`, flexShrink: 0 }}>
+          <button onClick={() => navigate('/workspaces')}
+            style={{ flex: 1, fontSize: 11, padding: '4px 0', background: 'transparent', border: `1px solid ${border}`, borderRadius: 5, color: muted, cursor: 'pointer', fontWeight: 500 }}>
+            ← Workspaces
+          </button>
+          <button onClick={() => navigate('/home')}
+            style={{ fontSize: 11, padding: '4px 8px', background: 'transparent', border: `1px solid ${border}`, borderRadius: 5, color: muted, cursor: 'pointer' }}>
+            🏠
+          </button>
+        </div>
 
         {/* Collections section */}
         <div style={{ flexShrink: 0 }}>

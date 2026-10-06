@@ -24,6 +24,7 @@ const { createClient } = require('@libsql/client');
 
 // All tables that should be synced, in dependency order (parents before children).
 const SYNC_TABLES = [
+    'users',
     'collections',
     'projects',
     'nodes',
@@ -39,6 +40,10 @@ const SYNC_TABLES = [
     'diagram_collections',
     'diagrams',
     'weekly_reports',
+    'workspaces',
+    'workspace_projects',
+    'workspace_diagram_collections',
+    'workspace_pipeline_collections',
 ];
 
 // Maps each DatabaseManager write method to the Turso sync action it should trigger.
@@ -102,6 +107,12 @@ const WRITE_MAP = {
     deleteDiagram:              { table: 'diagrams',              action: 'delete', idArg: 0 },
     // Weekly Navigator
     upsertWeeklyReport:         { table: 'weekly_reports',        action: 'upsert-result' },
+    // Workspaces
+    createWorkspace:            { table: 'workspaces',            action: 'upsert-workspace' },
+    updateWorkspace:            { table: 'workspaces',            action: 'upsert-workspace' },
+    deleteWorkspace:            { table: 'workspaces',            action: 'delete', idArg: 0 },
+    attachToWorkspace:          { table: 'workspaces',            action: 'attach-workspace' },
+    detachFromWorkspace:        { table: 'workspaces',            action: 'detach-workspace' },
 };
 
 class TursoSync {
@@ -147,7 +158,7 @@ class TursoSync {
         // libSQL is SQLite-compatible so the same DDL works.
         const stmts = [
             `CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, color TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, file_path TEXT, collection_id TEXT, layout_dir TEXT DEFAULT 'LR', display_mode TEXT DEFAULT 'comfortable', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_opened DATETIME)`,
+            `CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, file_path TEXT, collection_id TEXT, layout_dir TEXT DEFAULT 'LR', display_mode TEXT DEFAULT 'comfortable', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, last_opened DATETIME, archived INTEGER DEFAULT 0)`,
             `CREATE TABLE IF NOT EXISTS nodes (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, parent_id TEXT, title TEXT NOT NULL, content TEXT, status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', start_date DATE, end_date DATE, days_spent INTEGER DEFAULT 0, code_language TEXT, code_content TEXT, task_prompt TEXT, cli_command TEXT, sort_order INTEGER DEFAULT 0, depth_level INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS node_progress (id TEXT PRIMARY KEY, node_id TEXT NOT NULL, message TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, agent_type TEXT DEFAULT 'ai')`,
@@ -155,16 +166,25 @@ class TursoSync {
             `CREATE TABLE IF NOT EXISTS node_audio_files (id TEXT PRIMARY KEY, node_id TEXT, project_id TEXT, original_filename TEXT, stored_filename TEXT, file_path TEXT, file_size INTEGER, mime_type TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS graph_settings (project_id TEXT PRIMARY KEY, layout_name TEXT NOT NULL DEFAULT 'dagre', positions TEXT NOT NULL DEFAULT '{}', zoom REAL NOT NULL DEFAULT 1, pan_x REAL NOT NULL DEFAULT 0, pan_y REAL NOT NULL DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT DEFAULT '', color TEXT DEFAULT '#6366f1', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS pipeline_tasks (id TEXT PRIMARY KEY, collection_id TEXT, name TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'general', status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', due_date DATE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS pipeline_tasks (id TEXT PRIMARY KEY, collection_id TEXT, name TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'general', status TEXT DEFAULT 'pending', priority TEXT DEFAULT 'medium', due_date DATE, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, archived INTEGER DEFAULT 0)`,
             `CREATE TABLE IF NOT EXISTS pipeline_nodes (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT DEFAULT '', status TEXT DEFAULT 'pending', type TEXT DEFAULT 'step', notes TEXT DEFAULT '', cli_command TEXT DEFAULT '', due_date DATE, position_x REAL DEFAULT 0, position_y REAL DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS pipeline_edges (id TEXT PRIMARY KEY, task_id TEXT NOT NULL, source_id TEXT NOT NULL, target_id TEXT NOT NULL, label TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS diagram_collections (id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-            `CREATE TABLE IF NOT EXISTS diagrams (id TEXT PRIMARY KEY, collection_id TEXT, diagram_collection_id TEXT, title TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'flowchart', code TEXT NOT NULL DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS diagrams (id TEXT PRIMARY KEY, collection_id TEXT, diagram_collection_id TEXT, title TEXT NOT NULL, description TEXT DEFAULT '', type TEXT DEFAULT 'flowchart', code TEXT NOT NULL DEFAULT '', archived INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
             `CREATE TABLE IF NOT EXISTS weekly_reports (id TEXT PRIMARY KEY, week_number INTEGER NOT NULL, year INTEGER NOT NULL, generated_at DATETIME DEFAULT CURRENT_TIMESTAMP, lessons_completed INTEGER DEFAULT 0, pipeline_tasks_done INTEGER DEFAULT 0, high_priority_nodes_done INTEGER DEFAULT 0, high_priority_nodes_blocked INTEGER DEFAULT 0, energy_physical INTEGER, energy_mental INTEGER, energy_emotional INTEGER, energy_blocker TEXT, eta_current_section_weeks REAL, eta_full_course_weeks REAL, eta_first_revenue_weeks REAL, velocity_4w_avg REAL, raw_json TEXT, UNIQUE(week_number, year))`,
+            `CREATE TABLE IF NOT EXISTS workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT DEFAULT '', color TEXT DEFAULT '#6366f1', icon TEXT DEFAULT '🗂', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+            `CREATE TABLE IF NOT EXISTS workspace_projects (workspace_id TEXT NOT NULL, project_id TEXT NOT NULL, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (workspace_id, project_id))`,
+            `CREATE TABLE IF NOT EXISTS workspace_diagram_collections (workspace_id TEXT NOT NULL, diagram_collection_id TEXT NOT NULL, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (workspace_id, diagram_collection_id))`,
+            `CREATE TABLE IF NOT EXISTS workspace_pipeline_collections (workspace_id TEXT NOT NULL, pipeline_collection_id TEXT NOT NULL, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (workspace_id, pipeline_collection_id))`,
         ];
         for (const sql of stmts) {
             await this.client.execute(sql);
         }
+
+        // Migrations: add missing archived columns if they don't exist in Turso
+        try { await this.client.execute('ALTER TABLE projects ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
+        try { await this.client.execute('ALTER TABLE pipeline_tasks ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
+        try { await this.client.execute('ALTER TABLE diagrams ADD COLUMN archived INTEGER DEFAULT 0'); } catch (e) {}
     }
 
     /**
@@ -252,6 +272,23 @@ class TursoSync {
         }
     }
 
+    async _deleteJunctionRow(table, wsId, itemId, wsCol, itemCol) {
+        if (!this.ready) return;
+        try {
+            await this.client.execute({ sql: `DELETE FROM ${table} WHERE ${wsCol} = ? AND ${itemCol} = ?`, args: [wsId, itemId] });
+        } catch (e) {
+            console.error(`[turso] delete junction ${table}:`, e.message);
+        }
+    }
+
+    _junctionMeta(type) {
+        return {
+            project:             { table: 'workspace_projects',              wsCol: 'workspace_id', itemCol: 'project_id' },
+            diagram_collection:  { table: 'workspace_diagram_collections',   wsCol: 'workspace_id', itemCol: 'diagram_collection_id' },
+            pipeline_collection: { table: 'workspace_pipeline_collections',  wsCol: 'workspace_id', itemCol: 'pipeline_collection_id' },
+        }[type] || null;
+    }
+
     /**
      * Called by the Proxy after each write method on DatabaseManager.
      * Fires asynchronously — does NOT block the synchronous return value.
@@ -296,6 +333,25 @@ class TursoSync {
             await this._deleteRow(table, args[spec.idArg]);
         } else if (action === 'delete-by-col') {
             await this._deleteByCol(table, spec.col, args[spec.idArg]);
+        } else if (action === 'upsert-workspace') {
+            if (result) {
+                const { projects, diagramCollections, pipelineCollections, ...wsRow } = result;
+                await this._upsertRow('workspaces', wsRow);
+            }
+        } else if (action === 'attach-workspace') {
+            // args: [workspaceId, type, itemId]
+            const [workspaceId, type, itemId] = args;
+            const j = this._junctionMeta(type);
+            if (j) await this._upsertRow(j.table, { [j.wsCol]: workspaceId, [j.itemCol]: itemId });
+            if (result) {
+                const { projects, diagramCollections, pipelineCollections, ...wsRow } = result;
+                await this._upsertRow('workspaces', wsRow);
+            }
+        } else if (action === 'detach-workspace') {
+            // args: [workspaceId, type, itemId]
+            const [workspaceId, type, itemId] = args;
+            const j = this._junctionMeta(type);
+            if (j) await this._deleteJunctionRow(j.table, workspaceId, itemId, j.wsCol, j.itemCol);
         }
 
         // Notify remote server to pull fresh data from Turso
@@ -312,6 +368,12 @@ class TursoSync {
             headers: { 'x-sync-secret': secret || '', 'Content-Type': 'application/json' },
         }).catch(e => console.error('[turso] remote notify failed:', e.message));
     }
+
+    /** Push a user row to Turso (called by AuthManager after writes). */
+    pushUser(user) { this._upsertRow('users', user); }
+
+    /** Remove a user from Turso by id (called by AuthManager after delete). */
+    removeUser(id) { this._deleteRow('users', id); }
 
     /**
      * Wraps a DatabaseManager instance with a Proxy that:

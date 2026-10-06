@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useMindMapStore } from './store/mindMapStore';
+import { useAuthStore } from './store/authStore';
 import { themes } from './theme/themes';
 import MindMapFlow from './MindMapFlow';
 import DetailPanel from './components/DetailPanel';
 import SettingsPanel from './components/SettingsPanel';
 import CollectionsSidebar from './components/CollectionsSidebar';
+import PrivateRoute from './components/PrivateRoute';
 import CollectionsManager from './pages/CollectionsManager';
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
+import WorkspacesPage from './pages/WorkspacesPage';
+import WorkspaceDetail from './pages/WorkspaceDetail';
 import GraphView from './graph/GraphView';
 import PipelineHome from './pipeline/PipelineHome';
 import PipelineGraph from './pipeline/PipelineGraph';
@@ -175,10 +181,13 @@ function CanvasView() {
               style={{ color: settingsPanelOpen ? t.bgAccent : t.textUI }}
               title="Settings"
             >⚙</button>
+            <HomeLink t={t} />
             <GraphViewLink t={t} />
             <PipelineLink t={t} />
             <DiagramsLink t={t} />
             <NavigatorLink t={t} />
+            <WorkspacesLink t={t} />
+            <UserMenu t={t} />
           </div>
         </header>
 
@@ -213,6 +222,20 @@ function CanvasView() {
         </div>
       </div>
     </div>
+  );
+}
+
+function HomeLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/home')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Dashboard d'accueil"
+    >
+      ⌂ Home
+    </button>
   );
 }
 
@@ -272,23 +295,183 @@ function NavigatorLink({ t }: { t: import('./theme/themes').AppTheme }) {
   );
 }
 
+function WorkspacesLink({ t }: { t: import('./theme/themes').AppTheme }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate('/workspaces')}
+      className="toolbar-btn"
+      style={{ color: t.textMuted }}
+      title="Workspaces — conteneurs unifiés"
+    >
+      🗂 Workspaces
+    </button>
+  );
+}
+
+function ChangePasswordModal({ t, onClose }: { t: import('./theme/themes').AppTheme; onClose: () => void }) {
+  const token = useAuthStore(s => s.token);
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (form.next !== form.confirm) { setError('Les nouveaux mots de passe ne correspondent pas'); return; }
+    if (form.next.length < 6) { setError('Minimum 6 caractères'); return; }
+    setSaving(true); setError(null);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: form.current, newPassword: form.next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur');
+    } finally { setSaving(false); }
+  }
+
+  const inp: React.CSSProperties = {
+    width: '100%', padding: '8px 12px', borderRadius: 7,
+    border: `1px solid ${t.border}`, background: t.shell, color: t.textPrimary,
+    fontSize: 14, marginBottom: 12, boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
+      onClick={onClose}>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: 28, width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+        onClick={e => e.stopPropagation()}>
+        <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: t.textPrimary }}>Changer le mot de passe</h3>
+        {success ? (
+          <p style={{ color: '#34d399', fontWeight: 600, textAlign: 'center', margin: '20px 0' }}>✓ Mot de passe mis à jour</p>
+        ) : (
+          <form onSubmit={submit}>
+            <label style={{ fontSize: 12, color: t.textMuted }}>Mot de passe actuel</label>
+            <input type="password" style={inp} value={form.current} onChange={e => setForm(f => ({ ...f, current: e.target.value }))} required />
+            <label style={{ fontSize: 12, color: t.textMuted }}>Nouveau mot de passe</label>
+            <input type="password" style={inp} value={form.next} onChange={e => setForm(f => ({ ...f, next: e.target.value }))} required />
+            <label style={{ fontSize: 12, color: t.textMuted }}>Confirmer</label>
+            <input type="password" style={{ ...inp, marginBottom: 16 }} value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} required />
+            {error && <p style={{ color: '#f87171', fontSize: 12, marginBottom: 12 }}>{error}</p>}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={onClose} style={{ padding: '7px 14px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: 7, color: t.textPrimary, cursor: 'pointer', fontSize: 13 }}>Annuler</button>
+              <button type="submit" disabled={saving} style={{ padding: '7px 14px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: saving ? 'wait' : 'pointer' }}>{saving ? '…' : 'Sauvegarder'}</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UserMenu({ t }: { t: import('./theme/themes').AppTheme }) {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+
+  function handleLogout() {
+    logout();
+    navigate('/login', { replace: true });
+  }
+
+  if (!user) return null;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        className="toolbar-btn"
+        style={{
+          color: t.textUI,
+          borderLeft: `1px solid ${t.border}`,
+          paddingLeft: 10,
+          marginLeft: 4,
+        }}
+        onClick={() => setOpen(o => !o)}
+        title={`Connecté : ${user.display_name}`}
+      >
+        👤 {user.display_name}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          right: 0,
+          marginTop: 6,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
+          borderRadius: 8,
+          minWidth: 180,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          zIndex: 200,
+        }}>
+          <div style={{ padding: '10px 14px', borderBottom: `1px solid ${t.border}` }}>
+            <div style={{ fontSize: 13, color: t.textHeading, fontWeight: 600 }}>{user.display_name}</div>
+            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>@{user.username} · {user.role}</div>
+          </div>
+          <button
+            onClick={() => { setOpen(false); setShowPwd(true); }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'transparent', border: 'none', color: t.textPrimary, fontSize: 13, cursor: 'pointer' }}
+          >
+            🔑 Changer le mot de passe
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              padding: '10px 14px',
+              background: 'transparent',
+              border: 'none',
+              color: '#fa4d56',
+              fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            Se déconnecter
+          </button>
+        </div>
+      )}
+
+      {showPwd && <ChangePasswordModal t={t} onClose={() => setShowPwd(false)} />}
+    </div>
+  );
+}
+
 export default function App() {
   const { loadProjects } = useMindMapStore();
+  const restoreSession = useAuthStore(s => s.restoreSession);
 
   useEffect(() => {
-    // Ensure we load projects at least once on startup
+    restoreSession();
+  }, [restoreSession]);
+
+  useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
   return (
     <Routes>
-      <Route path="/" element={<CanvasView />} />
-      <Route path="/graph" element={<GraphView />} />
-      <Route path="/collections" element={<CollectionsManager />} />
-      <Route path="/pipeline" element={<PipelineHome />} />
-      <Route path="/pipeline/:taskId" element={<PipelineGraph />} />
-      <Route path="/diagrams" element={<DiagramStudio />} />
-      <Route path="/navigator" element={<WeeklyNavigator />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/home" element={<PrivateRoute><HomePage /></PrivateRoute>} />
+      <Route path="/canvas" element={<PrivateRoute><CanvasView /></PrivateRoute>} />
+      <Route path="/" element={<Navigate to="/workspaces" replace />} />
+      <Route path="/graph" element={<PrivateRoute><GraphView /></PrivateRoute>} />
+      <Route path="/collections" element={<PrivateRoute><CollectionsManager /></PrivateRoute>} />
+      <Route path="/pipeline" element={<PrivateRoute><PipelineHome /></PrivateRoute>} />
+      <Route path="/pipeline/:taskId" element={<PrivateRoute><PipelineGraph /></PrivateRoute>} />
+      <Route path="/diagrams" element={<PrivateRoute><DiagramStudio /></PrivateRoute>} />
+      <Route path="/navigator" element={<PrivateRoute><WeeklyNavigator /></PrivateRoute>} />
+      <Route path="/workspaces" element={<PrivateRoute><WorkspacesPage /></PrivateRoute>} />
+      <Route path="/workspaces/:id" element={<PrivateRoute><WorkspaceDetail /></PrivateRoute>} />
     </Routes>
   );
 }

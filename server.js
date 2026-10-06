@@ -18,6 +18,9 @@ const { PureJSONHandler } = require('./backend/pure-json-models');
 // SQLite Database Integration
 const DatabaseManager = require('./backend/db-manager');
 const tursoSync = require('./backend/turso-sync');
+const AuthManager = require('./backend/auth-manager');
+const { requireAuth, requireAdmin } = require('./backend/auth-middleware');
+const createAuthRoutes = require('./backend/auth-routes');
 
 // Track file modification times for sync
 const fileModTimes = new Map();
@@ -25,10 +28,12 @@ const fileModTimes = new Map();
 // Initialize database
 let db = null;
 let _rawDb = null;
+let auth = null;
 try {
     _rawDb = new DatabaseManager();
     // Wrap with Turso sync proxy (no-op if TURSO_DATABASE_URL is not set)
     db = tursoSync.wrapDb(_rawDb);
+    auth = new AuthManager(_rawDb.db, tursoSync);
     console.log('✅ Database connected and ready');
 } catch (error) {
     console.error('❌ Database initialization failed:', error);
@@ -98,6 +103,38 @@ const nodeImageUpload = multer({
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Global API auth guard — protects all /api/* routes except the public allowlist
+const PUBLIC_API_PATHS = [
+    '/api/health',
+    '/api/auth/login',
+    '/api/turso/sync',
+    '/api/agent/bootstrap',
+    '/api/docs/start',
+    '/api/system-prompt',
+];
+app.use('/api', (req, res, next) => {
+    const fullPath = '/api' + req.path;
+    // Allow public paths and all /api/docs/* reads (AI agents bootstrap)
+    if (
+        PUBLIC_API_PATHS.includes(fullPath) ||
+        fullPath.startsWith('/api/docs/')
+    ) return next();
+
+    // Skip if auth not yet initialized
+    if (!auth) return next();
+
+    const header = req.headers['authorization'];
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+        req.user = auth.verifyToken(header.slice(7));
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+});
 // Serve compiled frontend (built by `npm run build:ui` → frontend-dist/)
 const frontendDist = path.join(__dirname, 'frontend-dist');
 if (fsSync.existsSync(frontendDist)) {
@@ -131,9 +168,18 @@ app.get('/api/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         database: db ? 'connected' : 'disconnected',
+        auth: auth ? 'enabled' : 'disabled',
+        build: 'multi-user-v1',
         workingDirectory: workingRootDir
     });
 });
+
+// Auth + Admin routes
+if (auth) {
+    const authRouter = createAuthRoutes(auth);
+    app.use('/api/auth', authRouter);
+    app.use('/api', authRouter); // mounts /api/admin/users etc.
+}
 
 // Manual Turso pull — called by local machine after MCP writes propagate to Turso.
 // Optionally protected by SYNC_SECRET env var.
@@ -2465,6 +2511,84 @@ app.get('/api/db/stats', (req, res) => {
         console.error('Error getting database stats:', error);
         res.status(500).json({ error: 'Failed to get database stats' });
     }
+});
+
+// Home dashboard summary — projects + pipelines + diagrams recent items + counts
+app.get('/api/home/summary', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const projects = db.getAllProjects(false).slice(0, 12);
+        const tasks    = db.getAllPipelineTasks(null, false).slice(0, 12);
+        const diagrams = db.getAllDiagrams(null, false).slice(0, 12);
+        const rawDb    = _rawDb.db;
+        const stats = {
+            projects:        rawDb.prepare('SELECT COUNT(*) as c FROM projects WHERE archived = 0').get().c,
+            nodes:           rawDb.prepare('SELECT COUNT(*) as c FROM nodes').get().c,
+            completed_nodes: rawDb.prepare("SELECT COUNT(*) as c FROM nodes WHERE status = 'completed'").get().c,
+            pipeline_tasks:  rawDb.prepare('SELECT COUNT(*) as c FROM pipeline_tasks WHERE archived = 0').get().c,
+            diagrams:        rawDb.prepare('SELECT COUNT(*) as c FROM diagrams WHERE archived = 0').get().c,
+        };
+        res.json({ projects, tasks, diagrams, stats });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ── Workspace API ────────────────────────────────────────────────────────────
+
+app.get('/api/workspaces', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { res.json(db.getAllWorkspaces()); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/workspaces', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { name, description, color, icon } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+    try { res.status(201).json(db.createWorkspace(name.trim(), description, color, icon)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const w = db.getWorkspace(req.params.id);
+        if (!w) return res.status(404).json({ error: 'Not found' });
+        res.json(w);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try {
+        const w = db.updateWorkspace(req.params.id, req.body);
+        if (!w) return res.status(404).json({ error: 'Not found' });
+        res.json(w);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/workspaces/:id', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    try { db.deleteWorkspace(req.params.id); res.status(204).end(); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Attach / detach items from a workspace
+// type: project | diagram_collection | pipeline_collection
+app.post('/api/workspaces/:id/attach', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { type, itemId } = req.body;
+    if (!type || !itemId) return res.status(400).json({ error: 'type and itemId required' });
+    try { res.json(db.attachToWorkspace(req.params.id, type, itemId)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/workspaces/:id/detach', (req, res) => {
+    if (!db) return res.status(503).json({ error: 'Database not available' });
+    const { type, itemId } = req.body;
+    if (!type || !itemId) return res.status(400).json({ error: 'type and itemId required' });
+    try { res.json(db.detachFromWorkspace(req.params.id, type, itemId)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Create database backup

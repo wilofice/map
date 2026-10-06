@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../hooks/useApi';
+import { getStoredToken } from '../store/authStore';
 import type { MindMapNodeData, ProjectWithNodes } from '../types/NodeTypes';
 import { STATUS_CYCLE } from '../types/NodeTypes';
 import type { ThemeKey } from '../theme/themes';
@@ -46,22 +47,27 @@ interface GraphState {
   setTheme: (t: ThemeKey) => void;
 }
 
+function authHeaders(): Record<string, string> {
+  const t = getStoredToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 const graphApi = {
   getSettings(projectId: string): Promise<GraphSettings> {
-    return fetch(`/api/graph/projects/${projectId}`)
+    return fetch(`/api/graph/projects/${projectId}`, { headers: authHeaders() })
       .then(r => r.ok ? r.json() : { layout_name: 'dagre', positions: {}, zoom: 1, pan_x: 0, pan_y: 0 });
   },
   saveSettings(projectId: string, settings: Partial<GraphSettings>): Promise<void> {
     return fetch(`/api/graph/projects/${projectId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(settings),
     }).then(() => {});
   },
   savePositions(projectId: string, positions: Record<string, { x: number; y: number }>): Promise<void> {
     return fetch(`/api/graph/projects/${projectId}/positions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ positions }),
     }).then(() => {});
   },

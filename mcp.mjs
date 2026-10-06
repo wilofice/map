@@ -29,8 +29,8 @@ tursoSync.init(_rawDb.db).catch(e => console.error('[mcp] turso init:', e.messag
 // ─── Server ───────────────────────────────────────────────────────────────────
 const server = new McpServer({
   name: "modular-mind-map",
-  version: "1.1.0",
-  description: "Direct read/write access to the Mind Map AND Pipeline databases. Mind Map tools manage hierarchical project trees. Pipeline tools manage directed task graphs with dependency edges.",
+  version: "1.2.0",
+  description: "Direct read/write access to Mind Map, Pipeline, Diagram, and Workspace databases. Workspace tools organise projects, diagram collections, and pipeline collections into named containers.",
 });
 
 // ─── Prompt ───────────────────────────────────────────────────────────────────
@@ -53,6 +53,11 @@ server.prompt(
           "4. Clarify any ambiguity with the user BEFORE writing to the database.",
           "5. When creating a plan, use `bulk_create_nodes` in a single call — avoid one-at-a-time creates for large batches.",
           "6. After any write operation confirm to the user: 'Done — check the map in the web app.'",
+          "",
+          "## Workspace Tools",
+          "Workspaces group mind maps (projects), diagram collections, and pipeline collections.",
+          "Use `list_workspaces` to discover workspaces, `get_workspace` to see all attached items.",
+          "Use `attach_to_workspace` / `detach_from_workspace` to link or unlink items (type = 'project' | 'diagram_collection' | 'pipeline_collection').",
           "",
           "## Pipeline Tools",
           "Use `list_pipeline_tasks` → `get_pipeline_task` to discover the current state.",
@@ -614,6 +619,127 @@ server.tool(
         ),
       ];
       return { content: [{ type: "text", text: lines.join("\n") }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+// ─── Workspaces ───────────────────────────────────────────────────────────────
+
+server.tool(
+  "list_workspaces",
+  "List all workspaces with item counts (projects, diagram collections, pipeline collections). Call this first to discover workspace IDs.",
+  {},
+  async () => {
+    try {
+      const workspaces = db.getAllWorkspaces();
+      return { content: [{ type: "text", text: JSON.stringify(workspaces, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "get_workspace",
+  "Get a workspace with all attached items: projects (mind maps), diagram collections, individual diagrams, and pipeline collections.",
+  { workspace_id: z.string().describe("Workspace ID (from list_workspaces)") },
+  async ({ workspace_id }) => {
+    try {
+      const ws = db.getWorkspace(workspace_id);
+      if (!ws) return { content: [{ type: "text", text: `Workspace '${workspace_id}' not found.` }], isError: true };
+      return { content: [{ type: "text", text: JSON.stringify(ws, null, 2) }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "create_workspace",
+  "Create a new workspace.",
+  {
+    name:        z.string().describe("Workspace name"),
+    description: z.string().optional().default(""),
+    color:       z.string().optional().default("#6366f1").describe("Hex accent color, e.g. '#10b981'"),
+    icon:        z.string().optional().default("🗂").describe("Single emoji icon"),
+  },
+  async ({ name, description, color, icon }) => {
+    try {
+      const ws = db.createWorkspace(name, description, color, icon);
+      return { content: [{ type: "text", text: `Created workspace '${name}' with id: ${ws.id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "update_workspace",
+  "Update a workspace's name, description, color, or icon.",
+  {
+    workspace_id: z.string(),
+    name:         z.string().optional(),
+    description:  z.string().optional(),
+    color:        z.string().optional().describe("Hex color string"),
+    icon:         z.string().optional().describe("Single emoji"),
+  },
+  async ({ workspace_id, ...patch }) => {
+    try {
+      const ws = db.updateWorkspace(workspace_id, patch);
+      if (!ws) return { content: [{ type: "text", text: `Workspace '${workspace_id}' not found.` }], isError: true };
+      return { content: [{ type: "text", text: `Updated workspace '${ws.name}'` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "delete_workspace",
+  "Delete a workspace. Does NOT delete the attached projects, diagrams, or pipelines — only removes the workspace container.",
+  { workspace_id: z.string() },
+  async ({ workspace_id }) => {
+    try {
+      db.deleteWorkspace(workspace_id);
+      return { content: [{ type: "text", text: `Deleted workspace ${workspace_id}` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "attach_to_workspace",
+  "Attach a project (mind map), diagram collection, or pipeline collection to a workspace.",
+  {
+    workspace_id: z.string(),
+    type:         z.enum(["project", "diagram_collection", "pipeline_collection"]).describe("Type of item to attach"),
+    item_id:      z.string().describe("ID of the project, diagram collection, or pipeline collection"),
+  },
+  async ({ workspace_id, type, item_id }) => {
+    try {
+      const ws = db.attachToWorkspace(workspace_id, type, item_id);
+      return { content: [{ type: "text", text: `Attached ${type} '${item_id}' to workspace '${ws.name}'` }] };
+    } catch (e) {
+      return { content: [{ type: "text", text: String(e) }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "detach_from_workspace",
+  "Detach a project, diagram collection, or pipeline collection from a workspace without deleting it.",
+  {
+    workspace_id: z.string(),
+    type:         z.enum(["project", "diagram_collection", "pipeline_collection"]),
+    item_id:      z.string().describe("ID of the item to detach"),
+  },
+  async ({ workspace_id, type, item_id }) => {
+    try {
+      db.detachFromWorkspace(workspace_id, type, item_id);
+      return { content: [{ type: "text", text: `Detached ${type} '${item_id}' from workspace ${workspace_id}` }] };
     } catch (e) {
       return { content: [{ type: "text", text: String(e) }], isError: true };
     }
